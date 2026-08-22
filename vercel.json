@@ -1,13 +1,13 @@
 {
   "rewrites": [
     {
-      "source": "/((?!assets/|.*\\..*).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
     {
-      "source": "/(.*\\.(png|svg|json|ico))",
+      "source": "/(.*).(png|svg|json|ico|jpg|jpeg|webp)",
       "headers": [
         {
           "key": "Cache-Control",
