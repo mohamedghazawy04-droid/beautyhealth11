@@ -259,7 +259,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                   {/* Quick WhatsApp Support */}
                   <div className="pt-2">
                     <a
-                      href={`https://wa.me/201012345678?text=${encodeURIComponent(
+                      href={`https://wa.me/201093629587?text=${encodeURIComponent(
                         `مرحباً خدمة عملاء متجر m&l، أود الاستفسار عن طلبي رقم #${selectedOrder.id}`
                       )}`}
                       target="_blank"
@@ -267,7 +267,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                       className="w-full py-2.5 rounded-xl bg-pink-100/70 hover:bg-pink-200 text-pink-950 font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer text-center no-underline"
                     >
                       <MessageCircle className="w-4 h-4 text-pink-700" />
-                      <span>تواصل مع خدمة العملاء بخصوص هذا الطلب</span>
+                      <span>تواصل مع خدمة العملاء بخصوص هذا الطلب (01093629587)</span>
                     </a>
                   </div>
                 </div>

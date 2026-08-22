@@ -46,12 +46,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   if (!isOpen) return null;
 
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const freeThreshold = storeSettings?.freeShippingThreshold || 400;
+  const freeThreshold = storeSettings?.freeShippingThreshold || 1000;
   const isFreeDelivery = subtotal >= freeThreshold || appliedCoupon === 'ZAYEDFREE';
-  const deliveryFee = isFreeDelivery ? 0 : 25;
+  const deliveryFee = isFreeDelivery ? 0 : 30;
   const grandTotal = Math.max(0, subtotal - discountAmount + deliveryFee);
 
-  const defaultWhatsApp = storeSettings?.contactWhatsApp || '201012345678';
+  const defaultWhatsApp = storeSettings?.contactWhatsApp || '201093629587';
   const cleanWhatsAppNumber = defaultWhatsApp.replace(/\D/g, '');
 
   const handleSubmitOrder = () => {
@@ -95,7 +95,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       notes,
       status: 'new',
       createdAt: new Date().toISOString(),
-      estimatedDelivery: 'خلال 24-48 ساعة',
+      estimatedDelivery: 'خلال ٢٤ ساعة من الطلب',
     };
 
     setTimeout(() => {

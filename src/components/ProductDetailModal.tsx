@@ -42,7 +42,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
 
-  const storeWhatsApp = storeSettings?.contactWhatsApp || '201012345678';
+  const storeWhatsApp = storeSettings?.contactWhatsApp || '201093629587';
   const cleanWhatsApp = storeWhatsApp.replace(/\D/g, '');
 
   const whatsappMessage = encodeURIComponent(
@@ -100,7 +100,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               <div className="p-3.5 rounded-2xl bg-pink-50/60 border border-pink-200/70 space-y-2">
                 <div className="flex items-center gap-2 text-pink-950 font-bold text-xs">
                   <Truck className="w-4 h-4 text-pink-600 shrink-0" />
-                  <span>توصيل سريع متاح مباشرة إلى باب بيتك في أكتوبر وزايد</span>
+                  <span>توصيل خلال ٢٤ ساعة متاح في أكتوبر، زايد، وحدائق أكتوبر (مجاني فوق 1000ج)</span>
                 </div>
                 <div className="flex items-center gap-1 text-[11px] text-pink-800 font-semibold pt-1 border-t border-pink-200/60">
                   <ShieldCheck className="w-3.5 h-3.5 text-pink-600" />

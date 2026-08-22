@@ -49,7 +49,7 @@ export const ZoneSelectorModal: React.FC<ZoneSelectorModalProps> = ({
             <div>
               <h2 className="font-extrabold text-lg">حددي منطقة التوصيل السريع</h2>
               <p className="text-xs text-pink-100">
-                خدمة توصيل فورية ومخصصة لجميع أحياء وكمبوندات ٦ أكتوبر والشيخ زايد
+                خدمة توصيل خلال ٢٤ ساعة لجميع أحياء ٦ أكتوبر والشيخ زايد وحدائق أكتوبر
               </p>
             </div>
           </div>

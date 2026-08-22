@@ -53,9 +53,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   if (!isOpen) return null;
 
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const freeThreshold = storeSettings?.freeShippingThreshold || (selectedZone?.freeDeliveryThreshold || 400);
+  const freeThreshold = storeSettings?.freeShippingThreshold || (selectedZone?.freeDeliveryThreshold || 1000);
   const isFreeDelivery = subtotal >= freeThreshold || appliedCoupon === 'ZAYEDFREE';
-  const effectiveDeliveryFee = isFreeDelivery ? 0 : (selectedZone?.deliveryFee || 25);
+  const effectiveDeliveryFee = isFreeDelivery ? 0 : (selectedZone?.deliveryFee || 30);
   const grandTotal = Math.max(0, subtotal - discountAmount + effectiveDeliveryFee);
 
   const amountNeededForFreeShipping = Math.max(0, freeThreshold - subtotal);
@@ -265,7 +265,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
             {/* WhatsApp Checkout Direct Link / Button */}
             {(() => {
-              const whatsappNumber = (storeSettings?.contactWhatsApp || '201012345678').replace(/\D/g, '');
+              const whatsappNumber = (storeSettings?.contactWhatsApp || '201093629587').replace(/\D/g, '');
               const itemsListText = items
                 .map(
                   (i, idx) =>

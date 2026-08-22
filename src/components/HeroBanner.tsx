@@ -25,7 +25,7 @@ interface HeroBannerProps {
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   onSelectCategory,
   onOpenInstallApp,
-  storeWhatsApp = '201012345678',
+  storeWhatsApp = '201093629587',
 }) => {
   const cleanWhatsApp = storeWhatsApp.replace(/\D/g, '');
 

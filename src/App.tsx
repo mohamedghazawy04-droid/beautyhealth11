@@ -182,13 +182,13 @@ export default function App() {
     }
     return {
       storeNameAr: 'M&l - متجر العناية ومستلزمات الأطفال',
-      announcementText: 'توصيل سريع فوري خلال ٦٠-١٢٠ دقيقة لكافة أحياء ٦ أكتوبر والشيخ زايد من متجر M&l - اطلب الآن!',
-      contactPhone: '01012345678',
-      contactWhatsApp: '201012345678',
-      defaultDeliveryFee: 20,
-      freeShippingThreshold: 350,
+      announcementText: 'توصيل سريع خلال ٢٤ ساعة في ٦ أكتوبر والشيخ زايد وحدائق أكتوبر 🚚 | شحن مجاني للطلبات فوق 1000 جنيه',
+      contactPhone: '01093629587',
+      contactWhatsApp: '201093629587',
+      defaultDeliveryFee: 30,
+      freeShippingThreshold: 1000,
       activeCoupons: [
-        { code: 'OCTOBER10', discountPercent: 10, description: 'خصم 10% لجميع سكان 6 أكتوبر' },
+        { code: 'OCTOBER10', discountPercent: 10, description: 'خصم 10% لجميع سكان 6 أكتوبر وزايد' },
         { code: 'ZAYEDFREE', discountPercent: 100, description: 'شحن مجاني لكافة أحياء الشيخ زايد' },
         { code: 'MOM2026', discountPercent: 15, description: 'خصم 15% على قسم العناية بالأم والطفل' }
       ]
@@ -1012,47 +1012,47 @@ export default function App() {
           )}
         </div>
 
-        {/* Hyperlocal 6th of October & Sheikh Zayed Features Footer Highlights */}
-        <section className="bg-gradient-to-br from-pink-950 via-rose-950 to-stone-950 text-white rounded-2xl sm:rounded-3xl mx-3 sm:mx-6 lg:mx-8 mb-12 p-4 sm:p-10 border border-pink-900/50 shadow-xl">
-          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-right">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-pink-900/80 border border-pink-700/50 flex items-center justify-center text-pink-300 shrink-0">
-                <Truck className="w-6 h-6" />
+        {/* Hyperlocal 6th of October, Sheikh Zayed & October Gardens Features Highlights */}
+        <section className="bg-gradient-to-br from-pink-950 via-rose-950 to-stone-950 text-white rounded-2xl mx-3 sm:mx-6 lg:mx-8 mb-6 p-4 sm:p-6 border border-pink-900/50 shadow-md">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-right">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-pink-900/80 border border-pink-700/50 flex items-center justify-center text-pink-300 shrink-0">
+                <Truck className="w-5 h-5" />
               </div>
-              <div className="space-y-1">
-                <h3 className="font-extrabold text-base text-white">
-                  توصيل فوري خلال ساعتين
+              <div className="space-y-0.5">
+                <h3 className="font-extrabold text-xs sm:text-sm text-white">
+                  توصيل خلال ٢٤ ساعة فقط
                 </h3>
-                <p className="text-xs text-pink-100/80 leading-relaxed">
-                  أسطول مناديب مخصص لكافة أحياء ٦ أكتوبر والشيخ زايد والكمبوندات (بيفرلي هيلز، الحصري، سوديك، الربوة، حدائق أكتوبر، بالم هيلز).
+                <p className="text-[11px] text-pink-100/80 leading-relaxed">
+                  متاح في ٦ أكتوبر، الشيخ زايد، وحدائق أكتوبر مع شحن مجاني للطلبات فوق 1000 جنيه.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-pink-900/80 border border-pink-700/50 flex items-center justify-center text-amber-300 shrink-0">
-                <ShieldCheck className="w-6 h-6" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-pink-900/80 border border-pink-700/50 flex items-center justify-center text-amber-300 shrink-0">
+                <ShieldCheck className="w-5 h-5" />
               </div>
-              <div className="space-y-1">
-                <h3 className="font-extrabold text-base text-white">
+              <div className="space-y-0.5">
+                <h3 className="font-extrabold text-xs sm:text-sm text-white">
                   منتجات أصلية ١٠٠٪ ومضمونة
                 </h3>
-                <p className="text-xs text-pink-100/80 leading-relaxed">
-                  نوفر فقط المنتجات الأصلية الصادرة من الوكلاء المعتمدين مع إمكانية فحص الباركود والمعاينة عند الاستلام قبل الدفع.
+                <p className="text-[11px] text-pink-100/80 leading-relaxed">
+                  أصلية وموثوقة من الوكلاء المعتمدين مع إمكانية المعاينة عند الاستلام قبل الدفع.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-pink-900/80 border border-pink-700/50 flex items-center justify-center text-pink-300 shrink-0">
-                <Sparkles className="w-6 h-6" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-pink-900/80 border border-pink-700/50 flex items-center justify-center text-pink-300 shrink-0">
+                <Sparkles className="w-5 h-5" />
               </div>
-              <div className="space-y-1">
-                <h3 className="font-extrabold text-base text-white">
-                  استشارة طبية وتجميلية ذكية
+              <div className="space-y-0.5">
+                <h3 className="font-extrabold text-xs sm:text-sm text-white">
+                  طلب فوري وخدمة عملاء نشطة
                 </h3>
-                <p className="text-xs text-pink-100/80 leading-relaxed">
-                  مستشارة العناية الذكية (د. سارة) تعمل على مدار الساعة لترشيح أفضل روتين ملائم لنوع بشرتك وشعرك ولعناية طفلك بأمان تام.
+                <p className="text-[11px] text-pink-100/80 leading-relaxed">
+                  لطلب الأوردر والاستفسار عبر الموبايل والواتساب: <span className="font-mono font-bold text-pink-300 dir-ltr inline-block">01093629587</span>
                 </p>
               </div>
             </div>
@@ -1060,46 +1060,49 @@ export default function App() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-stone-900 text-stone-400 text-xs py-8 border-t border-stone-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right">
-          <div>
-            <div className="font-black text-sm text-white flex items-center justify-center sm:justify-start gap-2">
-              <span className="font-['Plus_Jakarta_Sans',sans-serif] text-base text-pink-400 font-extrabold lowercase">m&l</span>
-              <span>• متجر العناية والجمال والطفل (٦ أكتوبر والشيخ زايد)</span>
-            </div>
-            <p className="text-[11px] text-stone-500 mt-1">
-              متجر m&l المتخصص في منتجات العناية بالمرأة والبشرة والجسم والشعر ومستلزمات الأطفال في مدينتي ٦ أكتوبر والشيخ زايد
-            </p>
+      {/* Slim & Compact Footer */}
+      <footer className="bg-stone-950 text-stone-400 text-xs py-4 border-t border-stone-800/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
+          <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
+            <span className="font-['Plus_Jakarta_Sans',sans-serif] text-sm text-pink-400 font-black lowercase">m&l</span>
+            <span className="text-stone-300 font-bold text-xs">متجر العناية والجمال والطفل</span>
+            <span className="text-stone-600 hidden sm:inline">•</span>
+            <span className="text-[11px] text-stone-400">توصيل خلال ٢٤ ساعة (أكتوبر • زايد • حدائق أكتوبر)</span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-stone-300">
+          <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] font-bold text-stone-300">
+            <a
+              href="tel:01093629587"
+              className="text-pink-400 hover:text-pink-300 font-mono transition-colors"
+            >
+              📞 01093629587
+            </a>
+            <a
+              href="https://wa.me/201093629587?text=مرحباً، أود الاستفسار وطلب أوردر من متجر m%26l"
+              target="_blank"
+              rel="noreferrer"
+              className="text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
+              💬 واتساب الطلب
+            </a>
             <button
               onClick={() => setIsOrderTrackingOpen(true)}
               className="hover:text-pink-400 transition-colors cursor-pointer"
             >
-              تتبع الطلبات
+              تتبع الطلب
             </button>
             <button
               onClick={() => setIsZoneModalOpen(true)}
               className="hover:text-pink-400 transition-colors cursor-pointer"
             >
-              أحياء ومناطق التوصيل
+              المناطق
             </button>
             <button
               onClick={() => setIsAdminOpen(true)}
               className="hover:text-pink-400 transition-colors cursor-pointer"
             >
-              بوابة الإدارة
+              المدير 🔒
             </button>
-            <a
-              href="https://wa.me/201000000000?text=مرحباً، أود التواصل مع خدمة العملاء"
-              target="_blank"
-              rel="noreferrer"
-              className="text-pink-400 hover:text-pink-300"
-            >
-              واتساب الدعم السريع
-            </a>
           </div>
         </div>
       </footer>
