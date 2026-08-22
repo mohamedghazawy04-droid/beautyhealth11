@@ -55,6 +55,7 @@ interface AdminPortalModalProps {
   onUpdateProduct?: (productId: string, updates: Partial<Product>) => void;
   onDeleteProduct?: (productId: string) => void;
   onClearAllProducts?: () => void;
+  onSeedDefaultProducts?: () => void;
   storeSettings?: StoreSettings;
   onUpdateStoreSettings?: (newSettings: StoreSettings) => void;
 }
@@ -71,6 +72,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   onUpdateProduct,
   onDeleteProduct,
   onClearAllProducts,
+  onSeedDefaultProducts,
   storeSettings,
   onUpdateStoreSettings,
 }) => {
@@ -334,16 +336,16 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
         {/* ========================================================================= */}
         {!isAuthenticated ? (
           <div className="p-6 sm:p-10 flex flex-col items-center justify-center text-center space-y-6 max-w-md mx-auto my-auto w-full">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-800 text-white flex items-center justify-center shadow-lg shadow-emerald-900/20">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-pink-600 to-rose-600 text-white flex items-center justify-center shadow-lg shadow-pink-900/20">
               <Lock className="w-8 h-8" />
             </div>
 
             <div className="space-y-1">
               <h2 className="text-xl sm:text-2xl font-black text-stone-900">
-                لوحة تحكم المدير الذكية 🔐
+                لوحة تحكم المدير 🔐
               </h2>
               <p className="text-xs sm:text-sm text-stone-500">
-                إدارة كاملة لطلبات ومخزون صيدليات ومخازن ٦ أكتوبر والشيخ زايد
+                إدارة كاملة للمنتجات والأسعار والمخزون وطلبات المتجر
               </p>
             </div>
 
@@ -361,7 +363,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       setAuthError('');
                     }}
                     placeholder="أدخل كلمة المرور..."
-                    className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-300 text-sm font-mono focus:ring-2 focus:ring-emerald-700 focus:outline-none pr-10 pl-10"
+                    className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-300 text-sm font-mono focus:ring-2 focus:ring-pink-600 focus:outline-none pr-10 pl-10"
                     autoFocus
                     required
                   />
@@ -385,18 +387,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-3.5 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-extrabold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Unlock className="w-4 h-4" />
                 <span>تسجيل الدخول والتحكم</span>
               </button>
-
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200/80 text-[11px] text-amber-900 flex items-center justify-between">
-                <span className="font-semibold">🔑 كلمة المرور الافتراضية:</span>
-                <code className="bg-white px-2 py-0.5 rounded border border-amber-300 font-mono font-bold text-emerald-800">
-                  admin2026
-                </code>
-              </div>
 
               <div className="pt-2">
                 <button
@@ -415,23 +410,23 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           /* ========================================================================= */
           <>
             {/* Header */}
-            <div className="p-4 sm:p-5 bg-gradient-to-r from-stone-900 via-emerald-950 to-stone-900 text-white flex items-center justify-between">
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-stone-900 via-rose-950 to-stone-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-md">
                   <Store className="w-6 h-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="font-black text-base sm:text-lg">
-                      لوحة إدارة الصيدلية والمخزن الذكية
+                      لوحة إدارة متجر m&l الذكية
                     </h2>
-                    <span className="bg-emerald-500/20 text-emerald-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                    <span className="bg-pink-500/20 text-pink-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-pink-500/30 flex items-center gap-1">
                       <ShieldCheck className="w-3 h-3" />
                       مدير المتجر المتصل
                     </span>
                   </div>
                   <p className="text-xs text-stone-300">
-                    التحكم الشامل في الطلبات، المناديب، المخزون، والتقارير الذكية بالـ AI
+                    التحكم الشامل في المنتجات، الأسعار، المخزون، الطلبات، والتقارير
                   </p>
                 </div>
               </div>
@@ -460,7 +455,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 onClick={() => setActiveTab('insights')}
                 className={`py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                   activeTab === 'insights'
-                    ? 'bg-emerald-800 text-white shadow-xs font-extrabold'
+                    ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-xs font-extrabold'
                     : 'text-stone-700 hover:bg-stone-200'
                 }`}
               >
@@ -472,7 +467,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 onClick={() => setActiveTab('orders')}
                 className={`py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                   activeTab === 'orders'
-                    ? 'bg-emerald-800 text-white shadow-xs font-extrabold'
+                    ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-xs font-extrabold'
                     : 'text-stone-700 hover:bg-stone-200'
                 }`}
               >
@@ -484,7 +479,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 onClick={() => setActiveTab('products')}
                 className={`py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                   activeTab === 'products'
-                    ? 'bg-emerald-800 text-white shadow-xs font-extrabold'
+                    ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-xs font-extrabold'
                     : 'text-stone-700 hover:bg-stone-200'
                 }`}
               >
@@ -496,7 +491,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 onClick={() => setActiveTab('newProduct')}
                 className={`py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                   activeTab === 'newProduct'
-                    ? 'bg-emerald-800 text-white shadow-xs font-extrabold'
+                    ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-xs font-extrabold'
                     : 'text-stone-700 hover:bg-stone-200'
                 }`}
               >
@@ -508,7 +503,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 onClick={() => setActiveTab('settings')}
                 className={`py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                   activeTab === 'settings'
-                    ? 'bg-emerald-800 text-white shadow-xs font-extrabold'
+                    ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-xs font-extrabold'
                     : 'text-stone-700 hover:bg-stone-200'
                 }`}
               >
@@ -897,7 +892,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
                       placeholder="بحث عن منتج بالاسم أو الماركة..."
-                      className="w-full pl-3 pr-8 py-2 rounded-xl bg-white border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                      className="w-full pl-3 pr-8 py-2 rounded-xl bg-white border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
                     />
                     <Search className="w-4 h-4 text-stone-400 absolute right-2.5 top-2.5" />
                   </div>
@@ -918,17 +913,41 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setActiveTab('newProduct')}
-                      className="px-3 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-extrabold text-xs flex items-center gap-1 cursor-pointer"
+                      className="px-3 py-2 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-xl font-extrabold text-xs flex items-center gap-1 cursor-pointer shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>إضافة صنف</span>
                     </button>
 
+                    {onSeedDefaultProducts && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            confirm(
+                              'هل تريد استعادة وتنزيل كتالوج المنتجات الافتراضية ونشرها سحابياً لجميع الزوار؟'
+                            )
+                          ) {
+                            onSeedDefaultProducts();
+                          }
+                        }}
+                        className="px-2.5 py-2 bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                        title="إعادة ملء ونشر كتالوج المنتجات"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">نشر المنتجات الأصلية</span>
+                      </button>
+                    )}
+
                     {products.length > 0 && onClearAllProducts && (
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm('هل أنت متأكد من رغبتك في مسح وتفريغ جميع المنتجات من المتجر؟')) {
+                          if (
+                            confirm(
+                              'هل أنت متأكد من رغبتك في مسح وتفريغ جميع المنتجات من المتجر سحابياً؟'
+                            )
+                          ) {
                             onClearAllProducts();
                           }
                         }}
@@ -936,7 +955,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                         title="إفراغ المتجر بالكامل"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">تفريغ المتجر</span>
+                        <span className="hidden sm:inline">تفريغ</span>
                       </button>
                     )}
                   </div>
@@ -945,23 +964,35 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 {/* Empty State or Products Grid */}
                 {products.length === 0 ? (
                   <div className="text-center py-16 px-4 bg-stone-50 rounded-3xl border border-stone-200 space-y-4">
-                    <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto shadow-sm">
+                    <div className="w-16 h-16 rounded-2xl bg-pink-100 text-pink-700 flex items-center justify-center mx-auto shadow-sm">
                       <Layers className="w-8 h-8" />
                     </div>
                     <div className="max-w-md mx-auto space-y-1">
                       <h4 className="font-black text-base text-stone-900">المتجر فارغ من المنتجات حالياً</h4>
                       <p className="text-xs text-stone-500">
-                        يمكنك البدء في رفع منتجاتك وصورها مباشرة من هاتفك المحمول أو إضافة أصناف جديدة الآن!
+                        يمكنك إضافة منتجات جديدة فوراً أو الضغط على زر استعادة المنتجات الأصلية لنشرها لجميع الزوار فوراً!
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('newProduct')}
-                      className="px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-black text-xs inline-flex items-center gap-2 cursor-pointer shadow-md"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>إضافة أول منتج للمتجر 🛍️</span>
-                    </button>
+                    <div className="flex items-center justify-center gap-3">
+                      {onSeedDefaultProducts && (
+                        <button
+                          type="button"
+                          onClick={() => onSeedDefaultProducts()}
+                          className="px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-xl font-black text-xs inline-flex items-center gap-2 cursor-pointer shadow-md"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                          <span>استعادة ونشر باقة المنتجات 📦</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('newProduct')}
+                        className="px-5 py-2.5 bg-white border border-stone-300 hover:bg-stone-100 text-stone-800 rounded-xl font-black text-xs inline-flex items-center gap-2 cursor-pointer shadow-xs"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>إضافة صنف جديد 🛍️</span>
+                      </button>
+                    </div>
                   </div>
                 ) : filteredProducts.length === 0 ? (
                   <div className="text-center py-12 bg-stone-50 rounded-2xl border border-stone-200">

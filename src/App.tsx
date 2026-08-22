@@ -54,12 +54,15 @@ export default function App() {
     const saved = localStorage.getItem('carehub_products');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       } catch (e) {
         console.error(e);
       }
     }
-    return [];
+    return PRODUCTS_DATA;
   });
 
   const [selectedZone, setSelectedZone] = useState<DeliveryZone>(() => {
@@ -239,6 +242,14 @@ export default function App() {
           });
           setProducts(prodsList);
           localStorage.setItem('carehub_products', JSON.stringify(prodsList));
+        } else {
+          // If Firestore is empty (new session or clean db), seed default products
+          const batch = writeBatch(db);
+          PRODUCTS_DATA.forEach((prod) => {
+            const docRef = doc(db, 'products', prod.id);
+            batch.set(docRef, prod);
+          });
+          batch.commit().catch((err) => console.error('Auto seed Firestore error:', err));
         }
       },
       (error) => {
@@ -246,7 +257,33 @@ export default function App() {
       }
     );
 
-    // 2. Listen for Store Settings
+    // 2. Listen for Orders from Firestore (real-time cross-device sync)
+    const unsubOrders = onSnapshot(
+      collection(db, 'orders'),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const ordersList: Order[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as Order;
+            ordersList.push({
+              ...data,
+              id: docSnap.id,
+            });
+          });
+          // Sort newest first
+          ordersList.sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          setOrders(ordersList);
+          localStorage.setItem('carehub_orders', JSON.stringify(ordersList));
+        }
+      },
+      (error) => {
+        console.error('Firestore orders listener error:', error);
+      }
+    );
+
+    // 3. Listen for Store Settings
     const unsubSettings = onSnapshot(
       collection(db, 'storeSettings'),
       (snapshot) => {
@@ -266,6 +303,7 @@ export default function App() {
 
     return () => {
       unsubProducts();
+      unsubOrders();
       unsubSettings();
     };
   }, []);
@@ -387,27 +425,67 @@ export default function App() {
   }, [appliedCoupon, subtotal]);
 
   // Order created
-  const handleOrderCompleted = (newOrder: Order) => {
+  const handleOrderCompleted = async (newOrder: Order) => {
     setOrders((prev) => [newOrder, ...prev]);
+    try {
+      await setDoc(doc(db, 'orders', newOrder.id), newOrder);
+    } catch (e) {
+      console.error('Failed to save order to Firestore:', e);
+    }
     showToast(`🎉 تم تسجيل طلبك بنجاح برقم #${newOrder.id}`);
   };
 
-  const handleUpdateOrderStatus = (orderId: string, newStatus: Order['status']) => {
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
+    let updatedOrderObj: Order | undefined;
     setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+      prev.map((o) => {
+        if (o.id === orderId) {
+          const updated = { ...o, status: newStatus };
+          updatedOrderObj = updated;
+          return updated;
+        }
+        return o;
+      })
     );
+    if (updatedOrderObj) {
+      try {
+        await setDoc(doc(db, 'orders', orderId), updatedOrderObj);
+      } catch (e) {
+        console.error('Failed to update order in Firestore:', e);
+      }
+    }
     showToast('تم تحديث حالة الطلب');
   };
 
-  const handleUpdateOrderDetails = (orderId: string, updates: Partial<Order>) => {
+  const handleUpdateOrderDetails = async (orderId: string, updates: Partial<Order>) => {
+    let updatedOrderObj: Order | undefined;
     setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, ...updates } : o))
+      prev.map((o) => {
+        if (o.id === orderId) {
+          const updated = { ...o, ...updates };
+          updatedOrderObj = updated;
+          return updated;
+        }
+        return o;
+      })
     );
+    if (updatedOrderObj) {
+      try {
+        await setDoc(doc(db, 'orders', orderId), updatedOrderObj);
+      } catch (e) {
+        console.error('Failed to update order details in Firestore:', e);
+      }
+    }
     showToast('تم حفظ تعديلات الطلب والمندوب');
   };
 
-  const handleDeleteOrder = (orderId: string) => {
+  const handleDeleteOrder = async (orderId: string) => {
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    try {
+      await deleteDoc(doc(db, 'orders', orderId));
+    } catch (e) {
+      console.error('Failed to delete order from Firestore:', e);
+    }
     showToast('تم حذف الطلب نهائياً من السجل');
   };
 
@@ -471,6 +549,22 @@ export default function App() {
       console.error('Failed to clear products from Firestore:', e);
     }
     showToast('✓ تم إفراغ جميع منتجات المتجر وحفظ السجل');
+  };
+
+  const handleSeedDefaultProducts = async () => {
+    setProducts(PRODUCTS_DATA);
+    localStorage.setItem('carehub_products', JSON.stringify(PRODUCTS_DATA));
+    try {
+      const batch = writeBatch(db);
+      PRODUCTS_DATA.forEach((prod) => {
+        const docRef = doc(db, 'products', prod.id);
+        batch.set(docRef, prod);
+      });
+      await batch.commit();
+    } catch (e) {
+      console.error('Failed to seed default products to Firestore:', e);
+    }
+    showToast('✓ تمت استعادة ونشر باقة المنتجات الاصلية سحابياً');
   };
 
   const handleUpdateStoreSettings = async (newSettings: StoreSettings) => {
@@ -1082,6 +1176,7 @@ export default function App() {
         onUpdateProduct={handleUpdateProduct}
         onDeleteProduct={handleDeleteProduct}
         onClearAllProducts={handleClearAllProducts}
+        onSeedDefaultProducts={handleSeedDefaultProducts}
         storeSettings={storeSettings}
         onUpdateStoreSettings={handleUpdateStoreSettings}
       />
