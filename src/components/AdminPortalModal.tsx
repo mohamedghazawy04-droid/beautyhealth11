@@ -262,6 +262,49 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     return matchCat && matchSearch;
   });
 
+  // Helper: Compress Image to keep Firestore document size small (<60KB)
+  const compressProductImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.75);
+            resolve(compressed);
+          } else {
+            resolve(event.target?.result as string);
+          }
+        };
+        img.onerror = () => reject(new Error('فشل معالجة الصورة'));
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('فشل قراءة الملف'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Handle Save Settings
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,8 +319,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     e.preventDefault();
     if (!newProductNameAr || !newProductBrand || !newProductPrice) return;
 
+    // Guaranteed Unique ID with timestamp and random salt
+    const uniqueId = 'prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+
     const newProd: Product = {
-      id: 'custom-' + Date.now(),
+      id: uniqueId,
       name: newProductNameAr,
       nameAr: newProductNameAr,
       brand: newProductBrand,
@@ -289,7 +335,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       inStock: newProductStock > 0,
       stockCount: Number(newProductStock),
       volume: newProductVolume,
-      image: newProductImage,
+      image: newProductImage || 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80',
       description: newProductDesc || 'منتج أصلي متوفر في مخازن أكتوبر والشيخ زايد.',
       benefits: ['منتج أصلي عالي الجودة', 'توصيل فوري نفس اليوم'],
       ingredients: ['مكونات طبية مصرح بها'],
@@ -301,8 +347,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
     onAddNewProduct(newProd);
     setActiveTab('products');
+
+    // Reset Form completely
     setNewProductNameAr('');
     setNewProductBrand('');
+    setNewProductPrice(250);
+    setNewProductStock(50);
+    setNewProductVolume('200 مل');
+    setNewProductImage('https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80');
     setNewProductDesc('');
   };
 
@@ -1267,21 +1319,22 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
                     <div className="flex flex-col sm:flex-row gap-3 items-center">
                       {/* Mobile / File upload button */}
-                      <label className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border-2 border-dashed border-emerald-300 text-emerald-800 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shrink-0">
-                        <Camera className="w-4 h-4 text-emerald-700" />
-                        <span>📸 اختيار صورة من الموبايل / الكاميرا</span>
+                      <label className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 border-2 border-dashed border-pink-300 text-pink-700 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shrink-0">
+                        <Camera className="w-4 h-4 text-pink-600" />
+                        <span>📸 التقاط أو اختيار صورة من الموبايل</span>
                         <input
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setNewProductImage(reader.result as string);
-                              };
-                              reader.readAsDataURL(file);
+                              try {
+                                const compressedUrl = await compressProductImage(file);
+                                setNewProductImage(compressedUrl);
+                              } catch (err) {
+                                console.error('Image compression failed:', err);
+                              }
                             }
                           }}
                         />
@@ -1294,23 +1347,31 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                           value={newProductImage}
                           onChange={(e) => setNewProductImage(e.target.value)}
                           placeholder="أو الصق رابط صورة مباشرة..."
-                          className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none text-left font-mono"
+                          className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none text-left font-mono"
                         />
                       </div>
                     </div>
 
                     {/* Image Preview */}
                     {newProductImage && (
-                      <div className="flex items-center gap-3 p-2 bg-stone-100 rounded-xl border border-stone-200">
+                      <div className="flex items-center gap-3 p-2.5 bg-pink-50/60 rounded-xl border border-pink-200">
                         <img
                           src={newProductImage}
                           alt="معاينة الصورة"
-                          className="w-12 h-12 object-cover rounded-lg border border-stone-300"
+                          className="w-12 h-12 object-cover rounded-lg border border-pink-200"
                         />
                         <div className="text-xs text-stone-600 flex-1">
-                          <div className="font-bold text-emerald-800">✓ تم تجهيز صورة المنتج بنجاح</div>
-                          <div className="text-[10px] text-stone-400">ستظهر بجودة عالية في المتجر</div>
+                          <div className="font-bold text-pink-700">✓ تم تجهيز وضغط صورة المنتج بنجاح</div>
+                          <div className="text-[10px] text-stone-500">حجم مثالي للحفظ السحابي والعرض السريع</div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setNewProductImage('')}
+                          className="p-1 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          title="حذف الصورة"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1325,16 +1386,16 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     value={newProductDesc}
                     onChange={(e) => setNewProductDesc(e.target.value)}
                     placeholder="اكتب وصفاً موجزاً عن فوائد المنتج..."
-                    className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-xs sm:text-sm shadow-md transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>حفظ المنتج ونشره فوراً في المتجر</span>
+                  <span>حفظ ونشر المنتج الجديد في المتجر سحابياً</span>
                 </button>
               </form>
             )}

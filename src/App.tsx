@@ -243,13 +243,15 @@ export default function App() {
           setProducts(prodsList);
           localStorage.setItem('carehub_products', JSON.stringify(prodsList));
         } else {
-          // If Firestore is empty (new session or clean db), seed default products
-          const batch = writeBatch(db);
-          PRODUCTS_DATA.forEach((prod) => {
-            const docRef = doc(db, 'products', prod.id);
-            batch.set(docRef, prod);
-          });
-          batch.commit().catch((err) => console.error('Auto seed Firestore error:', err));
+          // If Firestore is empty and PRODUCTS_DATA has items, seed them
+          if (PRODUCTS_DATA.length > 0) {
+            const batch = writeBatch(db);
+            PRODUCTS_DATA.forEach((prod) => {
+              const docRef = doc(db, 'products', prod.id);
+              batch.set(docRef, prod);
+            });
+            batch.commit().catch((err) => console.error('Auto seed Firestore error:', err));
+          }
         }
       },
       (error) => {
@@ -490,13 +492,20 @@ export default function App() {
   };
 
   const handleAddNewProduct = async (newProd: Product) => {
-    setProducts((prev) => [newProd, ...prev]);
+    setProducts((prev) => {
+      const exists = prev.some((p) => p.id === newProd.id);
+      if (exists) {
+        return prev.map((p) => (p.id === newProd.id ? newProd : p));
+      }
+      return [newProd, ...prev];
+    });
     try {
       await setDoc(doc(db, 'products', newProd.id), newProd);
+      showToast('✓ تمت إضافة ونشر المنتج بنجاح في المتجر سحابياً');
     } catch (e) {
       console.error('Failed to sync new product to Firestore:', e);
+      showToast('⚠️ تم حفظ المنتج محلياً');
     }
-    showToast('تمت إضافة المنتج وحفظه سحابياً');
   };
 
   const handleUpdateProduct = async (productId: string, updates: Partial<Product>) => {
