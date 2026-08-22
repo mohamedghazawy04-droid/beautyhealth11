@@ -2,25 +2,21 @@ import React, { useState } from 'react';
 import {
   ShoppingBag,
   Sparkles,
-  MapPin,
   Search,
-  Phone,
   MessageCircle,
   Truck,
   Heart,
   Store,
-  ChevronDown,
   ShieldCheck,
   Clock,
   Lock,
   Smartphone,
   Grid,
+  Download,
 } from 'lucide-react';
-import { DeliveryZone, Product, StoreSettings } from '../types';
+import { Product, StoreSettings } from '../types';
 
 interface NavbarProps {
-  selectedZone: DeliveryZone;
-  onOpenZoneModal: () => void;
   cartCount: number;
   onOpenCart: () => void;
   wishlistCount: number;
@@ -37,8 +33,6 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  selectedZone,
-  onOpenZoneModal,
   cartCount,
   onOpenCart,
   wishlistCount,
@@ -53,23 +47,20 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeCategory,
   storeSettings,
 }) => {
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-xs">
-      {/* Top Banner: October & Zayed Fast Delivery Guarantee */}
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-xs text-right">
+      {/* Top Banner with Announcement & Mobile App CTA */}
       <div className="bg-emerald-900 text-emerald-100 text-xs py-1.5 px-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 font-medium">
               <Truck className="w-3.5 h-3.5 text-emerald-400" />
-              {storeSettings?.announcementText ||
-                'توصيل سريع لنفس اليوم (٦٠-١٢٠ دقيقة) في ٦ أكتوبر والشيخ زايد'}
+              {storeSettings?.announcementText || 'توصيل سريع لجميع المحافظات | اطلب الآن عبر واتساب مباشرة!'}
             </span>
             <span className="hidden md:inline-block text-emerald-300">|</span>
             <span className="hidden md:flex items-center gap-1 text-emerald-200">
               <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-              منتجات أصلية ١٠٠٪ ومضمونة من الوكلاء والصيدليات
+              منتجات أصلية ١٠٠٪ ومضمونة
             </span>
           </div>
 
@@ -77,10 +68,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             {onOpenInstallApp && (
               <button
                 onClick={onOpenInstallApp}
-                className="px-2.5 py-0.5 rounded-full bg-amber-400/25 hover:bg-amber-400/40 text-amber-300 transition-all cursor-pointer flex items-center gap-1 border border-amber-400/50 shadow-xs"
+                className="px-2.5 py-0.5 rounded-full bg-amber-400 hover:bg-amber-300 text-stone-950 transition-all cursor-pointer flex items-center gap-1 border border-amber-300 shadow-xs font-black text-[11px]"
               >
-                <Smartphone className="w-3.5 h-3.5 text-amber-300" />
-                <span className="font-extrabold text-[11px]">تثبيت التطبيق 📲</span>
+                <Download className="w-3 h-3 text-stone-950" />
+                <span>تحميل التطبيق على الموبايل 📲</span>
               </button>
             )}
             <button
@@ -91,7 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden sm:inline">تتبع طلبك</span>
             </button>
             <a
-              href={`https://wa.me/${storeSettings?.contactWhatsApp || '201012345678'}?text=مرحباً، أود الاستفسار عن منتجات متجر M&l`}
+              href={`https://wa.me/${(storeSettings?.contactWhatsApp || '201012345678').replace(/\D/g, '')}?text=مرحباً، أود الاستفسار عن منتجات المتجر`}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1 hover:text-emerald-300 transition-colors text-emerald-300 font-bold"
@@ -124,35 +115,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   M<span className="text-emerald-600">&</span>l
                 </span>
                 <span className="bg-emerald-50 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                  {storeSettings?.storeNameAr || 'عناية وأطفال'}
+                  {storeSettings?.storeName || 'متجر العناية'}
                 </span>
               </div>
               <p className="text-[11px] text-stone-500 hidden sm:block font-medium">
-                العناية بالبشرة والجسم والشعر • مستلزمات الأطفال والرضع (أكتوبر وزايد)
+                العناية بالبشرة والجسم والشعر • مستلزمات الأطفال • تسوق مباشر عبر واتساب
               </p>
             </div>
           </div>
-
-          {/* Hyperlocal Zone Picker Button */}
-          <button
-            onClick={onOpenZoneModal}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-emerald-50 border border-stone-200 hover:border-emerald-300 transition-all text-right group cursor-pointer"
-            title="تغيير منطقة التوصيل"
-          >
-            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
-              <MapPin className="w-4 h-4" />
-            </div>
-            <div className="hidden lg:block text-xs leading-tight">
-              <div className="text-[10px] text-stone-500 font-medium">التوصيل إلى:</div>
-              <div className="font-bold text-stone-900 group-hover:text-emerald-800 flex items-center gap-1">
-                {selectedZone.name}
-                <ChevronDown className="w-3 h-3 text-stone-400 group-hover:text-emerald-600" />
-              </div>
-            </div>
-            <span className="lg:hidden text-xs font-bold text-stone-800">
-              {selectedZone.city === 'zayed' ? 'زايد' : 'أكتوبر'}
-            </span>
-          </button>
 
           {/* Search Input on Desktop */}
           <div className="hidden md:flex flex-1 max-w-md relative">
@@ -160,7 +130,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="ابحث عن منتج (موستيلا، سودوكريم، سيرافي، زيت روزماري، كيرلي...)"
+              placeholder="ابحث عن منتج، ماركة، أو علاج..."
               className="w-full pl-4 pr-10 py-2 rounded-xl bg-stone-100 border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition-all text-stone-800 placeholder:text-stone-400"
             />
             <Search className="w-4 h-4 text-stone-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
@@ -176,6 +146,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Install App mobile quick button */}
+            {onOpenInstallApp && (
+              <button
+                onClick={onOpenInstallApp}
+                className="md:hidden p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-xs flex items-center gap-1 cursor-pointer"
+                title="تثبيت التطبيق على الهاتف"
+              >
+                <Smartphone className="w-4 h-4 text-amber-700" />
+                <span className="text-[11px]">التطبيق</span>
+              </button>
+            )}
+
             {/* Wishlist Button */}
             <button
               onClick={onOpenWishlist}
@@ -193,7 +175,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Cart Button */}
             <button
               onClick={onOpenCart}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-sm font-bold shadow-sm transition-all cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-sm font-bold shadow-sm transition-all cursor-pointer"
             >
               <div className="relative">
                 <ShoppingBag className="w-5 h-5" />
@@ -215,7 +197,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="ابحث عن منتج، ماركة، أو علاج..."
+              placeholder="ابحث عن منتج أو ماركة..."
               className="w-full pl-4 pr-10 py-2 rounded-xl bg-stone-100 border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition-all text-stone-800"
             />
             <Search className="w-4 h-4 text-stone-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
@@ -239,9 +221,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           {[
             { id: 'all', label: 'كل المنتجات 🛍️' },
             { id: 'baby', label: 'العناية بالطفل والرضيع 👶' },
-            { id: 'hair', label: 'العناية بالشعر والتساقط 💇‍♀️' },
+            { id: 'hair', label: 'العناية بالشعر 💇‍♀️' },
             { id: 'body', label: 'العناية بالجسم والبشرة ✨' },
-            { id: 'bundles', label: 'بكجات التوفير السريعة 🎁' },
+            { id: 'bundles', label: 'بكجات وعروض خاصة 🎁' },
           ].map((cat) => (
             <button
               key={cat.id}

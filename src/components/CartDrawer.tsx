@@ -7,13 +7,12 @@ import {
   ShoppingBag,
   ArrowLeft,
   Truck,
-  Sparkles,
-  Zap,
+  MessageCircle,
   Tag,
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
-import { CartItem, DeliveryZone } from '../types';
+import { CartItem, StoreSettings } from '../types';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -22,13 +21,12 @@ interface CartDrawerProps {
   onUpdateQuantity: (productId: string, delta: number) => void;
   onRemoveItem: (productId: string) => void;
   onClearCart: () => void;
-  selectedZone: DeliveryZone;
-  onOpenZoneModal: () => void;
   onProceedToCheckout: () => void;
   appliedCoupon: string;
   onApplyCoupon: (code: string) => { success: boolean; message: string };
   onRemoveCoupon: () => void;
   discountAmount: number;
+  storeSettings?: StoreSettings;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -38,13 +36,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onUpdateQuantity,
   onRemoveItem,
   onClearCart,
-  selectedZone,
-  onOpenZoneModal,
   onProceedToCheckout,
   appliedCoupon,
   onApplyCoupon,
   onRemoveCoupon,
   discountAmount,
+  storeSettings,
 }) => {
   const [couponInput, setCouponInput] = useState('');
   const [couponFeedback, setCouponFeedback] = useState<{ success: boolean; message: string } | null>(null);
@@ -52,12 +49,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   if (!isOpen) return null;
 
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const isFreeDelivery = subtotal >= selectedZone.freeDeliveryThreshold || appliedCoupon === 'ZAYEDFREE';
-  const effectiveDeliveryFee = isFreeDelivery ? 0 : selectedZone.deliveryFee;
+  const freeThreshold = storeSettings?.freeShippingThreshold || 400;
+  const isFreeDelivery = subtotal >= freeThreshold || appliedCoupon === 'ZAYEDFREE';
+  const effectiveDeliveryFee = isFreeDelivery ? 0 : 25;
   const grandTotal = Math.max(0, subtotal - discountAmount + effectiveDeliveryFee);
 
-  const amountNeededForFreeShipping = Math.max(0, selectedZone.freeDeliveryThreshold - subtotal);
-  const progressPercent = Math.min(100, Math.round((subtotal / selectedZone.freeDeliveryThreshold) * 100));
+  const amountNeededForFreeShipping = Math.max(0, freeThreshold - subtotal);
+  const progressPercent = Math.min(100, Math.round((subtotal / freeThreshold) * 100));
 
   const handleApplyCoupon = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +65,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-xs flex justify-end animate-in fade-in duration-200 text-right">
       <div className="w-full max-w-md bg-white h-full flex flex-col shadow-2xl border-l border-stone-200">
         {/* Drawer Header */}
         <div className="p-4 border-b border-stone-200 flex items-center justify-between bg-stone-50">
@@ -96,7 +94,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <span className="flex items-center gap-1.5">
               <Truck className="w-3.5 h-3.5 text-emerald-700" />
               {isFreeDelivery
-                ? '🎉 تهانينا! الشحن مجاني لطلبك في ' + selectedZone.name
+                ? '🎉 تهانينا! الشحن مجاني لطلبك'
                 : `أضف بـ ${amountNeededForFreeShipping} جنيه للحصول على شحن مجاني!`}
             </span>
           </div>
@@ -118,7 +116,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <div>
                 <h3 className="font-bold text-stone-800 text-base">السلة فارغة حالياً</h3>
                 <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">
-                  تصفحي أفضل منتجات العناية بالشعر والبشرة ومستلزمات الأطفال مع التوصيل الفوري بأكتوبر وزايد.
+                  تصفح المنتجات وأضف ما يناسبك إلى السلة لإتمام الطلب فوراً عبر واتساب.
                 </p>
               </div>
             </div>
@@ -129,16 +127,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 className="p-3 rounded-2xl border border-stone-200 bg-white shadow-2xs flex items-center gap-3"
               >
                 <img
-                  src={item.product.image}
-                  alt={item.product.nameAr}
+                  src={item.product.image || 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80'}
+                  alt={item.product.nameAr || item.product.name}
                   className="w-16 h-16 object-cover rounded-xl border border-stone-100 shrink-0"
                 />
                 <div className="flex-1 min-w-0 space-y-1 text-right">
                   <h4 className="font-bold text-xs text-stone-900 line-clamp-1">
-                    {item.product.nameAr}
+                    {item.product.nameAr || item.product.name}
                   </h4>
                   <div className="text-[11px] text-stone-500 font-medium">
-                    {item.product.volume} • {item.product.brand}
+                    {item.product.volume} {item.product.brand ? `• ${item.product.brand}` : ''}
                   </div>
                   <div className="font-black text-xs text-emerald-800">
                     {item.product.price} جنيه
@@ -202,7 +200,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     type="text"
                     value={couponInput}
                     onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                    placeholder="كود الخصم (مثال: OCTOBER10)"
+                    placeholder="كود الخصم (مثال: OFF10)"
                     className="flex-1 px-3 py-1.5 rounded-xl bg-white border border-stone-300 text-xs uppercase font-mono focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                   />
                   <button
@@ -245,15 +243,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               )}
 
               <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1">
-                  <span>التوصيل ({selectedZone.city === 'zayed' ? 'زايد' : 'أكتوبر'}):</span>
-                  <button
-                    onClick={onOpenZoneModal}
-                    className="text-[10px] text-emerald-700 underline font-semibold cursor-pointer"
-                  >
-                    تغيير
-                  </button>
-                </span>
+                <span>التوصيل:</span>
                 <span className="font-bold text-stone-900">
                   {effectiveDeliveryFee === 0 ? (
                     <span className="text-emerald-700 font-black">مجاني 🎉</span>
@@ -275,10 +265,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 onClose();
                 onProceedToCheckout();
               }}
-              className="w-full py-3.5 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all cursor-pointer"
+              className="w-full py-3.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all cursor-pointer"
             >
-              <span>متابعة إتمام الطلب</span>
-              <ArrowLeft className="w-4 h-4" />
+              <span>متابعة وإرسال الطلب عبر واتساب</span>
+              <MessageCircle className="w-4 h-4" />
             </button>
           </div>
         )}

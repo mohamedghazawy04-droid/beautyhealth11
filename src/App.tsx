@@ -48,7 +48,7 @@ export default function App() {
         console.error(e);
       }
     }
-    return PRODUCTS_DATA;
+    return [];
   });
 
   const [selectedZone, setSelectedZone] = useState<DeliveryZone>(() => {
@@ -373,6 +373,12 @@ export default function App() {
       setDetailProduct(null);
     }
     showToast('تم حذف المنتج من المتجر');
+  };
+
+  const handleClearAllProducts = () => {
+    setProducts([]);
+    localStorage.removeItem('carehub_products');
+    showToast('✓ تم إفراغ جميع منتجات المتجر');
   };
 
   const handleUpdateStoreSettings = (newSettings: StoreSettings) => {
@@ -729,12 +735,30 @@ export default function App() {
           </div>
 
           {/* Products Grid */}
-          {filteredProducts.length === 0 ? (
+          {products.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-3xl border border-stone-200 p-8 space-y-4 shadow-sm">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto shadow-sm">
+                <ShoppingBag className="w-8 h-8" />
+              </div>
+              <div className="space-y-1 max-w-md mx-auto">
+                <h3 className="font-black text-stone-900 text-lg">المتجر فارغ وبانتظار إضافة المنتجات</h3>
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  يمكنك الآن إضافة وتصوير المنتجات مباشرة من هاتفك المحمول وتحديد الأسعار عبر بوابة الإدارة لتظهر للعملاء فوراً!
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAdminOpen(true)}
+                className="px-6 py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs sm:text-sm font-extrabold transition-colors cursor-pointer shadow-md inline-flex items-center gap-2"
+              >
+                <span>🔐 فتح لوحة الإدارة وإضافة أول منتج</span>
+              </button>
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-3xl border border-stone-200 p-8 space-y-3">
               <Search className="w-12 h-12 text-stone-400 mx-auto" />
               <h3 className="font-bold text-stone-800 text-base">لم نجد منتجات مطابقة لبحثك</h3>
               <p className="text-xs text-stone-500 max-w-sm mx-auto">
-                جربي البحث باسم آخر أو إعادة ضبط التصفيات، أو اسألي مستشارة العناية الذكية لمساعدتك!
+                جربي البحث باسم آخر أو إعادة ضبط التصفيات!
               </p>
               <button
                 onClick={() => {
@@ -906,12 +930,11 @@ export default function App() {
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
         items={cart}
-        selectedZone={selectedZone}
-        onOpenZoneModal={() => setIsZoneModalOpen(true)}
         appliedCoupon={appliedCoupon}
         discountAmount={discountAmount}
         onOrderCompleted={handleOrderCompleted}
         onClearCart={handleClearCart}
+        storeSettings={storeSettings}
       />
 
       <OrderTrackingModal
@@ -943,6 +966,7 @@ export default function App() {
         onAddNewProduct={handleAddNewProduct}
         onUpdateProduct={handleUpdateProduct}
         onDeleteProduct={handleDeleteProduct}
+        onClearAllProducts={handleClearAllProducts}
         storeSettings={storeSettings}
         onUpdateStoreSettings={handleUpdateStoreSettings}
       />

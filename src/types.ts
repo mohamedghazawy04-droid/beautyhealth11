@@ -56,14 +56,14 @@ export interface Product {
 }
 
 export interface DeliveryZone {
-  id: string;
-  name: string;
-  city: 'october' | 'zayed';
-  districtNameAr: string;
-  deliveryFee: number;
-  estimatedDeliveryTime: string; // e.g. "ساعتين - 3 ساعات"
-  freeDeliveryThreshold: number;
-  popularLandmarks: string[];
+  id?: string;
+  name?: string;
+  city?: 'october' | 'zayed' | string;
+  districtNameAr?: string;
+  deliveryFee?: number;
+  estimatedDeliveryTime?: string;
+  freeDeliveryThreshold?: number;
+  popularLandmarks?: string[];
 }
 
 export interface CartItem {
@@ -79,14 +79,14 @@ export interface Order {
   customerName: string;
   phone: string;
   alternatePhone?: string;
-  city: 'october' | 'zayed';
-  zoneId: string;
-  zoneName: string;
+  city?: string;
+  zoneId?: string;
+  zoneName?: string;
   detailedAddress: string;
-  buildingNumber: string;
-  floorNumber: string;
-  apartmentNumber: string;
-  landmark: string;
+  buildingNumber?: string;
+  floorNumber?: string;
+  apartmentNumber?: string;
+  landmark?: string;
   items: CartItem[];
   subtotal: number;
   deliveryFee: number;
@@ -97,7 +97,7 @@ export interface Order {
   notes?: string;
   status: 'new' | 'preparing' | 'with_courier' | 'delivered' | 'cancelled';
   createdAt: string;
-  estimatedDelivery: string;
+  estimatedDelivery?: string;
   instaPayReceipt?: string;
   courierName?: string;
   courierPhone?: string;

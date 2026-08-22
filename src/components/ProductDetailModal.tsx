@@ -10,11 +10,9 @@ import {
   MessageCircle,
   CheckCircle2,
   AlertCircle,
-  Share2,
-  Sparkles,
   ShoppingBag,
 } from 'lucide-react';
-import { Product, DeliveryZone } from '../types';
+import { Product, StoreSettings } from '../types';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -22,8 +20,8 @@ interface ProductDetailModalProps {
   onAddToCart: (product: Product, quantity: number) => void;
   isWishlisted: boolean;
   onToggleWishlist: (product: Product) => void;
-  selectedZone: DeliveryZone;
   onOpenReviewModal?: (product: Product) => void;
+  storeSettings?: StoreSettings;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
@@ -32,8 +30,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onAddToCart,
   isWishlisted,
   onToggleWishlist,
-  selectedZone,
   onOpenReviewModal,
+  storeSettings,
 }) => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'details' | 'howTo' | 'ingredients' | 'reviews'>('details');
@@ -44,13 +42,16 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
 
+  const storeWhatsApp = storeSettings?.contactWhatsApp || '201012345678';
+  const cleanWhatsApp = storeWhatsApp.replace(/\D/g, '');
+
   const whatsappMessage = encodeURIComponent(
-    `مرحباً، أود طلب هذا المنتج مباشرة:\n- المنتج: ${product.nameAr}\n- السعر: ${product.price} جنيه\n- الكمية: ${quantity}\n- التوصيل إلى: ${selectedZone.name}`
+    `مرحباً، أود طلب هذا المنتج مباشرة:\n- المنتج: ${product.nameAr || product.name}\n- السعر: ${product.price} جنيه\n- الكمية: ${quantity}`
   );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
-      <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-right">
         {/* Modal Header */}
         <div className="p-4 border-b border-stone-200 flex items-center justify-between bg-stone-50">
           <div className="flex items-center gap-2 text-xs text-stone-500 font-medium">
@@ -73,8 +74,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <div className="md:col-span-5 space-y-4">
               <div className="relative aspect-square rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 shadow-inner">
                 <img
-                  src={product.image}
-                  alt={product.nameAr}
+                  src={product.image || 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80'}
+                  alt={product.nameAr || product.name}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover object-center"
                 />
@@ -95,16 +96,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </button>
               </div>
 
-              {/* October & Zayed Delivery Notice */}
+              {/* Delivery Notice */}
               <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
                 <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
                   <Truck className="w-4 h-4 text-emerald-700 shrink-0" />
-                  <span>توصيل سريع لنفس اليوم: {selectedZone.name}</span>
+                  <span>توصيل سريع متاح مباشرة إلى باب بيتك</span>
                 </div>
-                <p className="text-[11px] text-emerald-800 leading-relaxed">
-                  يتم تجهيز الطلب من المخزن المركزي في أكتوبر وتوصيله خلال{' '}
-                  <span className="font-bold">{selectedZone.estimatedDeliveryTime}</span>.
-                </p>
                 <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold pt-1 border-t border-emerald-200/60">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                   <span>ضمان أصالة المنتج ١٠٠٪ مع إمكانية المعاينة عند الاستلام</span>
@@ -122,34 +119,36 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     ? 'عناية الشعر والتساقط 💇‍♀️'
                     : product.category === 'body'
                     ? 'العناية بالجسم والبشرة ✨'
-                    : 'بكج توفير متكامل 🎁'}
+                    : 'بكج توفير وعروض 🎁'}
                 </span>
                 <h1 className="text-lg sm:text-2xl font-black text-stone-900 mt-2 leading-snug">
-                  {product.nameAr}
+                  {product.nameAr || product.name}
                 </h1>
-                <p className="text-xs text-stone-500 mt-0.5 font-mono">{product.name}</p>
+                {product.name && product.nameAr !== product.name && (
+                  <p className="text-xs text-stone-500 mt-0.5 font-mono">{product.name}</p>
+                )}
               </div>
 
               {/* Rating & Volume */}
               <div className="flex flex-wrap items-center gap-4 text-xs">
                 <div className="flex items-center gap-1 text-amber-500 font-bold">
                   <Star className="w-4 h-4 fill-amber-400" />
-                  <span>{product.rating}</span>
-                  <span className="text-stone-400 font-normal">({product.reviewsCount} تقييم حقيقي)</span>
+                  <span>{product.rating || 5.0}</span>
+                  <span className="text-stone-400 font-normal">({product.reviewsCount || 1} تقييم)</span>
                 </div>
                 <span className="text-stone-300">•</span>
-                <span className="font-bold text-stone-700">الحجم: {product.volume}</span>
+                <span className="font-bold text-stone-700">الحجم: {product.volume || 'حجم قياسي'}</span>
                 <span className="text-stone-300">•</span>
                 <span className="text-emerald-700 font-bold flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  متوفر في المخزن ({product.stockCount} قطعة)
+                  متوفر في المخزن ({product.stockCount || 50} قطعة)
                 </span>
               </div>
 
               {/* Price Block */}
               <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between">
                 <div>
-                  <div className="text-[11px] text-stone-500">السعر النهائي:</div>
+                  <div className="text-[11px] text-stone-500">السعر:</div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-black text-stone-950">
                       {product.price} <span className="text-xs font-normal">جنيه</span>
@@ -186,7 +185,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               {product.safetyNote && (
                 <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>ملاحظة أمان وتطبيق: {product.safetyNote}</span>
+                  <span>ملاحظة: {product.safetyNote}</span>
                 </div>
               )}
 
@@ -216,36 +215,42 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <div className="py-3 text-xs leading-relaxed text-stone-700 min-h-[90px]">
                   {activeTab === 'details' && (
                     <div className="space-y-2">
-                      <p className="text-stone-800 font-medium">{product.description}</p>
-                      <ul className="space-y-1 mt-2">
-                        {product.benefits.map((b, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-stone-700">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                            <span>{b}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <p className="text-stone-800 font-medium">{product.description || 'منتج عالي الجودة ومضمون.'}</p>
+                      {product.benefits && product.benefits.length > 0 && (
+                        <ul className="space-y-1 mt-2">
+                          {product.benefits.map((b, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-stone-700">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                              <span>{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   )}
 
                   {activeTab === 'howTo' && (
                     <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
-                      <h4 className="font-bold text-stone-900 mb-1">إرشادات الاستخدام اليومي:</h4>
-                      <p className="text-stone-700">{product.howToUse}</p>
+                      <h4 className="font-bold text-stone-900 mb-1">إرشادات الاستخدام:</h4>
+                      <p className="text-stone-700">{product.howToUse || 'استخدم المنتج حسب التعليمات المرفقة على العبوة.'}</p>
                     </div>
                   )}
 
                   {activeTab === 'ingredients' && (
                     <div className="space-y-2">
                       <div className="flex flex-wrap gap-1.5">
-                        {product.ingredients.map((ing, idx) => (
-                          <span
-                            key={idx}
-                            className="bg-stone-100 text-stone-800 px-2.5 py-1 rounded-lg text-[11px] font-medium"
-                          >
-                            {ing}
-                          </span>
-                        ))}
+                        {product.ingredients && product.ingredients.length > 0 ? (
+                          product.ingredients.map((ing, idx) => (
+                            <span
+                              key={idx}
+                              className="bg-stone-100 text-stone-800 px-2.5 py-1 rounded-lg text-[11px] font-medium"
+                            >
+                              {ing}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-stone-500 text-xs">المكونات مدونة على العبوة الأصلية.</span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -256,23 +261,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                           <div className="text-3xl sm:text-4xl font-black text-amber-900 font-mono">
-                            {typeof product.rating === 'number' ? product.rating.toFixed(1) : product.rating}
+                            {typeof product.rating === 'number' ? product.rating.toFixed(1) : (product.rating || '5.0')}
                           </div>
                           <div>
                             <div className="flex text-amber-500">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
                                   key={star}
-                                  className={`w-4 h-4 ${
-                                    star <= Math.round(product.rating)
-                                      ? 'fill-amber-400 text-amber-500'
-                                      : 'text-stone-300'
-                                  }`}
+                                  className="w-4 h-4 fill-amber-400 text-amber-500"
                                 />
                               ))}
                             </div>
                             <div className="text-xs text-stone-600 font-bold mt-0.5">
-                              متوسط التقييم من {product.reviewsCount} عميل موثق
+                              متوسط التقييم من العملاء
                             </div>
                           </div>
                         </div>
@@ -300,14 +301,16 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                               <div className="flex items-center justify-between text-xs">
                                 <div className="flex items-center gap-2">
                                   <span className="font-extrabold text-stone-900">{rev.userName}</span>
-                                  <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
-                                    مشتري موثق ({rev.userArea})
-                                  </span>
+                                  {rev.userArea && (
+                                    <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                                      مشتري موثق ({rev.userArea})
+                                    </span>
+                                  )}
                                 </div>
                                 <span className="text-stone-400 text-[11px]">{rev.date}</span>
                               </div>
                               <div className="flex text-amber-500">
-                                {[...Array(rev.rating)].map((_, i) => (
+                                {[...Array(rev.rating || 5)].map((_, i) => (
                                   <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-500" />
                                 ))}
                               </div>
@@ -316,7 +319,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                           ))
                         ) : (
                           <div className="text-center py-6 bg-stone-50 rounded-2xl border border-stone-200 p-4 space-y-2">
-                            <p className="text-stone-500 text-xs">كن أول من يكتب تقييماً لهذا المنتج في زايد وأكتوبر!</p>
+                            <p className="text-stone-500 text-xs">كن أول من يكتب تقييماً لهذا المنتج!</p>
                             {onOpenReviewModal && (
                               <button
                                 type="button"
@@ -348,13 +351,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </button>
 
                 <a
-                  href={`https://wa.me/201000000000?text=${whatsappMessage}`}
+                  href={`https://wa.me/${cleanWhatsApp}?text=${whatsappMessage}`}
                   target="_blank"
                   rel="noreferrer"
                   className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer shrink-0"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  <span>طلب فوري عبر واتساب</span>
+                  <span>طلب مباشر عبر واتساب</span>
                 </a>
               </div>
             </div>

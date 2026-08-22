@@ -115,7 +115,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {product.isOctoberZayedFastDelivery && (
             <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold pt-0.5">
               <Truck className="w-3 h-3 text-emerald-600 shrink-0" />
-              <span>توصيل اليوم في ٦ أكتوبر والشيخ زايد</span>
+              <span>توصيل سريع متاح</span>
             </div>
           )}
         </div>

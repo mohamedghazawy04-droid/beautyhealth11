@@ -37,6 +37,9 @@ import {
   RefreshCw,
   LogOut,
   ExternalLink,
+  Upload,
+  Image as ImageIcon,
+  Camera,
 } from 'lucide-react';
 import { Order, Product, MainCategory, StoreSettings, SmartBusinessReport } from '../types';
 
@@ -51,6 +54,7 @@ interface AdminPortalModalProps {
   onAddNewProduct: (product: Product) => void;
   onUpdateProduct?: (productId: string, updates: Partial<Product>) => void;
   onDeleteProduct?: (productId: string) => void;
+  onClearAllProducts?: () => void;
   storeSettings?: StoreSettings;
   onUpdateStoreSettings?: (newSettings: StoreSettings) => void;
 }
@@ -66,6 +70,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   onAddNewProduct,
   onUpdateProduct,
   onDeleteProduct,
+  onClearAllProducts,
   storeSettings,
   onUpdateStoreSettings,
 }) => {
@@ -884,9 +889,9 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             {/* TAB 3: PRODUCTS & STOCK MANAGEMENT */}
             {activeTab === 'products' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-                {/* Search & Category Filter */}
+                {/* Search & Category Filter & Clear Catalog */}
                 <div className="flex flex-wrap gap-2 items-center justify-between bg-stone-50 p-3 rounded-2xl border border-stone-200 text-xs">
-                  <div className="flex-1 min-w-[200px] relative">
+                  <div className="flex-1 min-w-[180px] relative">
                     <input
                       type="text"
                       value={productSearch}
@@ -909,165 +914,216 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       <option value="baby">العناية بالطفل</option>
                       <option value="bundles">بكجات التوفير</option>
                     </select>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('newProduct')}
+                      className="px-3 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-extrabold text-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>إضافة صنف</span>
+                    </button>
+
+                    {products.length > 0 && onClearAllProducts && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm('هل أنت متأكد من رغبتك في مسح وتفريغ جميع المنتجات من المتجر؟')) {
+                            onClearAllProducts();
+                          }
+                        }}
+                        className="px-2.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                        title="إفراغ المتجر بالكامل"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">تفريغ المتجر</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* Products Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {filteredProducts.map((prod) => {
-                    const isEditing = editingProductId === prod.id;
-                    return (
-                      <div
-                        key={prod.id}
-                        className="p-3.5 rounded-2xl border border-stone-200 bg-white flex flex-col justify-between gap-3 shadow-2xs"
-                      >
-                        <div className="flex items-start gap-3 min-w-0">
-                          <img
-                            src={prod.image}
-                            alt={prod.nameAr}
-                            className="w-14 h-14 rounded-xl object-cover shrink-0 border border-stone-200"
-                          />
-                          <div className="min-w-0 flex-1 space-y-1">
-                            <h4 className="font-extrabold text-xs text-stone-900 line-clamp-1">
-                              {prod.nameAr}
-                            </h4>
-                            <div className="text-[11px] text-stone-500 font-medium">
-                              {prod.brand} • {prod.volume}
-                            </div>
-
-                            {/* Inline Edit or View */}
-                            {isEditing ? (
-                              <div className="flex items-center gap-2 pt-1">
-                                <div className="space-y-0.5">
-                                  <label className="text-[10px] text-stone-500 block">السعر:</label>
-                                  <input
-                                    type="number"
-                                    value={editPrice}
-                                    onChange={(e) => setEditPrice(Number(e.target.value))}
-                                    className="w-20 px-2 py-1 bg-stone-50 border border-stone-300 rounded text-xs font-mono font-bold"
-                                  />
-                                </div>
-                                <div className="space-y-0.5">
-                                  <label className="text-[10px] text-stone-500 block">المخزون:</label>
-                                  <input
-                                    type="number"
-                                    value={editStock}
-                                    onChange={(e) => setEditStock(Number(e.target.value))}
-                                    className="w-16 px-2 py-1 bg-stone-50 border border-stone-300 rounded text-xs font-mono font-bold"
-                                  />
-                                </div>
+                {/* Empty State or Products Grid */}
+                {products.length === 0 ? (
+                  <div className="text-center py-16 px-4 bg-stone-50 rounded-3xl border border-stone-200 space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto shadow-sm">
+                      <Layers className="w-8 h-8" />
+                    </div>
+                    <div className="max-w-md mx-auto space-y-1">
+                      <h4 className="font-black text-base text-stone-900">المتجر فارغ من المنتجات حالياً</h4>
+                      <p className="text-xs text-stone-500">
+                        يمكنك البدء في رفع منتجاتك وصورها مباشرة من هاتفك المحمول أو إضافة أصناف جديدة الآن!
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('newProduct')}
+                      className="px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-black text-xs inline-flex items-center gap-2 cursor-pointer shadow-md"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>إضافة أول منتج للمتجر 🛍️</span>
+                    </button>
+                  </div>
+                ) : filteredProducts.length === 0 ? (
+                  <div className="text-center py-12 bg-stone-50 rounded-2xl border border-stone-200">
+                    <p className="text-xs text-stone-500">لا توجد نتائج مطابقة لبحثك.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {filteredProducts.map((prod) => {
+                      const isEditing = editingProductId === prod.id;
+                      return (
+                        <div
+                          key={prod.id}
+                          className="p-3.5 rounded-2xl border border-stone-200 bg-white flex flex-col justify-between gap-3 shadow-2xs"
+                        >
+                          <div className="flex items-start gap-3 min-w-0">
+                            <img
+                              src={prod.image || 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80'}
+                              alt={prod.nameAr}
+                              className="w-14 h-14 rounded-xl object-cover shrink-0 border border-stone-200"
+                            />
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <h4 className="font-extrabold text-xs text-stone-900 line-clamp-1">
+                                {prod.nameAr}
+                              </h4>
+                              <div className="text-[11px] text-stone-500 font-medium">
+                                {prod.brand} • {prod.volume}
                               </div>
-                            ) : (
-                              <div className="flex items-center gap-3">
-                                <span className="font-black text-xs text-emerald-800 font-mono">
-                                  {prod.price} جنيه
-                                </span>
-                                <span
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                                    prod.inStock && (prod.stockCount ?? 0) > 0
-                                      ? (prod.stockCount ?? 0) <= 5
-                                        ? 'bg-amber-100 text-amber-900'
-                                        : 'bg-emerald-100 text-emerald-900'
-                                      : 'bg-rose-100 text-rose-900'
-                                  }`}
-                                >
-                                  {prod.inStock && (prod.stockCount ?? 0) > 0
-                                    ? `متوفر (${prod.stockCount})`
-                                    : 'نفد من المخزن'}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
 
-                        {/* Controls */}
-                        <div className="flex items-center justify-between border-t border-stone-100 pt-2 text-xs">
-                          {isEditing ? (
-                            <div className="flex items-center gap-2 w-full justify-end">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (onUpdateProduct) {
-                                    onUpdateProduct(prod.id, {
-                                      price: editPrice,
-                                      stockCount: editStock,
-                                      inStock: editStock > 0,
-                                    });
-                                  }
-                                  setEditingProductId(null);
-                                }}
-                                className="px-3 py-1 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg font-bold text-xs flex items-center gap-1 cursor-pointer"
-                              >
-                                <Save className="w-3.5 h-3.5" />
-                                <span>حفظ التعديل</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditingProductId(null)}
-                                className="px-2.5 py-1 bg-stone-100 text-stone-600 rounded-lg font-bold text-xs cursor-pointer"
-                              >
-                                إلغاء
-                              </button>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="flex items-center gap-1">
-                                {onUpdateProduct && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      onUpdateProduct(prod.id, {
-                                        inStock: !prod.inStock,
-                                        stockCount: !prod.inStock ? 20 : 0,
-                                      })
-                                    }
-                                    className={`px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-colors ${
-                                      prod.inStock
-                                        ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-                                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                              {/* Inline Edit or View */}
+                              {isEditing ? (
+                                <div className="flex items-center gap-2 pt-1">
+                                  <div className="space-y-0.5">
+                                    <label className="text-[10px] text-stone-500 block">السعر:</label>
+                                    <input
+                                      type="number"
+                                      value={editPrice}
+                                      onChange={(e) => setEditPrice(Number(e.target.value))}
+                                      className="w-20 px-2 py-1 bg-stone-50 border border-stone-300 rounded text-xs font-mono font-bold"
+                                    />
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <label className="text-[10px] text-stone-500 block">المخزون:</label>
+                                    <input
+                                      type="number"
+                                      value={editStock}
+                                      onChange={(e) => setEditStock(Number(e.target.value))}
+                                      className="w-16 px-2 py-1 bg-stone-50 border border-stone-300 rounded text-xs font-mono font-bold"
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-3">
+                                  <span className="font-black text-xs text-emerald-800 font-mono">
+                                    {prod.price} جنيه
+                                  </span>
+                                  <span
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                      prod.inStock && (prod.stockCount ?? 0) > 0
+                                        ? (prod.stockCount ?? 0) <= 5
+                                          ? 'bg-amber-100 text-amber-900'
+                                          : 'bg-emerald-100 text-emerald-900'
+                                        : 'bg-rose-100 text-rose-900'
                                     }`}
                                   >
-                                    {prod.inStock ? 'تعطيل التوفر' : 'تفعيل التوفر'}
-                                  </button>
-                                )}
-                              </div>
+                                    {prod.inStock && (prod.stockCount ?? 0) > 0
+                                      ? `متوفر (${prod.stockCount})`
+                                      : 'نفد من المخزن'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
 
-                              <div className="flex items-center gap-2">
+                          {/* Controls */}
+                          <div className="flex items-center justify-between border-t border-stone-100 pt-2 text-xs">
+                            {isEditing ? (
+                              <div className="flex items-center gap-2 w-full justify-end">
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setEditingProductId(prod.id);
-                                    setEditPrice(prod.price);
-                                    setEditStock(prod.stockCount ?? 50);
+                                    if (onUpdateProduct) {
+                                      onUpdateProduct(prod.id, {
+                                        price: editPrice,
+                                        stockCount: editStock,
+                                        inStock: editStock > 0,
+                                      });
+                                    }
+                                    setEditingProductId(null);
                                   }}
-                                  className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors cursor-pointer"
-                                  title="تعديل السعر والمخزون"
+                                  className="px-3 py-1 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg font-bold text-xs flex items-center gap-1 cursor-pointer"
                                 >
-                                  <Edit className="w-3.5 h-3.5" />
+                                  <Save className="w-3.5 h-3.5" />
+                                  <span>حفظ التعديل</span>
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingProductId(null)}
+                                  className="px-2.5 py-1 bg-stone-100 text-stone-600 rounded-lg font-bold text-xs cursor-pointer"
+                                >
+                                  إلغاء
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex items-center gap-1">
+                                  {onUpdateProduct && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        onUpdateProduct(prod.id, {
+                                          inStock: !prod.inStock,
+                                          stockCount: !prod.inStock ? 20 : 0,
+                                        })
+                                      }
+                                      className={`px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-colors ${
+                                        prod.inStock
+                                          ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                                          : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                      }`}
+                                    >
+                                      {prod.inStock ? 'تعطيل التوفر' : 'تفعيل التوفر'}
+                                    </button>
+                                  )}
+                                </div>
 
-                                {onDeleteProduct && (
+                                <div className="flex items-center gap-2">
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      if (confirm(`هل تريد حذف المنتج "${prod.nameAr}" من المتجر؟`)) {
-                                        onDeleteProduct(prod.id);
-                                      }
+                                      setEditingProductId(prod.id);
+                                      setEditPrice(prod.price);
+                                      setEditStock(prod.stockCount ?? 50);
                                     }}
-                                    className="p-1.5 rounded-lg bg-stone-100 hover:bg-rose-100 text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
-                                    title="حذف المنتج"
+                                    className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors cursor-pointer"
+                                    title="تعديل السعر والمخزون"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Edit className="w-3.5 h-3.5" />
                                   </button>
-                                )}
-                              </div>
-                            </>
-                          )}
+
+                                  {onDeleteProduct && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (confirm(`هل تريد حذف المنتج "${prod.nameAr}" من المتجر؟`)) {
+                                          onDeleteProduct(prod.id);
+                                        }
+                                      }}
+                                      className="p-1.5 rounded-lg bg-stone-100 hover:bg-rose-100 text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
+                                      title="حذف المنتج"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1079,7 +1135,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               >
                 <div className="flex items-center justify-between border-b border-stone-200 pb-2">
                   <h3 className="font-extrabold text-sm text-stone-900">
-                    إضافة صنف جديد لمخازن أكتوبر والشيخ زايد:
+                    إضافة صنف جديد للمتجر:
                   </h3>
                   <span className="text-[11px] text-stone-500">
                     سيتم إتاحته فوراً للشراء في المتجر
@@ -1096,7 +1152,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       required
                       value={newProductNameAr}
                       onChange={(e) => setNewProductNameAr(e.target.value)}
-                      placeholder="مثال: شامبو بندولين للأطفال بالكيراتين"
+                      placeholder="مثال: كريم مرطب للبشرة الحساسة"
                       className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                     />
                   </div>
@@ -1110,7 +1166,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       required
                       value={newProductBrand}
                       onChange={(e) => setNewProductBrand(e.target.value)}
-                      placeholder="مثال: Penduline"
+                      placeholder="مثال: Penduline أو Bioderma..."
                       className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                     />
                   </div>
@@ -1127,7 +1183,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       <option value="baby">العناية بالطفل والرضيع 👶</option>
                       <option value="hair">العناية بالشعر 💇‍♀️</option>
                       <option value="body">العناية بالجسم والبشرة ✨</option>
-                      <option value="bundles">بكجات التوفير 🎁</option>
+                      <option value="bundles">بكجات وعروض خاصة 🎁</option>
                     </select>
                   </div>
 
@@ -1172,16 +1228,60 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      رابط صورة المنتج (Unsplash / URL)
+                  {/* Image Upload section with Mobile / Camera upload */}
+                  <div className="sm:col-span-2 space-y-2">
+                    <label className="block text-xs font-bold text-stone-700">
+                      صورة المنتج (تحميل من الموبايل أو رابط) *
                     </label>
-                    <input
-                      type="url"
-                      value={newProductImage}
-                      onChange={(e) => setNewProductImage(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none text-left font-mono"
-                    />
+
+                    <div className="flex flex-col sm:flex-row gap-3 items-center">
+                      {/* Mobile / File upload button */}
+                      <label className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border-2 border-dashed border-emerald-300 text-emerald-800 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shrink-0">
+                        <Camera className="w-4 h-4 text-emerald-700" />
+                        <span>📸 اختيار صورة من الموبايل / الكاميرا</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setNewProductImage(reader.result as string);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+
+                      {/* URL input */}
+                      <div className="w-full flex-1">
+                        <input
+                          type="text"
+                          value={newProductImage}
+                          onChange={(e) => setNewProductImage(e.target.value)}
+                          placeholder="أو الصق رابط صورة مباشرة..."
+                          className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none text-left font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Image Preview */}
+                    {newProductImage && (
+                      <div className="flex items-center gap-3 p-2 bg-stone-100 rounded-xl border border-stone-200">
+                        <img
+                          src={newProductImage}
+                          alt="معاينة الصورة"
+                          className="w-12 h-12 object-cover rounded-lg border border-stone-300"
+                        />
+                        <div className="text-xs text-stone-600 flex-1">
+                          <div className="font-bold text-emerald-800">✓ تم تجهيز صورة المنتج بنجاح</div>
+                          <div className="text-[10px] text-stone-400">ستظهر بجودة عالية في المتجر</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
