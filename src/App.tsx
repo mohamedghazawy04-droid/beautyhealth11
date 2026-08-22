@@ -1,0 +1,999 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Sparkles,
+  ShoppingBag,
+  Heart,
+  Truck,
+  ShieldCheck,
+  MapPin,
+  Clock,
+  Phone,
+  MessageCircle,
+  Search,
+  Filter,
+  CheckCircle2,
+  ChevronDown,
+  Gift,
+  Zap,
+  Star,
+  Layers,
+  SlidersHorizontal,
+} from 'lucide-react';
+import { Product, DeliveryZone, CartItem, Order, MainCategory, SubCategory, ProductReview, StoreSettings } from './types';
+import { PRODUCTS_DATA } from './data/products';
+import { OCTOBER_ZAYED_ZONES } from './data/zones';
+import { Navbar } from './components/Navbar';
+import { HeroBanner } from './components/HeroBanner';
+import { ProductCard } from './components/ProductCard';
+import { ProductDetailModal } from './components/ProductDetailModal';
+import { ZoneSelectorModal } from './components/ZoneSelectorModal';
+import { CartDrawer } from './components/CartDrawer';
+import { CheckoutModal } from './components/CheckoutModal';
+import { OrderTrackingModal } from './components/OrderTrackingModal';
+import { WishlistModal } from './components/WishlistModal';
+import { AdminPortalModal } from './components/AdminPortalModal';
+import { ReviewSubmissionModal } from './components/ReviewSubmissionModal';
+import { MobileBottomNav } from './components/MobileBottomNav';
+import { InstallAppModal } from './components/InstallAppModal';
+import { CategoriesModal } from './components/CategoriesModal';
+
+export default function App() {
+  // 1. Core State with Local Storage Persistence
+  const [products, setProducts] = useState<Product[]>(() => {
+    const saved = localStorage.getItem('carehub_products');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return PRODUCTS_DATA;
+  });
+
+  const [selectedZone, setSelectedZone] = useState<DeliveryZone>(() => {
+    const saved = localStorage.getItem('carehub_selected_zone');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return OCTOBER_ZAYED_ZONES[0]; // Beverly Hills / Zayed default
+  });
+
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const saved = localStorage.getItem('carehub_cart');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [];
+  });
+
+  const [wishlist, setWishlist] = useState<Product[]>(() => {
+    const saved = localStorage.getItem('carehub_wishlist');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [];
+  });
+
+  const [orders, setOrders] = useState<Order[]>(() => {
+    const saved = localStorage.getItem('carehub_orders');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    // Seed initial demo orders in October & Zayed
+    return [
+      {
+        id: 'OCT-772150',
+        customerName: 'نورهان هشام',
+        phone: '01223456789',
+        city: 'zayed',
+        zoneId: 'zayed-2',
+        zoneName: 'الشيخ زايد - الحي الثاني والتراخيص',
+        detailedAddress: 'عمارة 14 - شارع النزهة',
+        buildingNumber: '14',
+        floorNumber: '3',
+        apartmentNumber: '6',
+        landmark: 'بجوار مجمع المحاكم',
+        items: [
+          { product: PRODUCTS_DATA[0], quantity: 1 },
+          { product: PRODUCTS_DATA[2], quantity: 1 },
+        ],
+        subtotal: 635,
+        deliveryFee: 0,
+        discount: 0,
+        total: 635,
+        paymentMethod: 'vodafone_cash',
+        status: 'delivered',
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        estimatedDelivery: 'تم التسليم بنجاح',
+        courierName: 'كابتن أحمد (مندوب أكتوبر وزايد)',
+        courierPhone: '01011223344',
+      },
+      {
+        id: 'OCT-984210',
+        customerName: 'سارة عبد الله',
+        phone: '01012345678',
+        city: 'zayed',
+        zoneId: 'zayed-1',
+        zoneName: 'الشيخ زايد - بيفرلي هيلز وسوديك ويست',
+        detailedAddress: 'كمبوند بيفرلي هيلز - مجاورة 2',
+        buildingNumber: 'فيلا 12',
+        floorNumber: 'الأرضي',
+        apartmentNumber: '1',
+        landmark: 'بجوار ذا ستريب مول',
+        items: [
+          { product: PRODUCTS_DATA[0], quantity: 1 },
+          { product: PRODUCTS_DATA[1], quantity: 1 },
+        ],
+        subtotal: 715,
+        deliveryFee: 0,
+        discount: 71,
+        total: 644,
+        appliedCoupon: 'OCTOBER10',
+        paymentMethod: 'instapay',
+        status: 'with_courier',
+        createdAt: new Date(Date.now() - 3600000).toISOString(),
+        estimatedDelivery: 'خلال 45 دقيقة',
+        courierName: 'كابتن محمود (مندوب الشيخ زايد)',
+        courierPhone: '01099887766',
+      },
+    ];
+  });
+
+  // Store Settings (Manager configurable)
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => {
+    const saved = localStorage.getItem('carehub_store_settings');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return {
+      storeNameAr: 'M&l - متجر العناية ومستلزمات الأطفال',
+      announcementText: 'توصيل سريع فوري خلال ٦٠-١٢٠ دقيقة لكافة أحياء ٦ أكتوبر والشيخ زايد من متجر M&l - اطلب الآن!',
+      contactPhone: '01012345678',
+      contactWhatsApp: '201012345678',
+      defaultDeliveryFee: 20,
+      freeShippingThreshold: 350,
+      activeCoupons: [
+        { code: 'OCTOBER10', discountPercent: 10, description: 'خصم 10% لجميع سكان 6 أكتوبر' },
+        { code: 'ZAYEDFREE', discountPercent: 100, description: 'شحن مجاني لكافة أحياء الشيخ زايد' },
+        { code: 'MOM2026', discountPercent: 15, description: 'خصم 15% على قسم العناية بالأم والطفل' }
+      ]
+    };
+  });
+
+  // Filter & Search States
+  const [activeCategory, setActiveCategory] = useState<MainCategory>('all');
+  const [activeSubCategory, setActiveSubCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'featured' | 'priceLow' | 'priceHigh' | 'rating'>('featured');
+  const [selectedBrand, setSelectedBrand] = useState<string>('all');
+
+  // Coupon State
+  const [appliedCoupon, setAppliedCoupon] = useState('');
+
+  // Modals Visibility
+  const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
+  const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState(false);
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isInstallAppOpen, setIsInstallAppOpen] = useState(false);
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+
+  // Review Modal State
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewModalProduct, setReviewModalProduct] = useState<Product | null>(null);
+  const [reviewModalOrderId, setReviewModalOrderId] = useState<string | undefined>(undefined);
+  const [reviewModalUserName, setReviewModalUserName] = useState<string | undefined>(undefined);
+  const [reviewModalUserArea, setReviewModalUserArea] = useState<string | undefined>(undefined);
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Sync to localStorage
+  useEffect(() => {
+    localStorage.setItem('carehub_products', JSON.stringify(products));
+  }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem('carehub_selected_zone', JSON.stringify(selectedZone));
+  }, [selectedZone]);
+
+  useEffect(() => {
+    localStorage.setItem('carehub_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem('carehub_wishlist', JSON.stringify(wishlist));
+  }, [wishlist]);
+
+  useEffect(() => {
+    localStorage.setItem('carehub_orders', JSON.stringify(orders));
+  }, [orders]);
+
+  useEffect(() => {
+    localStorage.setItem('carehub_store_settings', JSON.stringify(storeSettings));
+  }, [storeSettings]);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Cart operations
+  const handleAddToCart = (product: Product, quantity = 1) => {
+    setCart((prev) => {
+      const existing = prev.find((item) => item.product.id === product.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.product.id === product.id
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        );
+      }
+      return [...prev, { product, quantity }];
+    });
+    showToast(`✓ تم إضافة "${product.nameAr}" إلى السلة`);
+  };
+
+  const handleUpdateQuantity = (productId: string, delta: number) => {
+    setCart((prev) =>
+      prev
+        .map((item) => {
+          if (item.product.id === productId) {
+            const newQty = item.quantity + delta;
+            return newQty > 0 ? { ...item, quantity: newQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean) as CartItem[]
+    );
+  };
+
+  const handleRemoveItem = (productId: string) => {
+    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+  };
+
+  const handleClearCart = () => {
+    setCart([]);
+  };
+
+  // Wishlist toggle
+  const handleToggleWishlist = (product: Product) => {
+    setWishlist((prev) => {
+      const exists = prev.some((p) => p.id === product.id);
+      if (exists) {
+        showToast(`تمت الإزالة من المفضلة`);
+        return prev.filter((p) => p.id !== product.id);
+      }
+      showToast(`❤ تم الحفظ في المفضلة`);
+      return [...prev, product];
+    });
+  };
+
+  // Coupon handling
+  const handleApplyCoupon = (code: string) => {
+    const cleanCode = code.trim().toUpperCase();
+    if (cleanCode === 'OCTOBER10') {
+      setAppliedCoupon('OCTOBER10');
+      return { success: true, message: 'تم تطبيق خصم 10% بنجاح على طلبك!' };
+    }
+    if (cleanCode === 'ZAYEDFREE') {
+      setAppliedCoupon('ZAYEDFREE');
+      return { success: true, message: 'تم تطبيق الشحن المجاني لأحياء زايد وأكتوبر!' };
+    }
+    if (cleanCode === 'MOM2026') {
+      setAppliedCoupon('MOM2026');
+      return { success: true, message: 'تم تطبيق خصم 15% على مستلزمات الطفل والأم!' };
+    }
+    return { success: false, message: 'كوبون غير صالح أو منتهي الصلاحية' };
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon('');
+    showToast('تم إلغاء الكوبون');
+  };
+
+  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+
+  const discountAmount = useMemo(() => {
+    if (appliedCoupon === 'OCTOBER10') {
+      return Math.round(subtotal * 0.1);
+    }
+    if (appliedCoupon === 'MOM2026') {
+      return Math.round(subtotal * 0.15);
+    }
+    return 0;
+  }, [appliedCoupon, subtotal]);
+
+  // Order created
+  const handleOrderCompleted = (newOrder: Order) => {
+    setOrders((prev) => [newOrder, ...prev]);
+    showToast(`🎉 تم تسجيل طلبك بنجاح برقم #${newOrder.id}`);
+  };
+
+  const handleUpdateOrderStatus = (orderId: string, newStatus: Order['status']) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+    );
+    showToast('تم تحديث حالة الطلب');
+  };
+
+  const handleUpdateOrderDetails = (orderId: string, updates: Partial<Order>) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, ...updates } : o))
+    );
+    showToast('تم حفظ تعديلات الطلب والمندوب');
+  };
+
+  const handleDeleteOrder = (orderId: string) => {
+    setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    showToast('تم حذف الطلب نهائياً من السجل');
+  };
+
+  const handleAddNewProduct = (newProd: Product) => {
+    setProducts((prev) => [newProd, ...prev]);
+    showToast('تمت إضافة المنتج الجديد للمخزن');
+  };
+
+  const handleUpdateProduct = (productId: string, updates: Partial<Product>) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, ...updates } : p))
+    );
+    if (detailProduct && detailProduct.id === productId) {
+      setDetailProduct((prev) => (prev ? { ...prev, ...updates } : null));
+    }
+    showToast('تم تعديل بيانات وسعر المنتج بنجاح');
+  };
+
+  const handleDeleteProduct = (productId: string) => {
+    setProducts((prev) => prev.filter((p) => p.id !== productId));
+    if (detailProduct && detailProduct.id === productId) {
+      setDetailProduct(null);
+    }
+    showToast('تم حذف المنتج من المتجر');
+  };
+
+  const handleUpdateStoreSettings = (newSettings: StoreSettings) => {
+    setStoreSettings(newSettings);
+    showToast('تم حفظ إعدادات المتجر العامة بنجاح');
+  };
+
+  // Open Review Submission Modal
+  const handleOpenReviewModal = (
+    product: Product,
+    orderId?: string,
+    customerName?: string,
+    customerArea?: string
+  ) => {
+    setReviewModalProduct(product);
+    setReviewModalOrderId(orderId);
+    setReviewModalUserName(customerName);
+    setReviewModalUserArea(customerArea);
+    setIsReviewModalOpen(true);
+  };
+
+  // Submit Product Review and recalculate average rating
+  const handleAddProductReview = (
+    productId: string,
+    newRevData: Omit<ProductReview, 'id' | 'date'>
+  ) => {
+    const newReview: ProductReview = {
+      ...newRevData,
+      id: 'rev-' + Date.now(),
+      date: 'اليوم (الآن)',
+    };
+
+    let updatedProductRef: Product | null = null;
+
+    setProducts((prev) =>
+      prev.map((prod) => {
+        if (prod.id === productId) {
+          const currentReviews = prod.reviews || [];
+          const updatedReviews = [newReview, ...currentReviews];
+          const newReviewsCount = (prod.reviewsCount || 0) + 1;
+          // Calculate new weighted average rating accurately
+          const totalScore =
+            ((prod.rating || 5) * (prod.reviewsCount || 0)) + newRevData.rating;
+          const newRating = Number((totalScore / newReviewsCount).toFixed(1));
+
+          const updatedProd: Product = {
+            ...prod,
+            rating: newRating,
+            reviewsCount: newReviewsCount,
+            reviews: updatedReviews,
+          };
+          updatedProductRef = updatedProd;
+          return updatedProd;
+        }
+        return prod;
+      })
+    );
+
+    if (detailProduct && detailProduct.id === productId && updatedProductRef) {
+      setDetailProduct(updatedProductRef);
+    }
+
+    showToast(`⭐ شكراً لك! تم نشر تقييمك (${newRevData.rating} نجوم) وتحديث متوسط التقييم`);
+  };
+
+  // Brands list for filter
+  const brandsList = useMemo(() => {
+    const set = new Set(products.map((p) => p.brand));
+    return ['all', ...Array.from(set)];
+  }, [products]);
+
+  // Filtered Products
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      // Category filter
+      if (activeCategory !== 'all' && p.category !== activeCategory) {
+        return false;
+      }
+      // Subcategory filter
+      if (activeSubCategory !== 'all' && p.subCategory !== activeSubCategory) {
+        return false;
+      }
+      // Brand filter
+      if (selectedBrand !== 'all' && p.brand !== selectedBrand) {
+        return false;
+      }
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesName = p.nameAr.toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
+        const matchesBrand = p.brand.toLowerCase().includes(q);
+        const matchesTags = p.tags.some((t) => t.toLowerCase().includes(q));
+        const matchesDesc = p.description.toLowerCase().includes(q);
+        if (!matchesName && !matchesBrand && !matchesTags && !matchesDesc) {
+          return false;
+        }
+      }
+      return true;
+    }).sort((a, b) => {
+      if (sortBy === 'priceLow') return a.price - b.price;
+      if (sortBy === 'priceHigh') return b.price - a.price;
+      if (sortBy === 'rating') return b.rating - a.rating;
+      return 0; // featured
+    });
+  }, [products, activeCategory, activeSubCategory, selectedBrand, searchQuery, sortBy]);
+
+  const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  return (
+    <div className="min-h-screen bg-stone-50 flex flex-col selection:bg-emerald-800 selection:text-white pb-20 md:pb-0">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-stone-900 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-2xl border border-stone-700 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-5">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <Navbar
+        selectedZone={selectedZone}
+        onOpenZoneModal={() => setIsZoneModalOpen(true)}
+        cartCount={totalCartCount}
+        onOpenCart={() => setIsCartOpen(true)}
+        wishlistCount={wishlist.length}
+        onOpenWishlist={() => setIsWishlistOpen(true)}
+        onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
+        onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenInstallApp={() => setIsInstallAppOpen(true)}
+        onOpenCategories={() => setIsCategoriesModalOpen(true)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        activeCategory={activeCategory}
+        onSelectCategory={(cat) => {
+          setActiveCategory(cat);
+          setActiveSubCategory('all');
+        }}
+        storeSettings={storeSettings}
+      />
+
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl mx-auto w-full">
+        {/* Hero Banner */}
+        <HeroBanner
+          selectedZone={selectedZone}
+          onOpenZoneModal={() => setIsZoneModalOpen(true)}
+          onSelectCategory={(cat) => {
+            setActiveCategory(cat as any);
+            setActiveSubCategory('all');
+            const section = document.getElementById('products-section');
+            if (section) {
+              section.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+        />
+
+        {/* Hyperlocal Zone Delivery Bar for October & Zayed */}
+        <div className="mx-4 sm:mx-6 lg:mx-8 mb-6 p-4 rounded-2xl bg-white border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-3 text-right">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold">
+              <Truck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs text-stone-500 font-medium">
+                توصيل مخزن ٦ أكتوبر والشيخ زايد
+              </div>
+              <div className="text-sm font-extrabold text-stone-900">
+                الحي المختار: {selectedZone.name}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs font-semibold text-stone-700">
+            <span className="bg-emerald-50 text-emerald-800 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-emerald-600" />
+              توصيل خلال {selectedZone.estimatedDeliveryTime}
+            </span>
+            <span className="bg-amber-50 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-200">
+              رسوم التوصيل: {selectedZone.deliveryFee} ج (مجاني فوق {selectedZone.freeDeliveryThreshold} ج)
+            </span>
+            <button
+              onClick={() => setIsZoneModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold transition-colors cursor-pointer text-xs"
+            >
+              تغيير الحي
+            </button>
+          </div>
+        </div>
+
+        {/* Products Catalog Section */}
+        <div id="products-section" className="mx-4 sm:mx-6 lg:mx-8 space-y-6 pb-16 scroll-mt-24">
+          {/* Section Header with Category Title & Filters */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stone-200 pb-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-stone-900">
+                {activeCategory === 'all'
+                  ? 'جميع منتجات العناية والطفل 🛍️'
+                  : activeCategory === 'baby'
+                  ? 'منتجات العناية بالطفل والرضيع 👶'
+                  : activeCategory === 'hair'
+                  ? 'منتجات العناية بالشعر والتساقط 💇‍♀️'
+                  : activeCategory === 'body'
+                  ? 'منتجات العناية بالجسم والبشرة ✨'
+                  : 'بكجات التوفير والهدايا الفاخرة 🎁'}
+              </h2>
+              <p className="text-xs text-stone-500 mt-0.5">
+                عرض {filteredProducts.length} منتج أصلي متوفر للشحن الفوري
+              </p>
+            </div>
+
+            {/* Sort & Brand Controls */}
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {/* Brand Selector */}
+              <div className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl border border-stone-200">
+                <span className="text-stone-500 font-bold">الماركة:</span>
+                <select
+                  value={selectedBrand}
+                  onChange={(e) => setSelectedBrand(e.target.value)}
+                  className="bg-transparent font-extrabold text-stone-900 focus:outline-none cursor-pointer"
+                >
+                  <option value="all">كل الماركات</option>
+                  {brandsList.filter((b) => b !== 'all').map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sort Selector */}
+              <div className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl border border-stone-200">
+                <span className="text-stone-500 font-bold">الترتيب:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-transparent font-extrabold text-stone-900 focus:outline-none cursor-pointer"
+                >
+                  <option value="featured">الأكثر تميزاً وطلباً</option>
+                  <option value="rating">الأعلى تقييماً ★</option>
+                  <option value="priceLow">السعر: من الأقل للأعلى</option>
+                  <option value="priceHigh">السعر: من الأعلى للأقل</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Subcategory Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
+            <button
+              onClick={() => setActiveSubCategory('all')}
+              className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
+                activeSubCategory === 'all'
+                  ? 'bg-stone-900 text-white shadow-2xs'
+                  : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+              }`}
+            >
+              الكل
+            </button>
+
+            {activeCategory === 'baby' && (
+              <>
+                <button
+                  onClick={() => setActiveSubCategory('baby_wash_shampoo')}
+                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
+                    activeSubCategory === 'baby_wash_shampoo'
+                      ? 'bg-stone-900 text-white'
+                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                  }`}
+                >
+                  شامبو وغسول أطفال (لا دموع)
+                </button>
+                <button
+                  onClick={() => setActiveSubCategory('diaper_cream')}
+                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
+                    activeSubCategory === 'diaper_cream'
+                      ? 'bg-stone-900 text-white'
+                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                  }`}
+                >
+                  علاج ومنع تسلخات الحفاض
+                </button>
+              </>
+            )}
+
+            {activeCategory === 'hair' && (
+              <>
+                <button
+                  onClick={() => setActiveSubCategory('hair_oil_serum')}
+                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
+                    activeSubCategory === 'hair_oil_serum'
+                      ? 'bg-stone-900 text-white'
+                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                  }`}
+                >
+                  زيوت إنبات وسيرومات ترطيب
+                </button>
+                <button
+                  onClick={() => setActiveSubCategory('curly_care')}
+                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
+                    activeSubCategory === 'curly_care'
+                      ? 'bg-stone-900 text-white'
+                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                  }`}
+                >
+                  عناية الشعر الكيرلي والحرارة
+                </button>
+              </>
+            )}
+
+            {activeCategory === 'body' && (
+              <>
+                <button
+                  onClick={() => setActiveSubCategory('body_lotion')}
+                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
+                    activeSubCategory === 'body_lotion'
+                      ? 'bg-stone-900 text-white'
+                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                  }`}
+                >
+                  ترطيب الجسم وحاجز البشرة
+                </button>
+                <button
+                  onClick={() => setActiveSubCategory('sunscreen')}
+                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
+                    activeSubCategory === 'sunscreen'
+                      ? 'bg-stone-900 text-white'
+                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                  }`}
+                >
+                  واقي شمس (صن بلوك)
+                </button>
+                <button
+                  onClick={() => setActiveSubCategory('body_mist')}
+                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
+                    activeSubCategory === 'body_mist'
+                      ? 'bg-stone-900 text-white'
+                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                  }`}
+                >
+                  بودي ميست وعطور الجسم
+                </button>
+                <button
+                  onClick={() => setActiveSubCategory('face_serum_cream')}
+                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
+                    activeSubCategory === 'face_serum_cream'
+                      ? 'bg-stone-900 text-white'
+                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                  }`}
+                >
+                  سيرومات النضارة والمسام
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Products Grid */}
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-stone-200 p-8 space-y-3">
+              <Search className="w-12 h-12 text-stone-400 mx-auto" />
+              <h3 className="font-bold text-stone-800 text-base">لم نجد منتجات مطابقة لبحثك</h3>
+              <p className="text-xs text-stone-500 max-w-sm mx-auto">
+                جربي البحث باسم آخر أو إعادة ضبط التصفيات، أو اسألي مستشارة العناية الذكية لمساعدتك!
+              </p>
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setActiveCategory('all');
+                  setActiveSubCategory('all');
+                  setSelectedBrand('all');
+                }}
+                className="px-4 py-2 bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                عرض كل المنتجات
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+              {filteredProducts.map((product) => {
+                const cartItem = cart.find((i) => i.product.id === product.id);
+                const isWishlisted = wishlist.some((w) => w.id === product.id);
+
+                return (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={(p) => handleAddToCart(p, 1)}
+                    onQuickView={(p) => setDetailProduct(p)}
+                    isWishlisted={isWishlisted}
+                    onToggleWishlist={handleToggleWishlist}
+                    cartQuantity={cartItem?.quantity || 0}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Hyperlocal 6th of October & Sheikh Zayed Features Footer Highlights */}
+        <section className="bg-emerald-950 text-white rounded-3xl mx-4 sm:mx-6 lg:mx-8 mb-12 p-6 sm:p-10 border border-emerald-900 shadow-xl">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-right">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-800/80 border border-emerald-600/50 flex items-center justify-center text-emerald-300 shrink-0">
+                <Truck className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-extrabold text-base text-white">
+                  توصيل فوري خلال ساعتين
+                </h3>
+                <p className="text-xs text-stone-300 leading-relaxed">
+                  أسطول مناديب مخصص لكافة أحياء ٦ أكتوبر والشيخ زايد والكمبوندات (بيفرلي هيلز، الحصري، سوديك، الربوة، حدائق أكتوبر، بالم هيلز).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-800/80 border border-emerald-600/50 flex items-center justify-center text-amber-300 shrink-0">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-extrabold text-base text-white">
+                  منتجات أصلية ١٠٠٪ ومضمونة
+                </h3>
+                <p className="text-xs text-stone-300 leading-relaxed">
+                  نوفر فقط المنتجات الأصلية الصادرة من الوكلاء المعتمدين مع إمكانية فحص الباركود والمعاينة عند الاستلام قبل الدفع.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-800/80 border border-emerald-600/50 flex items-center justify-center text-teal-300 shrink-0">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-extrabold text-base text-white">
+                  استشارة طبية وتجميلية ذكية
+                </h3>
+                <p className="text-xs text-stone-300 leading-relaxed">
+                  مستشارة العناية الذكية (د. سارة) تعمل على مدار الساعة لترشيح أفضل روتين ملائم لنوع بشرتك وشعرك ولعناية طفلك بأمان تام.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-stone-900 text-stone-400 text-xs py-8 border-t border-stone-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right">
+          <div>
+            <div className="font-black text-sm text-white flex items-center justify-center sm:justify-start gap-2">
+              <span className="font-['Plus_Jakarta_Sans',sans-serif] text-base text-emerald-400 font-extrabold">M&l</span>
+              <span>• متجر العناية ومستلزمات الأطفال (٦ أكتوبر والشيخ زايد)</span>
+            </div>
+            <p className="text-[11px] text-stone-500 mt-1">
+              متجر M&l المتخصص في منتجات العناية بالبشرة والجسم والشعر ومستلزمات الأطفال في مدينتي ٦ أكتوبر والشيخ زايد
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-stone-300">
+            <button
+              onClick={() => setIsOrderTrackingOpen(true)}
+              className="hover:text-emerald-400 transition-colors cursor-pointer"
+            >
+              تتبع الطلبات
+            </button>
+            <button
+              onClick={() => setIsZoneModalOpen(true)}
+              className="hover:text-emerald-400 transition-colors cursor-pointer"
+            >
+              أحياء ومناطق التوصيل
+            </button>
+            <button
+              onClick={() => setIsAdminOpen(true)}
+              className="hover:text-emerald-400 transition-colors cursor-pointer"
+            >
+              بوابة الإدارة
+            </button>
+            <a
+              href="https://wa.me/201000000000?text=مرحباً، أود التواصل مع خدمة العملاء"
+              target="_blank"
+              rel="noreferrer"
+              className="text-emerald-400 hover:text-emerald-300"
+            >
+              واتساب الدعم السريع
+            </a>
+          </div>
+        </div>
+      </footer>
+
+      {/* Modals & Drawers */}
+      <ZoneSelectorModal
+        isOpen={isZoneModalOpen}
+        onClose={() => setIsZoneModalOpen(false)}
+        selectedZone={selectedZone}
+        onSelectZone={(z) => {
+          setSelectedZone(z);
+          showToast(`تم تعيين منطقة التوصيل: ${z.name}`);
+        }}
+      />
+
+      <ProductDetailModal
+        product={detailProduct}
+        onClose={() => setDetailProduct(null)}
+        onAddToCart={handleAddToCart}
+        isWishlisted={detailProduct ? wishlist.some((w) => w.id === detailProduct.id) : false}
+        onToggleWishlist={handleToggleWishlist}
+        selectedZone={selectedZone}
+        onOpenReviewModal={(prod) => handleOpenReviewModal(prod)}
+      />
+
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        items={cart}
+        onUpdateQuantity={handleUpdateQuantity}
+        onRemoveItem={handleRemoveItem}
+        onClearCart={handleClearCart}
+        selectedZone={selectedZone}
+        onOpenZoneModal={() => {
+          setIsCartOpen(false);
+          setIsZoneModalOpen(true);
+        }}
+        onProceedToCheckout={() => setIsCheckoutOpen(true)}
+        appliedCoupon={appliedCoupon}
+        onApplyCoupon={handleApplyCoupon}
+        onRemoveCoupon={handleRemoveCoupon}
+        discountAmount={discountAmount}
+      />
+
+      <CheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        items={cart}
+        selectedZone={selectedZone}
+        onOpenZoneModal={() => setIsZoneModalOpen(true)}
+        appliedCoupon={appliedCoupon}
+        discountAmount={discountAmount}
+        onOrderCompleted={handleOrderCompleted}
+        onClearCart={handleClearCart}
+      />
+
+      <OrderTrackingModal
+        isOpen={isOrderTrackingOpen}
+        onClose={() => setIsOrderTrackingOpen(false)}
+        orders={orders}
+        onOpenReviewModal={(prod, orderId, name, area) =>
+          handleOpenReviewModal(prod, orderId, name, area)
+        }
+        onMarkDelivered={(orderId) => handleUpdateOrderStatus(orderId, 'delivered')}
+      />
+
+      <WishlistModal
+        isOpen={isWishlistOpen}
+        onClose={() => setIsWishlistOpen(false)}
+        wishlist={wishlist}
+        onRemoveFromWishlist={(id) => setWishlist((prev) => prev.filter((p) => p.id !== id))}
+        onAddToCart={(p) => handleAddToCart(p, 1)}
+      />
+
+      <AdminPortalModal
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+        orders={orders}
+        onUpdateOrderStatus={handleUpdateOrderStatus}
+        onUpdateOrderDetails={handleUpdateOrderDetails}
+        onDeleteOrder={handleDeleteOrder}
+        products={products}
+        onAddNewProduct={handleAddNewProduct}
+        onUpdateProduct={handleUpdateProduct}
+        onDeleteProduct={handleDeleteProduct}
+        storeSettings={storeSettings}
+        onUpdateStoreSettings={handleUpdateStoreSettings}
+      />
+
+      <ReviewSubmissionModal
+        isOpen={isReviewModalOpen}
+        onClose={() => {
+          setIsReviewModalOpen(false);
+          setReviewModalProduct(null);
+        }}
+        product={reviewModalProduct}
+        orderId={reviewModalOrderId}
+        defaultUserName={reviewModalUserName}
+        defaultUserArea={reviewModalUserArea}
+        onSubmitReview={handleAddProductReview}
+      />
+
+      {/* Mobile Bottom Dock App Bar */}
+      <MobileBottomNav
+        activeCategory={activeCategory}
+        onSelectCategory={(cat) => {
+          setActiveCategory(cat);
+          setActiveSubCategory('all');
+        }}
+        onOpenCategories={() => setIsCategoriesModalOpen(true)}
+        onOpenCart={() => setIsCartOpen(true)}
+        cartCount={totalCartCount}
+        onOpenWishlist={() => setIsWishlistOpen(true)}
+        wishlistCount={wishlist.length}
+        onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
+        onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      />
+
+      {/* All Categories Interactive Drawer / Modal */}
+      <CategoriesModal
+        isOpen={isCategoriesModalOpen}
+        onClose={() => setIsCategoriesModalOpen(false)}
+        activeCategory={activeCategory}
+        activeSubCategory={activeSubCategory}
+        onSelectCategory={(cat, sub) => {
+          setActiveCategory(cat);
+          setActiveSubCategory(sub || 'all');
+        }}
+        products={products}
+      />
+
+      {/* Progressive Web App Install Modal */}
+      <InstallAppModal
+        isOpen={isInstallAppOpen}
+        onClose={() => setIsInstallAppOpen(false)}
+      />
+    </div>
+  );
+}

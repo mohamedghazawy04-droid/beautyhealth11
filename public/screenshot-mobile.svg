@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <defs>
+    <linearGradient id="screenBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064e3b" />
+      <stop offset="35%" stop-color="#0f766e" />
+      <stop offset="100%" stop-color="#022c22" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f8fafc" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#screenBg)" />
+  
+  <!-- Header Bar -->
+  <rect x="40" y="80" width="1000" height="140" rx="28" fill="#ffffff" fill-opacity="0.12" />
+  <text x="540" y="165" font-family="'Plus Jakarta Sans', sans-serif" font-size="52" font-weight="900" fill="#ffffff" text-anchor="middle">
+    M<tspan fill="#34d399">&amp;</tspan>l Store
+  </text>
+
+  <!-- Banner -->
+  <rect x="40" y="260" width="1000" height="420" rx="36" fill="#042f2e" stroke="#10b981" stroke-width="4" />
+  <text x="540" y="440" font-family="'Cairo', sans-serif" font-size="56" font-weight="800" fill="#ffffff" text-anchor="middle">
+    توصيل فوري في ٦ أكتوبر والشيخ زايد
+  </text>
+  <text x="540" y="530" font-family="'Cairo', sans-serif" font-size="34" font-weight="600" fill="#a7f3d0" text-anchor="middle">
+    منتجات العناية الأصلية ومستلزمات الأطفال بأفضل الأسعار
+  </text>
+
+  <!-- Product Cards Grid -->
+  <rect x="60" y="740" width="450" height="600" rx="32" fill="url(#cardGrad)" />
+  <rect x="90" y="770" width="390" height="320" rx="24" fill="#ecfdf5" />
+  <text x="285" y="940" font-family="'Cairo', sans-serif" font-size="36" font-weight="700" fill="#065f46" text-anchor="middle">🧴 منتجات العناية</text>
+  <text x="285" y="1160" font-family="'Cairo', sans-serif" font-size="32" font-weight="700" fill="#1e293b" text-anchor="middle">سيروم الهيالورونيك</text>
+  <text x="285" y="1230" font-family="'Plus Jakarta Sans', sans-serif" font-size="38" font-weight="800" fill="#059669" text-anchor="middle">380 EGP</text>
+
+  <rect x="570" y="740" width="450" height="600" rx="32" fill="url(#cardGrad)" />
+  <rect x="600" y="770" width="390" height="320" rx="24" fill="#fef3c7" />
+  <text x="795" y="940" font-family="'Cairo', sans-serif" font-size="36" font-weight="700" fill="#92400e" text-anchor="middle">👶 مستلزمات الأطفال</text>
+  <text x="795" y="1160" font-family="'Cairo', sans-serif" font-size="32" font-weight="700" fill="#1e293b" text-anchor="middle">شامبو وسيروم الأطفال</text>
+  <text x="795" y="1230" font-family="'Plus Jakarta Sans', sans-serif" font-size="38" font-weight="800" fill="#059669" text-anchor="middle">245 EGP</text>
+
+  <!-- Bottom Delivery Feature Banner -->
+  <rect x="60" y="1400" width="960" height="280" rx="36" fill="#111827" stroke="#34d399" stroke-width="4" />
+  <circle cx="160" cy="1540" r="60" fill="#059669" />
+  <text x="160" y="1555" font-family="'Cairo', sans-serif" font-size="44" text-anchor="middle">⚡</text>
+  <text x="260" y="1510" font-family="'Cairo', sans-serif" font-size="40" font-weight="800" fill="#ffffff">توصيل سريع ومباشر للباب</text>
+  <text x="260" y="1580" font-family="'Cairo', sans-serif" font-size="28" font-weight="600" fill="#9ca3af">تغطية شاملة لجميع أحياء ٦ أكتوبر والشيخ زايد مع الدفع عند الاستلام</text>
+</svg>
