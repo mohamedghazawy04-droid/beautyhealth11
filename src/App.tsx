@@ -641,34 +641,34 @@ export default function App() {
         />
 
         {/* Hyperlocal Zone Delivery Bar for October & Zayed */}
-        <div className="mx-4 sm:mx-6 lg:mx-8 mb-6 p-4 rounded-2xl bg-white border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-3 text-right">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold">
-              <Truck className="w-5 h-5" />
+        <div className="mx-3 sm:mx-6 lg:mx-8 mb-4 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-stone-200 shadow-2xs flex flex-wrap items-center justify-between gap-2 sm:gap-3 text-right">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold">
+              <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <div className="text-xs text-stone-500 font-medium">
+              <div className="text-[10px] sm:text-xs text-stone-500 font-medium">
                 توصيل مخزن ٦ أكتوبر والشيخ زايد
               </div>
-              <div className="text-sm font-extrabold text-stone-900">
-                الحي المختار: {selectedZone.name}
+              <div className="text-xs sm:text-sm font-extrabold text-stone-900">
+                الحي: {selectedZone.name}
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs font-semibold text-stone-700">
-            <span className="bg-emerald-50 text-emerald-800 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-emerald-600" />
-              توصيل خلال {selectedZone.estimatedDeliveryTime}
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 text-[11px] sm:text-xs font-semibold text-stone-700">
+            <span className="bg-emerald-50 text-emerald-800 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-emerald-200 flex items-center gap-1">
+              <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600" />
+              خلال {selectedZone.estimatedDeliveryTime}
             </span>
-            <span className="bg-amber-50 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-200">
-              رسوم التوصيل: {selectedZone.deliveryFee} ج (مجاني فوق {selectedZone.freeDeliveryThreshold} ج)
+            <span className="bg-amber-50 text-amber-900 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-amber-200">
+              التوصيل: {selectedZone.deliveryFee}ج
             </span>
             <button
               onClick={() => setIsZoneModalOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold transition-colors cursor-pointer text-xs"
+              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold transition-colors cursor-pointer text-[10px] sm:text-xs"
             >
-              تغيير الحي
+              تغيير
             </button>
           </div>
         </div>
@@ -684,11 +684,11 @@ export default function App() {
         />
 
         {/* Products Catalog Section */}
-        <div id="products-section" className="mx-4 sm:mx-6 lg:mx-8 space-y-6 pb-16 scroll-mt-24">
+        <div id="products-section" className="mx-3 sm:mx-6 lg:mx-8 space-y-4 sm:space-y-6 pb-16 scroll-mt-20">
           {/* Section Header with Category Title & Filters */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stone-200 pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-3">
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-stone-900">
+              <h2 className="text-base sm:text-xl md:text-2xl font-black text-stone-900">
                 {activeCategory === 'all'
                   ? 'جميع منتجات العناية والطفل 🛍️'
                   : activeCategory === 'baby'
@@ -699,22 +699,22 @@ export default function App() {
                   ? 'منتجات العناية بالجسم والبشرة ✨'
                   : 'بكجات التوفير والهدايا الفاخرة 🎁'}
               </h2>
-              <p className="text-xs text-stone-500 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-stone-500 mt-0.5">
                 عرض {filteredProducts.length} منتج أصلي متوفر للشحن الفوري
               </p>
             </div>
 
             {/* Sort & Brand Controls */}
-            <div className="flex flex-wrap items-center gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
               {/* Brand Selector */}
-              <div className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl border border-stone-200">
+              <div className="flex items-center gap-1 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-stone-200 text-[11px] sm:text-xs">
                 <span className="text-stone-500 font-bold">الماركة:</span>
                 <select
                   value={selectedBrand}
                   onChange={(e) => setSelectedBrand(e.target.value)}
                   className="bg-transparent font-extrabold text-stone-900 focus:outline-none cursor-pointer"
                 >
-                  <option value="all">كل الماركات</option>
+                  <option value="all">الكل</option>
                   {brandsList.filter((b) => b !== 'all').map((b) => (
                     <option key={b} value={b}>
                       {b}
@@ -724,17 +724,17 @@ export default function App() {
               </div>
 
               {/* Sort Selector */}
-              <div className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl border border-stone-200">
+              <div className="flex items-center gap-1 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-stone-200 text-[11px] sm:text-xs">
                 <span className="text-stone-500 font-bold">الترتيب:</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
                   className="bg-transparent font-extrabold text-stone-900 focus:outline-none cursor-pointer"
                 >
-                  <option value="featured">الأكثر تميزاً وطلباً</option>
+                  <option value="featured">الأكثر طلباً</option>
                   <option value="rating">الأعلى تقييماً ★</option>
-                  <option value="priceLow">السعر: من الأقل للأعلى</option>
-                  <option value="priceHigh">السعر: من الأعلى للأقل</option>
+                  <option value="priceLow">السعر: من الأقل</option>
+                  <option value="priceHigh">السعر: من الأعلى</option>
                 </select>
               </div>
             </div>
@@ -888,7 +888,7 @@ export default function App() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-5">
               {filteredProducts.map((product) => {
                 const cartItem = cart.find((i) => i.product.id === product.id);
                 const isWishlisted = wishlist.some((w) => w.id === product.id);
@@ -910,7 +910,7 @@ export default function App() {
         </div>
 
         {/* Hyperlocal 6th of October & Sheikh Zayed Features Footer Highlights */}
-        <section className="bg-emerald-950 text-white rounded-3xl mx-4 sm:mx-6 lg:mx-8 mb-12 p-6 sm:p-10 border border-emerald-900 shadow-xl">
+        <section className="bg-emerald-950 text-white rounded-2xl sm:rounded-3xl mx-3 sm:mx-6 lg:mx-8 mb-12 p-4 sm:p-10 border border-emerald-900 shadow-xl">
           <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-right">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-2xl bg-emerald-800/80 border border-emerald-600/50 flex items-center justify-center text-emerald-300 shrink-0">
