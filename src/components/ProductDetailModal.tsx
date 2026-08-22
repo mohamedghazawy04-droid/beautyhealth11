@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertCircle,
   ShoppingBag,
+  Camera,
 } from 'lucide-react';
 import { Product, StoreSettings } from '../types';
 
@@ -35,6 +36,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 }) => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'details' | 'howTo' | 'ingredients' | 'reviews'>('details');
+  const [previewReviewImage, setPreviewReviewImage] = useState<string | null>(null);
 
   if (!product) return null;
 
@@ -293,30 +295,62 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       {/* List of Reviews */}
                       <div className="space-y-2.5">
                         {product.reviews && product.reviews.length > 0 ? (
-                          product.reviews.map((rev) => (
-                            <div
-                              key={rev.id}
-                              className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 space-y-1.5"
-                            >
-                              <div className="flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-extrabold text-stone-900">{rev.userName}</span>
-                                  {rev.userArea && (
-                                    <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
-                                      مشتري موثق ({rev.userArea})
-                                    </span>
-                                  )}
+                          product.reviews.map((rev) => {
+                            const reviewImages = rev.images && rev.images.length > 0 ? rev.images : (rev.image ? [rev.image] : []);
+                            return (
+                              <div
+                                key={rev.id}
+                                className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 space-y-2"
+                              >
+                                <div className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-extrabold text-stone-900">{rev.userName}</span>
+                                    {rev.userArea && (
+                                      <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                                        مشتري موثق ({rev.userArea})
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-stone-400 text-[11px]">{rev.date}</span>
                                 </div>
-                                <span className="text-stone-400 text-[11px]">{rev.date}</span>
+                                <div className="flex text-amber-500">
+                                  {[...Array(rev.rating || 5)].map((_, i) => (
+                                    <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-500" />
+                                  ))}
+                                </div>
+                                <p className="text-stone-800 text-xs font-medium leading-relaxed">{rev.comment}</p>
+
+                                {/* Customer Uploaded Real Photos */}
+                                {reviewImages.length > 0 && (
+                                  <div className="pt-1">
+                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-800 mb-1.5">
+                                      <Camera className="w-3 h-3 text-emerald-700" />
+                                      <span>صور حقيقية أرفقها العميل ({reviewImages.length}):</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      {reviewImages.map((imgSrc, imgIdx) => (
+                                        <button
+                                          key={imgIdx}
+                                          type="button"
+                                          onClick={() => setPreviewReviewImage(imgSrc)}
+                                          className="relative group w-16 h-16 rounded-xl overflow-hidden border border-emerald-300 shadow-xs hover:scale-105 transition-transform cursor-pointer"
+                                        >
+                                          <img
+                                            src={imgSrc}
+                                            alt={`صورة تقييم من ${rev.userName}`}
+                                            className="w-full h-full object-cover"
+                                          />
+                                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">
+                                            تكبير
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                              <div className="flex text-amber-500">
-                                {[...Array(rev.rating || 5)].map((_, i) => (
-                                  <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-500" />
-                                ))}
-                              </div>
-                              <p className="text-stone-800 text-xs font-medium leading-relaxed">{rev.comment}</p>
-                            </div>
-                          ))
+                            );
+                          })
                         ) : (
                           <div className="text-center py-6 bg-stone-50 rounded-2xl border border-stone-200 p-4 space-y-2">
                             <p className="text-stone-500 text-xs">كن أول من يكتب تقييماً لهذا المنتج!</p>
@@ -364,6 +398,28 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Lightbox for Review Images */}
+      {previewReviewImage && (
+        <div
+          className="fixed inset-0 z-60 bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs"
+          onClick={() => setPreviewReviewImage(null)}
+        >
+          <div className="relative max-w-lg max-h-[85vh] bg-stone-900 rounded-2xl p-2 border border-stone-700">
+            <button
+              onClick={() => setPreviewReviewImage(null)}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img
+              src={previewReviewImage}
+              alt="معاينة صورة تقييم العميل"
+              className="max-h-[80vh] w-auto max-w-full rounded-xl object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

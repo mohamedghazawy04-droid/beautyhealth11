@@ -27,6 +27,8 @@ export interface ProductReview {
   rating: number;
   date: string;
   comment: string;
+  images?: string[];
+  image?: string;
 }
 
 export interface Product {

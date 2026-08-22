@@ -259,17 +259,59 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
             </div>
 
-            {/* Checkout Button */}
-            <button
-              onClick={() => {
-                onClose();
-                onProceedToCheckout();
-              }}
-              className="w-full py-3.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all cursor-pointer"
-            >
-              <span>متابعة وإرسال الطلب عبر واتساب</span>
-              <MessageCircle className="w-4 h-4" />
-            </button>
+            {/* WhatsApp Checkout Direct Link / Button */}
+            {(() => {
+              const whatsappNumber = (storeSettings?.contactWhatsApp || '201012345678').replace(/\D/g, '');
+              const itemsListText = items
+                .map(
+                  (i, idx) =>
+                    `${idx + 1}. *${i.product.nameAr || i.product.name}*\n   الكمية: ${i.quantity} | السعر: ${i.product.price * i.quantity} جنيه`
+                )
+                .join('\n');
+
+              const cartMessage =
+                `*🛍️ طلب جديد من سلة المتجر*\n` +
+                `━━━━━━━━━━━━━━━━━\n` +
+                `*📦 محتويات السلة:*\n${itemsListText}\n` +
+                `━━━━━━━━━━━━━━━━━\n` +
+                `*المجموع الفرعي:* ${subtotal} جنيه\n` +
+                (discountAmount > 0 ? `*الخصم (${appliedCoupon}):* -${discountAmount} جنيه\n` : '') +
+                `*الشحن:* ${effectiveDeliveryFee === 0 ? 'مجاني 🎉' : `${effectiveDeliveryFee} جنيه`}\n` +
+                `*💵 الإجمالي النهائي:* ${grandTotal} جنيه\n` +
+                `━━━━━━━━━━━━━━━━━\n` +
+                `📍 أرجو تأكيد الطلب وإرسال تفاصيل التوصيل.`;
+
+              const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(cartMessage)}`;
+
+              return (
+                <div className="space-y-2">
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => {
+                      onClose();
+                    }}
+                    className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all cursor-pointer text-center no-underline"
+                  >
+                    <MessageCircle className="w-5 h-5 animate-pulse" />
+                    <span>إرسال السلة عبر واتساب فوراً 📲</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onProceedToCheckout();
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-stone-200/80 hover:bg-stone-300 text-stone-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span>كتابة العنوان وتفاصيل الشحن أولاً</span>
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>

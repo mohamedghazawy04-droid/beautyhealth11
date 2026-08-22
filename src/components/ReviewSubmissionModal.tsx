@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   X,
   Star,
-  Sparkles,
   CheckCircle2,
   MapPin,
   User,
   MessageSquare,
   ShieldCheck,
   Send,
+  Camera,
+  Image as ImageIcon,
+  Trash2,
+  UploadCloud,
+  Eye,
 } from 'lucide-react';
 import { Product, ProductReview } from '../types';
 
@@ -37,7 +41,13 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
   const [userArea, setUserArea] = useState(defaultUserArea || 'الشيخ زايد');
   const [comment, setComment] = useState('');
   const [selectedQuickTags, setSelectedQuickTags] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>([]);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen || !product) return null;
 
@@ -70,6 +80,81 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
     }
   };
 
+  // Helper to compress image before adding to state
+  const handleImageUpload = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setError('يرجى اختيار ملف صورة صالح (JPEG أو PNG أو WEBP)');
+      return;
+    }
+
+    if (images.length >= 3) {
+      setError('يمكنك إرفاق حتى 3 صور كحد أقصى لكل تقييم');
+      return;
+    }
+
+    setIsProcessingImage(true);
+    setError('');
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 900;
+        const MAX_HEIGHT = 900;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          setImages((prev) => [...prev, compressedDataUrl]);
+        }
+        setIsProcessingImage(false);
+      };
+      img.onerror = () => {
+        setIsProcessingImage(false);
+        setError('حدث خطأ أثناء معالجة الصورة');
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => {
+      setIsProcessingImage(false);
+      setError('حدث خطأ أثناء قراءة ملف الصورة');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      Array.from(files).forEach((file: File) => {
+        handleImageUpload(file);
+      });
+      // reset file input
+      e.target.value = '';
+    }
+  };
+
+  const removeImage = (indexToRemove: number) => {
+    setImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!userName.trim()) {
@@ -83,14 +168,17 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
 
     onSubmitReview(product.id, {
       userName: userName.trim(),
-      userArea: userArea.trim() || '٦ أكتوبر وزايد',
+      userArea: userArea.trim() || 'الشيخ زايد وأكتوبر',
       rating,
       comment: comment.trim(),
+      images: images.length > 0 ? images : undefined,
+      image: images.length > 0 ? images[0] : undefined,
     });
 
     // Reset and close
     setComment('');
     setSelectedQuickTags([]);
+    setImages([]);
     setError('');
     onClose();
   };
@@ -107,9 +195,9 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
               <Star className="w-5 h-5 fill-amber-300" />
             </div>
             <div>
-              <h2 className="font-extrabold text-base sm:text-lg">تقييم المنتج بعد الاستلام</h2>
+              <h2 className="font-extrabold text-base sm:text-lg">تقييم المنتج وتصوير التجربة</h2>
               <p className="text-xs text-emerald-200">
-                رأيك يساعد عملاء أكتوبر والشيخ زايد في اختيار الأفضل
+                شارك صور المنتج الحقيقية لزيادة المصداقية ومساعدة المشترين
               </p>
             </div>
           </div>
@@ -196,16 +284,120 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
             <div>
               <label className="text-xs font-bold text-stone-700 flex items-center gap-1.5 mb-1">
                 <MapPin className="w-3.5 h-3.5 text-emerald-700" />
-                <span>المنطقة / الحي</span>
+                <span>المنطقة / المدينة</span>
               </label>
               <input
                 type="text"
                 value={userArea}
                 onChange={(e) => setUserArea(e.target.value)}
-                placeholder="مثال: الشيخ زايد - بيفرلي هيلز"
+                placeholder="مثال: الشيخ زايد، 6 أكتوبر، القاهرة..."
                 className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-stone-300 focus:ring-2 focus:ring-emerald-700 focus:outline-none"
               />
             </div>
+          </div>
+
+          {/* Photo Upload with Camera Section */}
+          <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                <Camera className="w-4 h-4 text-emerald-700" />
+                <span>إرفاق صور المنتج الحقيقية (اختياري)</span>
+              </label>
+              <span className="text-[11px] font-bold text-emerald-700">
+                {images.length} / 3 صور
+              </span>
+            </div>
+
+            {/* Hidden file inputs for Camera and Gallery */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            {/* Action Buttons for Camera vs Gallery */}
+            {images.length < 3 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={isProcessingImage}
+                  className="py-2.5 px-3 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-100/50 text-emerald-900 text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                >
+                  <Camera className="w-4 h-4 text-emerald-700" />
+                  <span>📸 فتح الكاميرا والتقاط صورة</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  disabled={isProcessingImage}
+                  className="py-2.5 px-3 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-100/50 text-emerald-900 text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                >
+                  <ImageIcon className="w-4 h-4 text-emerald-700" />
+                  <span>🖼️ اختيار من معرض الصور</span>
+                </button>
+              </div>
+            )}
+
+            {isProcessingImage && (
+              <div className="text-center py-2 text-xs text-emerald-800 font-bold animate-pulse">
+                ⏳ جاري معالجة وضغط الصورة بجودة عالية...
+              </div>
+            )}
+
+            {/* Uploaded Images Preview Thumbnails */}
+            {images.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[11px] font-bold text-stone-600">الصور المرفقة مع التقييم:</div>
+                <div className="flex flex-wrap gap-2.5">
+                  {images.map((imgSrc, idx) => (
+                    <div
+                      key={idx}
+                      className="relative group w-20 h-20 rounded-xl overflow-hidden border-2 border-emerald-600 shadow-sm bg-stone-100"
+                    >
+                      <img
+                        src={imgSrc}
+                        alt={`صورة التقييم ${idx + 1}`}
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => setPreviewImage(imgSrc)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-md transition-colors cursor-pointer"
+                        title="حذف الصورة"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewImage(imgSrc)}
+                        className="absolute bottom-1 left-1 w-6 h-6 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center shadow-md transition-colors cursor-pointer"
+                        title="تكبير الصورة"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
+              💡 صور المنتج والتغليف الطبيعية من هاتفك تزيد من مصداقية تقييمك وتكسب ثقة المشترين.
+            </p>
           </div>
 
           {/* Quick Tag Pills */}
@@ -241,9 +433,9 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
               rows={3}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="اكتب تجاربك مع المنتج، تأثيره، ورأيك في سرعة التوصيل في مدينتي أكتوبر وزايد..."
+              placeholder="اكتب تجربتك مع المنتج، مفعوله، ورأيك في جودة التغليف والتوصيل..."
               className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-stone-300 focus:ring-2 focus:ring-emerald-700 focus:outline-none resize-none"
-              maxLength={300}
+              maxLength={400}
               required
             />
             <div className="flex justify-between items-center text-[10px] text-stone-400 mt-1">
@@ -251,7 +443,7 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
                 <ShieldCheck className="w-3 h-3" />
                 سيتم نشر التقييم كـ مشتري موثق فوراً
               </span>
-              <span>{comment.length} / 300 حرف</span>
+              <span>{comment.length} / 400 حرف</span>
             </div>
           </div>
 
@@ -265,10 +457,11 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
           <div className="pt-2 border-t border-stone-200 flex gap-2">
             <button
               type="submit"
-              className="flex-1 py-3 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+              disabled={isProcessingImage}
+              className="flex-1 py-3 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
-              <span>نشر التقييم وتحديث المتوسط ⭐</span>
+              <span>نشر التقييم مع الصور ⭐</span>
             </button>
             <button
               type="button"
@@ -280,6 +473,28 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Lightbox / Zoom Modal for uploaded picture */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-60 bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-lg max-h-[85vh] bg-stone-900 rounded-2xl p-2 border border-stone-700">
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img
+              src={previewImage}
+              alt="معاينة الصورة"
+              className="max-h-[80vh] w-auto max-w-full rounded-xl object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

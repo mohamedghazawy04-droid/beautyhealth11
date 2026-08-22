@@ -36,9 +36,19 @@ import { ReviewSubmissionModal } from './components/ReviewSubmissionModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { InstallAppModal } from './components/InstallAppModal';
 import { CategoriesModal } from './components/CategoriesModal';
+import { db } from './firebase';
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  getDocs,
+  writeBatch,
+} from 'firebase/firestore';
 
 export default function App() {
-  // 1. Core State with Local Storage Persistence
+  // 1. Core State with Local Storage + Cloud Firestore Persistence
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('carehub_products');
     if (saved) {
@@ -211,7 +221,55 @@ export default function App() {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Sync to localStorage
+  // Real-time synchronization with Firestore for permanent cross-device persistence
+  useEffect(() => {
+    // 1. Listen for Products updates from Firestore
+    const unsubProducts = onSnapshot(
+      collection(db, 'products'),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const prodsList: Product[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as Product;
+            prodsList.push({
+              ...data,
+              id: docSnap.id,
+            });
+          });
+          setProducts(prodsList);
+          localStorage.setItem('carehub_products', JSON.stringify(prodsList));
+        }
+      },
+      (error) => {
+        console.error('Firestore products listener error:', error);
+      }
+    );
+
+    // 2. Listen for Store Settings
+    const unsubSettings = onSnapshot(
+      collection(db, 'storeSettings'),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const settingsDoc = snapshot.docs[0];
+          if (settingsDoc) {
+            const settingsData = settingsDoc.data() as StoreSettings;
+            setStoreSettings(settingsData);
+            localStorage.setItem('carehub_store_settings', JSON.stringify(settingsData));
+          }
+        }
+      },
+      (error) => {
+        console.error('Firestore settings listener error:', error);
+      }
+    );
+
+    return () => {
+      unsubProducts();
+      unsubSettings();
+    };
+  }, []);
+
+  // Local fallback storage
   useEffect(() => {
     localStorage.setItem('carehub_products', JSON.stringify(products));
   }, [products]);
@@ -352,38 +410,76 @@ export default function App() {
     showToast('تم حذف الطلب نهائياً من السجل');
   };
 
-  const handleAddNewProduct = (newProd: Product) => {
+  const handleAddNewProduct = async (newProd: Product) => {
     setProducts((prev) => [newProd, ...prev]);
-    showToast('تمت إضافة المنتج الجديد للمخزن');
+    try {
+      await setDoc(doc(db, 'products', newProd.id), newProd);
+    } catch (e) {
+      console.error('Failed to sync new product to Firestore:', e);
+    }
+    showToast('تمت إضافة المنتج وحفظه سحابياً');
   };
 
-  const handleUpdateProduct = (productId: string, updates: Partial<Product>) => {
+  const handleUpdateProduct = async (productId: string, updates: Partial<Product>) => {
+    let updatedFullProd: Product | undefined;
     setProducts((prev) =>
-      prev.map((p) => (p.id === productId ? { ...p, ...updates } : p))
+      prev.map((p) => {
+        if (p.id === productId) {
+          const merged = { ...p, ...updates };
+          updatedFullProd = merged;
+          return merged;
+        }
+        return p;
+      })
     );
     if (detailProduct && detailProduct.id === productId) {
       setDetailProduct((prev) => (prev ? { ...prev, ...updates } : null));
     }
-    showToast('تم تعديل بيانات وسعر المنتج بنجاح');
+    if (updatedFullProd) {
+      try {
+        await setDoc(doc(db, 'products', productId), updatedFullProd);
+      } catch (e) {
+        console.error('Failed to update product in Firestore:', e);
+      }
+    }
+    showToast('تم تعديل بيانات وسعر المنتج وحفظه بنجاح');
   };
 
-  const handleDeleteProduct = (productId: string) => {
+  const handleDeleteProduct = async (productId: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== productId));
     if (detailProduct && detailProduct.id === productId) {
       setDetailProduct(null);
     }
-    showToast('تم حذف المنتج من المتجر');
+    try {
+      await deleteDoc(doc(db, 'products', productId));
+    } catch (e) {
+      console.error('Failed to delete product from Firestore:', e);
+    }
+    showToast('تم حذف المنتج نهائياً من المتجر');
   };
 
-  const handleClearAllProducts = () => {
+  const handleClearAllProducts = async () => {
     setProducts([]);
     localStorage.removeItem('carehub_products');
-    showToast('✓ تم إفراغ جميع منتجات المتجر');
+    try {
+      const snap = await getDocs(collection(db, 'products'));
+      const batch = writeBatch(db);
+      snap.docs.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    } catch (e) {
+      console.error('Failed to clear products from Firestore:', e);
+    }
+    showToast('✓ تم إفراغ جميع منتجات المتجر وحفظ السجل');
   };
 
-  const handleUpdateStoreSettings = (newSettings: StoreSettings) => {
+  const handleUpdateStoreSettings = async (newSettings: StoreSettings) => {
     setStoreSettings(newSettings);
-    showToast('تم حفظ إعدادات المتجر العامة بنجاح');
+    try {
+      await setDoc(doc(db, 'storeSettings', 'main'), newSettings);
+    } catch (e) {
+      console.error('Failed to sync store settings to Firestore:', e);
+    }
+    showToast('تم حفظ إعدادات المتجر العامة سحابياً بنجاح');
   };
 
   // Open Review Submission Modal
@@ -401,7 +497,7 @@ export default function App() {
   };
 
   // Submit Product Review and recalculate average rating
-  const handleAddProductReview = (
+  const handleAddProductReview = async (
     productId: string,
     newRevData: Omit<ProductReview, 'id' | 'date'>
   ) => {
@@ -441,7 +537,15 @@ export default function App() {
       setDetailProduct(updatedProductRef);
     }
 
-    showToast(`⭐ شكراً لك! تم نشر تقييمك (${newRevData.rating} نجوم) وتحديث متوسط التقييم`);
+    if (updatedProductRef) {
+      try {
+        await setDoc(doc(db, 'products', productId), updatedProductRef);
+      } catch (e) {
+        console.error('Failed to sync review to Firestore:', e);
+      }
+    }
+
+    showToast(`⭐ شكراً لك! تم نشر تقييمك (${newRevData.rating} نجوم) مع الصور بنجاح`);
   };
 
   // Brands list for filter
