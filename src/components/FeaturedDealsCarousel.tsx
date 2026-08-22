@@ -74,26 +74,30 @@ export const FeaturedDealsCarousel: React.FC<FeaturedDealsCarouselProps> = ({
 
   return (
     <section className="mx-3 sm:mx-6 lg:mx-8 mb-6 relative">
-      {/* Container with distinct border & soft glowing gradient background */}
-      <div className="bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-emerald-500/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-amber-200/80 shadow-xs relative overflow-hidden text-right">
+      {/* Container with soft rose & blush glowing gradient background */}
+      <div className="bg-gradient-to-br from-pink-500/10 via-rose-500/10 to-purple-500/5 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-pink-200/90 shadow-xs relative overflow-hidden text-right">
+        {/* Soft Decorative glow */}
+        <div className="absolute -top-12 -left-12 w-36 h-36 bg-pink-400/15 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-12 -right-12 w-36 h-36 bg-rose-400/15 rounded-full blur-2xl pointer-events-none" />
+
         {/* Carousel Header */}
-        <div className="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-amber-200/60 relative z-10">
+        <div className="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-pink-200/70 relative z-10">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 text-white flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-pink-500 via-rose-500 to-pink-600 text-white flex items-center justify-center shadow-xs">
               <Flame className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <h2 className="text-base sm:text-lg font-black text-stone-900 tracking-tight">
-                  العروض المميزة
+                  عروض وخصومات مميزة لكِ
                 </h2>
-                <span className="bg-rose-500 text-white text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                <span className="bg-gradient-to-r from-pink-600 to-rose-600 text-white text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs">
                   <Percent className="w-2.5 h-2.5" />
-                  {dealProducts.length} عرض
+                  {dealProducts.length} عرض حصري
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-stone-600 font-medium">
-                خصومات حصرية وتوفير مباشر للشحن الفوري
+              <p className="text-[10px] sm:text-xs text-pink-900/70 font-medium">
+                توفير فوري وعناية فائقة بأفضل الأسعار
               </p>
             </div>
           </div>
@@ -105,8 +109,8 @@ export const FeaturedDealsCarousel: React.FC<FeaturedDealsCarouselProps> = ({
               disabled={!canScrollRight}
               className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-xs ${
                 canScrollRight
-                  ? 'bg-white hover:bg-amber-50 border-amber-300 text-stone-800'
-                  : 'bg-stone-100 border-stone-200 text-stone-300 cursor-not-allowed'
+                  ? 'bg-white hover:bg-pink-50 border-pink-200 text-pink-900'
+                  : 'bg-pink-50/50 border-pink-100 text-stone-300 cursor-not-allowed'
               }`}
               title="السابق"
             >
@@ -117,8 +121,8 @@ export const FeaturedDealsCarousel: React.FC<FeaturedDealsCarouselProps> = ({
               disabled={!canScrollLeft}
               className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-xs ${
                 canScrollLeft
-                  ? 'bg-white hover:bg-amber-50 border-amber-300 text-stone-800'
-                  : 'bg-stone-100 border-stone-200 text-stone-300 cursor-not-allowed'
+                  ? 'bg-white hover:bg-pink-50 border-pink-200 text-pink-900'
+                  : 'bg-pink-50/50 border-pink-100 text-stone-300 cursor-not-allowed'
               }`}
               title="التالي"
             >
@@ -148,10 +152,10 @@ export const FeaturedDealsCarousel: React.FC<FeaturedDealsCarouselProps> = ({
             return (
               <div
                 key={product.id}
-                className="w-[175px] sm:w-[240px] shrink-0 snap-start bg-white rounded-xl sm:rounded-2xl border border-amber-200/90 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden group"
+                className="w-[175px] sm:w-[240px] shrink-0 snap-start bg-white rounded-xl sm:rounded-2xl border border-pink-200/90 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden group"
               >
                 {/* Image & Ribbon Banner */}
-                <div className="relative aspect-[4/3] w-full bg-stone-100 overflow-hidden">
+                <div className="relative aspect-[4/3] w-full bg-pink-50/50 overflow-hidden">
                   <img
                     src={product.image}
                     alt={product.nameAr}
@@ -162,13 +166,13 @@ export const FeaturedDealsCarousel: React.FC<FeaturedDealsCarouselProps> = ({
 
                   {/* Top Floating Discount Badges */}
                   <div className="absolute top-1.5 right-1.5 flex flex-col gap-0.5 items-end z-10">
-                    <span className="bg-rose-600 text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md shadow-xs flex items-center gap-0.5">
+                    <span className="bg-gradient-to-r from-pink-600 to-rose-600 text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md shadow-xs flex items-center gap-0.5">
                       <Flame className="w-2.5 h-2.5 fill-white" />
                       خصم {discountPercent}%
                     </span>
                     {savingsAmount > 0 && (
-                      <span className="bg-emerald-950/85 text-emerald-200 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.2 rounded-md backdrop-blur-xs">
-                        وفر {savingsAmount}ج
+                      <span className="bg-[#3d0e23]/90 text-pink-200 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.2 rounded-md backdrop-blur-xs">
+                        وفري {savingsAmount}ج
                       </span>
                     )}
                   </div>
@@ -181,12 +185,12 @@ export const FeaturedDealsCarousel: React.FC<FeaturedDealsCarouselProps> = ({
                     }}
                     className={`absolute top-1.5 left-1.5 w-6 h-6 rounded-full flex items-center justify-center transition-all z-10 cursor-pointer shadow-xs ${
                       isWishlisted
-                        ? 'bg-rose-50 text-rose-600 ring-1 ring-rose-300'
-                        : 'bg-white/80 backdrop-blur-xs text-stone-600 hover:text-rose-500 hover:bg-white'
+                        ? 'bg-pink-50 text-pink-600 ring-1 ring-pink-300'
+                        : 'bg-white/80 backdrop-blur-xs text-stone-600 hover:text-pink-500 hover:bg-white'
                     }`}
                     title={isWishlisted ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
                   >
-                    <Heart className={`w-3 h-3 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}`} />
+                    <Heart className={`w-3 h-3 ${isWishlisted ? 'fill-pink-500 text-pink-500' : ''}`} />
                   </button>
                 </div>
 
@@ -195,7 +199,7 @@ export const FeaturedDealsCarousel: React.FC<FeaturedDealsCarouselProps> = ({
                   <div className="space-y-0.5">
                     {/* Brand & Rating */}
                     <div className="flex items-center justify-between text-[9px] sm:text-[10px]">
-                      <span className="font-extrabold text-amber-800 uppercase bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60 truncate max-w-[90px]">
+                      <span className="font-extrabold text-pink-700 uppercase bg-pink-50 px-1.5 py-0.5 rounded border border-pink-200/60 truncate max-w-[90px]">
                         {product.brand}
                       </span>
                       <div className="flex items-center gap-0.5 text-amber-500 font-bold">
@@ -207,7 +211,7 @@ export const FeaturedDealsCarousel: React.FC<FeaturedDealsCarouselProps> = ({
                     {/* Product Name */}
                     <h3
                       onClick={() => onQuickView(product)}
-                      className="font-bold text-stone-900 text-[11px] sm:text-xs line-clamp-2 hover:text-emerald-800 cursor-pointer transition-colors leading-snug pt-0.5"
+                      className="font-bold text-stone-900 text-[11px] sm:text-xs line-clamp-2 hover:text-pink-600 cursor-pointer transition-colors leading-snug pt-0.5"
                       title={product.nameAr}
                     >
                       {product.nameAr}
@@ -215,10 +219,10 @@ export const FeaturedDealsCarousel: React.FC<FeaturedDealsCarouselProps> = ({
                   </div>
 
                   {/* Pricing and Add to Cart */}
-                  <div className="pt-1.5 border-t border-stone-100 flex items-center justify-between gap-1">
+                  <div className="pt-1.5 border-t border-pink-100 flex items-center justify-between gap-1">
                     <div>
                       <div className="flex items-baseline gap-0.5">
-                        <span className="text-xs sm:text-sm font-black text-rose-600">
+                        <span className="text-xs sm:text-sm font-black text-pink-700">
                           {product.price}
                         </span>
                         <span className="text-[9px] font-bold text-stone-500">ج.م</span>
@@ -234,8 +238,8 @@ export const FeaturedDealsCarousel: React.FC<FeaturedDealsCarouselProps> = ({
                       onClick={() => onAddToCart(product)}
                       className={`h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg font-bold text-[10px] sm:text-xs flex items-center gap-1 transition-all cursor-pointer shadow-2xs shrink-0 ${
                         inCartCount > 0
-                          ? 'bg-emerald-800 text-white hover:bg-emerald-900'
-                          : 'bg-amber-500 hover:bg-amber-600 text-white'
+                          ? 'bg-rose-900 text-white hover:bg-rose-950'
+                          : 'bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white'
                       }`}
                     >
                       {inCartCount > 0 ? (

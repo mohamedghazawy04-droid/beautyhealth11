@@ -1,20 +1,10 @@
 import React, { useState } from 'react';
 import {
   X,
-  Truck,
   MapPin,
-  Phone,
   User,
-  Building,
-  CreditCard,
-  Banknote,
-  Smartphone,
-  CheckCircle2,
-  AlertCircle,
-  Copy,
   MessageCircle,
-  ShieldCheck,
-  Package,
+  AlertCircle,
 } from 'lucide-react';
 import { CartItem, Order, PaymentMethod, StoreSettings } from '../types';
 
@@ -42,7 +32,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [alternatePhone, setAlternatePhone] = useState('');
-  const [city, setCity] = useState('القاهرة والجيزة');
+  const [city] = useState('القاهرة والجيزة (٦ أكتوبر والشيخ زايد)');
   const [detailedAddress, setDetailedAddress] = useState('');
   const [buildingNumber, setBuildingNumber] = useState('');
   const [floorNumber, setFloorNumber] = useState('');
@@ -50,9 +40,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [landmark, setLandmark] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
-  const [instaPayReceiptUploaded, setInstaPayReceiptUploaded] = useState(false);
-  const [copiedInstaPay, setCopiedInstaPay] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   if (!isOpen) return null;
@@ -63,18 +51,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const deliveryFee = isFreeDelivery ? 0 : 25;
   const grandTotal = Math.max(0, subtotal - discountAmount + deliveryFee);
 
-  const instaPayId = 'carehub@instapay';
   const defaultWhatsApp = storeSettings?.contactWhatsApp || '201012345678';
-  // Clean phone for wa.me link (digits only)
   const cleanWhatsAppNumber = defaultWhatsApp.replace(/\D/g, '');
 
-  const handleCopyInstaPay = () => {
-    navigator.clipboard.writeText(instaPayId);
-    setCopiedInstaPay(true);
-    setTimeout(() => setCopiedInstaPay(false), 2500);
-  };
-
-  const handleSubmitOrder = (isWhatsApp: boolean = true) => {
+  const handleSubmitOrder = () => {
     if (!customerName.trim()) {
       setErrorMsg('يرجى إدخال اسم العميل بالكامل');
       return;
@@ -124,7 +104,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setIsSubmitting(false);
       onClose();
 
-      // Build structured Arabic WhatsApp Message
       const paymentName =
         paymentMethod === 'cod'
           ? 'كاش عند الاستلام'
@@ -149,7 +128,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         .join(' - ');
 
       const messageContent =
-        `*🛍️ طلب جديد من المتجر*\n` +
+        `*🛍️ طلب جديد من متجر m&l*\n` +
         `━━━━━━━━━━━━━━━━━\n` +
         `*رقم الطلب:* #${orderId}\n` +
         `*👤 اسم العميل:* ${customerName}\n` +
@@ -173,17 +152,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
-      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-right">
+      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-pink-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-right">
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-900 via-teal-900 to-stone-900 text-white flex items-center justify-between">
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-pink-700 via-rose-700 to-pink-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300">
+            <div className="w-10 h-10 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-white">
               <MessageCircle className="w-5 h-5" />
             </div>
             <div>
               <h2 className="font-extrabold text-base sm:text-lg">إتمام الطلب وإرساله للواتساب</h2>
-              <p className="text-xs text-emerald-200">
-                أدخل بيانات التوصيل وسيتم تحويل الأوردر برسالة واتساب مباشرة
+              <p className="text-xs text-pink-100">
+                أدخلي بيانات التوصيل وسيتم تحويل الأوردر برسالة واتساب مباشرة
               </p>
             </div>
           </div>
@@ -206,8 +185,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
           {/* Section 1: Customer Info */}
           <div className="space-y-3">
-            <h3 className="font-extrabold text-xs text-stone-900 flex items-center gap-1.5 border-b border-stone-200 pb-1.5">
-              <User className="w-4 h-4 text-emerald-700" />
+            <h3 className="font-extrabold text-xs text-stone-900 flex items-center gap-1.5 border-b border-pink-100 pb-1.5">
+              <User className="w-4 h-4 text-pink-600" />
               بيانات العميل والتواصل:
             </h3>
 
@@ -220,8 +199,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   type="text"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="اكتب اسمك هنا"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                  placeholder="اكتبي اسمك هنا"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none"
                 />
               </div>
 
@@ -234,7 +213,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="010XXXXXXXX"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none font-mono text-left"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none font-mono text-left"
                 />
               </div>
             </div>
@@ -248,15 +227,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 value={alternatePhone}
                 onChange={(e) => setAlternatePhone(e.target.value)}
                 placeholder="رقم آخر إن وجد"
-                className="w-full px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none font-mono text-left"
+                className="w-full px-3.5 py-2 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none font-mono text-left"
               />
             </div>
           </div>
 
           {/* Section 2: Address */}
           <div className="space-y-3">
-            <h3 className="font-extrabold text-xs text-stone-900 flex items-center gap-1.5 border-b border-stone-200 pb-1.5">
-              <MapPin className="w-4 h-4 text-emerald-700" />
+            <h3 className="font-extrabold text-xs text-stone-900 flex items-center gap-1.5 border-b border-pink-100 pb-1.5">
+              <MapPin className="w-4 h-4 text-pink-600" />
               عنوان التوصيل بالتفصيل:
             </h3>
 
@@ -268,8 +247,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 type="text"
                 value={detailedAddress}
                 onChange={(e) => setDetailedAddress(e.target.value)}
-                placeholder="مثال: الحي، اسم الشارع، أو اسم الكمبوند..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                placeholder="مثال: الحي، اسم الشارع، أو اسم الكمبوند في أكتوبر أو زايد..."
+                className="w-full px-3.5 py-2.5 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none"
               />
             </div>
 
@@ -281,7 +260,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   value={buildingNumber}
                   onChange={(e) => setBuildingNumber(e.target.value)}
                   placeholder="عمارة 5"
-                  className="w-full px-2.5 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                  className="w-full px-2.5 py-2 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none"
                 />
               </div>
 
@@ -292,7 +271,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   value={floorNumber}
                   onChange={(e) => setFloorNumber(e.target.value)}
                   placeholder="الدور 2"
-                  className="w-full px-2.5 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                  className="w-full px-2.5 py-2 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none"
                 />
               </div>
 
@@ -303,143 +282,85 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   value={apartmentNumber}
                   onChange={(e) => setApartmentNumber(e.target.value)}
                   placeholder="شقة 4"
-                  className="w-full px-2.5 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                  className="w-full px-2.5 py-2 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-stone-700 mb-1">
-                علامة مميزة بالقرب من العنوان (اختياري)
+                علامة مميزة (اختياري)
               </label>
               <input
                 type="text"
                 value={landmark}
                 onChange={(e) => setLandmark(e.target.value)}
-                placeholder="مثال: بجوار صيدلية، مسجد، سوبرماركت..."
-                className="w-full px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                placeholder="بجوار مدرسة، مول، مسجد..."
+                className="w-full px-3.5 py-2 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none"
               />
             </div>
           </div>
 
           {/* Section 3: Payment Method */}
           <div className="space-y-3">
-            <h3 className="font-extrabold text-xs text-stone-900 flex items-center gap-1.5 border-b border-stone-200 pb-1.5">
-              <CreditCard className="w-4 h-4 text-emerald-700" />
-              طريقة الدفع المفضلة:
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {/* Option 1: COD */}
-              <div
+            <label className="block text-xs font-bold text-stone-700">طريقة الدفع المفضلة:</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
                 onClick={() => setPaymentMethod('cod')}
-                className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-start gap-2.5 ${
+                className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${
                   paymentMethod === 'cod'
-                    ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500'
-                    : 'bg-white border-stone-200 hover:bg-stone-50'
+                    ? 'border-pink-600 bg-pink-50/70 text-pink-900 font-extrabold ring-1 ring-pink-500'
+                    : 'border-stone-200 bg-white text-stone-700 hover:bg-pink-50/30'
                 }`}
               >
-                <Banknote className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-                <div className="text-xs">
-                  <div className="font-extrabold text-stone-900">الدفع كاش عند الاستلام</div>
-                  <p className="text-[11px] text-stone-500 mt-0.5">
-                    ادفع نقداً عند استلام ومعاينة الطلب
-                  </p>
-                </div>
-              </div>
+                <span className="text-xs">💵 كاش عند الاستلام</span>
+              </button>
 
-              {/* Option 2: InstaPay */}
-              <div
+              <button
+                type="button"
                 onClick={() => setPaymentMethod('instapay')}
-                className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-start gap-2.5 ${
+                className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${
                   paymentMethod === 'instapay'
-                    ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500'
-                    : 'bg-white border-stone-200 hover:bg-stone-50'
+                    ? 'border-pink-600 bg-pink-50/70 text-pink-900 font-extrabold ring-1 ring-pink-500'
+                    : 'border-stone-200 bg-white text-stone-700 hover:bg-pink-50/30'
                 }`}
               >
-                <Smartphone className="w-5 h-5 text-purple-700 shrink-0 mt-0.5" />
-                <div className="text-xs">
-                  <div className="font-extrabold text-stone-900">تحويل إنستاباي InstaPay ⚡</div>
-                  <p className="text-[11px] text-stone-500 mt-0.5">
-                    تحويل فوري بدون رسوم
-                  </p>
-                </div>
-              </div>
-
-              {/* Option 3: Vodafone Cash */}
-              <div
-                onClick={() => setPaymentMethod('vodafone_cash')}
-                className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-start gap-2.5 ${
-                  paymentMethod === 'vodafone_cash'
-                    ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500'
-                    : 'bg-white border-stone-200 hover:bg-stone-50'
-                }`}
-              >
-                <Smartphone className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                <div className="text-xs">
-                  <div className="font-extrabold text-stone-900">محفظة إلكترونية (فودافون كاش)</div>
-                  <p className="text-[11px] text-stone-500 mt-0.5">
-                    تحويل لمحفظة المتجر
-                  </p>
-                </div>
-              </div>
-
-              {/* Option 4: Card */}
-              <div
-                onClick={() => setPaymentMethod('card')}
-                className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-start gap-2.5 ${
-                  paymentMethod === 'card'
-                    ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500'
-                    : 'bg-white border-stone-200 hover:bg-stone-50'
-                }`}
-              >
-                <CreditCard className="w-5 h-5 text-teal-700 shrink-0 mt-0.5" />
-                <div className="text-xs">
-                  <div className="font-extrabold text-stone-900">بطاقة بنكية مع المندوب</div>
-                  <p className="text-[11px] text-stone-500 mt-0.5">
-                    الدفع بالفيزا / ماستركارد
-                  </p>
-                </div>
-              </div>
+                <span className="text-xs">📱 إنستاباي InstaPay</span>
+              </button>
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Section 4: Notes */}
           <div>
             <label className="block text-xs font-bold text-stone-700 mb-1">
-              ملاحظات إضافية (اختياري)
+              ملاحظات إضافية على الطلب أو التوصيل
             </label>
-            <input
-              type="text"
+            <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="مثال: موعد محدد للتسليم، أو ملاحظات خاصة..."
-              className="w-full px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+              rows={2}
+              placeholder="مثال: يرجى الاتصال قبل الوصول بنصف ساعة..."
+              className="w-full px-3.5 py-2 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none resize-none"
             />
           </div>
         </div>
 
-        {/* Order Summary & Actions */}
-        <div className="p-4 sm:p-5 border-t border-stone-200 bg-stone-50 space-y-3">
-          <div className="flex items-center justify-between text-xs sm:text-sm">
-            <span className="font-bold text-stone-700">الإجمالي النهائي المطلوب:</span>
-            <span className="text-xl font-black text-emerald-800">{grandTotal} جنيه</span>
+        {/* Footer */}
+        <div className="p-4 bg-pink-50/50 border-t border-pink-100 flex items-center justify-between gap-4">
+          <div>
+            <div className="text-xs text-stone-500">الإجمالي النهائي:</div>
+            <div className="text-lg font-black text-pink-700">{grandTotal} جنيه</div>
           </div>
 
-          {/* Primary Action: Send to WhatsApp */}
           <button
-            onClick={() => handleSubmitOrder(true)}
-            disabled={isSubmitting}
-            className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/25 transition-all cursor-pointer"
+            type="button"
+            onClick={handleSubmitOrder}
+            className="px-6 py-3 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-pink-500/25 flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
           >
-            <MessageCircle className="w-5 h-5 animate-pulse" />
-            <span>إرسال الطلب عبر واتساب وتأكيده 📲</span>
+            <MessageCircle className="w-4 h-4" />
+            <span>تأكيد الطلب وإرسال عبر واتساب 📲</span>
           </button>
-
-          <div className="text-center text-[11px] text-stone-500 flex items-center justify-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-            <span>سيتم فتح محادثة الواتساب فوراً برسالة جاهزة تحتوي على كل بيانات الطلب</span>
-          </div>
         </div>
       </div>
     </div>

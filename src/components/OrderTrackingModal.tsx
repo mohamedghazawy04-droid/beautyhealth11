@@ -9,10 +9,7 @@ import {
   Phone,
   Search,
   MessageCircle,
-  AlertCircle,
-  Building,
   Star,
-  Sparkles,
 } from 'lucide-react';
 import { Order, Product } from '../types';
 
@@ -74,17 +71,17 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs text-right">
-      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-pink-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-900 via-teal-900 to-stone-900 text-white flex items-center justify-between">
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-pink-700 via-rose-700 to-pink-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300">
+            <div className="w-10 h-10 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-white">
               <Clock className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-extrabold text-base sm:text-lg">تتبع طلبات أكتوبر وزايد</h2>
-              <p className="text-xs text-emerald-200">
-                متابعة لحظية لحالة شحنتك ومندوب التوصيل
+              <h2 className="font-extrabold text-base sm:text-lg">تتبع طلبات متجر m&l</h2>
+              <p className="text-xs text-pink-100">
+                متابعة لحظية لحالة شحنتك ومندوب التوصيل في أكتوبر وزايد
               </p>
             </div>
           </div>
@@ -97,47 +94,47 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
         </div>
 
         {/* Search Bar */}
-        <div className="p-4 bg-stone-50 border-b border-stone-200">
+        <div className="p-4 bg-pink-50/30 border-b border-pink-100">
           <div className="relative">
             <input
               type="text"
               value={searchIdOrPhone}
               onChange={(e) => setSearchIdOrPhone(e.target.value)}
-              placeholder="ابحث برقم الطلب (مثال: OCT-123456) أو رقم الهاتف..."
-              className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-white border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+              placeholder="ابحثي برقم الطلب (مثال: ORD-123456) أو رقم الموبايل..."
+              className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-white border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none text-stone-900"
             />
-            <Search className="w-4 h-4 text-stone-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-pink-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
           </div>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        {/* Orders Content Area */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
           {orders.length === 0 ? (
             <div className="text-center py-12 space-y-3">
-              <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center mx-auto text-stone-400">
+              <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center mx-auto text-pink-300">
                 <Package className="w-8 h-8" />
               </div>
-              <h3 className="font-bold text-stone-800 text-sm">لا توجد طلبات مسجلة بعد في جلستك</h3>
-              <p className="text-xs text-stone-500 max-w-sm mx-auto">
-                عند إتمام أي طلب جديد سيظهر هنا تلقائياً لتتبع خط سير المندوب والتسليم.
+              <h3 className="font-bold text-stone-800 text-sm">لا توجد طلبات سابقة مسجلة على هذا الجهاز</h3>
+              <p className="text-xs text-stone-500 max-w-xs mx-auto">
+                عند قيامك بطلب منتجات من المتجر، ستتمكنين من تتبع حالة التوصيل وخطوات المندوب هنا مباشرة.
               </p>
             </div>
           ) : (
             <>
               {/* Order selector tabs if multiple */}
               {filteredOrders.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
                   {filteredOrders.map((ord) => (
                     <button
                       key={ord.id}
                       onClick={() => setSelectedOrder(ord)}
-                      className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition-all cursor-pointer ${
+                      className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border ${
                         selectedOrder?.id === ord.id
-                          ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
-                          : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
+                          ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white border-pink-600 shadow-xs'
+                          : 'bg-white text-stone-700 border-stone-200 hover:bg-pink-50'
                       }`}
                     >
-                      طلب #{ord.id} ({ord.total} ج)
+                      #{ord.id} ({ord.customerName})
                     </button>
                   ))}
                 </div>
@@ -145,70 +142,69 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
 
               {selectedOrder && (
                 <div className="space-y-6">
-                  {/* Order Overview Card */}
-                  <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex flex-wrap items-center justify-between gap-3">
+                  {/* Summary Card */}
+                  <div className="p-4 rounded-2xl bg-pink-50/40 border border-pink-100 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-sm text-stone-900 font-mono">
-                          طلب #{selectedOrder.id}
-                        </span>
-                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
-                          {selectedOrder.city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر'}
-                        </span>
+                      <div className="text-xs text-stone-500">رقم الطلب:</div>
+                      <div className="font-mono font-black text-sm text-pink-700">
+                        #{selectedOrder.id}
                       </div>
-                      <div className="text-xs text-stone-500 mt-1">
-                        العميل: {selectedOrder.customerName} • {selectedOrder.phone}
-                      </div>
-                      <div className="text-xs text-stone-700 font-semibold mt-0.5">
-                        العنوان: {selectedOrder.zoneName} - {selectedOrder.detailedAddress}
+                      <div className="text-xs text-stone-700 font-bold mt-1">
+                        العميل: {selectedOrder.customerName}
                       </div>
                     </div>
 
                     <div className="text-left">
                       <div className="text-xs text-stone-500">الإجمالي:</div>
-                      <div className="text-lg font-black text-emerald-800 font-mono">
+                      <div className="font-black text-sm text-pink-700">
                         {selectedOrder.total} جنيه
+                      </div>
+                      <div className="text-[11px] text-pink-700 font-bold mt-0.5">
+                        {selectedOrder.estimatedDelivery || 'توصيل خلال ٢٤-٤٨ ساعة'}
                       </div>
                     </div>
                   </div>
 
-                  {/* Status Timeline */}
+                  {/* Progress Timeline */}
                   <div className="space-y-4">
-                    <h3 className="font-extrabold text-xs text-stone-900 border-b border-stone-200 pb-1.5">
-                      مراحل التجهيز والتوصيل:
-                    </h3>
-
-                    <div className="relative pl-6 space-y-5">
-                      {steps.map((step, idx) => {
-                        const currentStepIdx = getStatusStepIndex(selectedOrder.status);
-                        const isDone = idx <= currentStepIdx;
-                        const isCurrent = idx === currentStepIdx;
+                    <h4 className="font-extrabold text-xs text-stone-900 border-b border-pink-100 pb-1.5">
+                      مراحل التوصيل:
+                    </h4>
+                    <div className="relative pr-6 border-r-2 border-pink-200 space-y-6 mr-3">
+                      {steps.map((st, idx) => {
+                        const currentStep = getStatusStepIndex(selectedOrder.status);
+                        const isDone = idx <= currentStep;
+                        const isCurrent = idx === currentStep;
 
                         return (
-                          <div key={idx} className="flex items-start gap-3 relative">
+                          <div key={idx} className="relative">
                             <div
-                              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 transition-colors z-10 ${
+                              className={`absolute -right-[31px] top-0 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
                                 isDone
-                                  ? 'bg-emerald-700 text-white shadow-xs'
-                                  : 'bg-stone-200 text-stone-500'
+                                  ? 'bg-pink-600 border-pink-600 text-white'
+                                  : 'bg-white border-stone-300 text-stone-300'
                               }`}
                             >
-                              {isDone ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
+                              {isDone ? (
+                                <CheckCircle2 className="w-4 h-4" />
+                              ) : (
+                                <span className="text-[10px] font-bold">{idx + 1}</span>
+                              )}
                             </div>
 
-                            <div className="space-y-0.5">
-                              <div
+                            <div>
+                              <h5
                                 className={`text-xs font-bold ${
                                   isCurrent
-                                    ? 'text-emerald-900 font-black'
+                                    ? 'text-pink-700 font-black'
                                     : isDone
                                     ? 'text-stone-900'
                                     : 'text-stone-400'
                                 }`}
                               >
-                                {step.title} {isCurrent && '(الحالة الحالية)'}
-                              </div>
-                              <div className="text-[11px] text-stone-500">{step.desc}</div>
+                                {st.title} {isCurrent && '📍'}
+                              </h5>
+                              <p className="text-[11px] text-stone-500 mt-0.5">{st.desc}</p>
                             </div>
                           </div>
                         );
@@ -216,119 +212,63 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Delivered Celebration & Rating Banner */}
-                  {selectedOrder.status === 'delivered' ? (
-                    <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-amber-500/15 border border-amber-300 space-y-2.5">
-                      <div className="flex items-center gap-2 text-amber-950 font-black text-xs sm:text-sm">
-                        <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span>تم تسليم طلبك بنجاح! شاركنا رأيك وتقييمك للمنتجات</span>
-                      </div>
-                      <p className="text-stone-700 text-xs leading-relaxed">
-                        تقييمك بالنجوم والتعليق يساعد عملاء وأمهات مدينتي ٦ أكتوبر والشيخ زايد في اختيار المنتجات الأنسب، وتحديث متوسط التقييم العام!
-                      </p>
-                    </div>
-                  ) : (
-                    onMarkDelivered && (
-                      <div className="p-3 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-between gap-2">
-                        <span className="text-[11px] text-stone-600 font-semibold">
-                          هل استلمت الشحنة من المندوب بالفعل؟
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => onMarkDelivered(selectedOrder.id)}
-                          className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          تأكيد الاستلام والتقييم ⭐
-                        </button>
-                      </div>
-                    )
-                  )}
-
-                  {/* Courier Card */}
-                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center">
-                        <Truck className="w-5 h-5" />
-                      </div>
-                      <div className="text-xs">
-                        <div className="font-bold text-stone-900">
-                          {selectedOrder.courierName || 'مندوب التوصيل السريع'}
-                        </div>
-                        <div className="text-emerald-800 font-semibold text-[11px]">
-                          {selectedOrder.status === 'delivered'
-                            ? 'تم التسليم والمعاينة بنجاح ✓'
-                            : `وقت الوصول المتوقع: ${selectedOrder.estimatedDelivery}`}
-                        </div>
-                      </div>
-                    </div>
-
-                    <a
-                      href={`https://wa.me/201000000000?text=مرحباً، أود الاستفسار عن وصول طلبي رقم ${selectedOrder.id}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl flex items-center gap-1 transition-colors"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      <span>تواصل مع الدعم</span>
-                    </a>
-                  </div>
-
-                  {/* Products in this order with rating action */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-xs text-stone-800">محتويات الطلب:</h4>
-                      <span className="text-[11px] text-stone-500 font-medium">
-                        اضغط لتقييم أي منتج استلمته بالنجوم
-                      </span>
-                    </div>
-
+                  {/* Order Items List */}
+                  <div className="space-y-2 pt-2 border-t border-pink-100">
+                    <h4 className="font-bold text-xs text-stone-900">محتويات الشحنة:</h4>
                     <div className="space-y-2">
-                      {selectedOrder.items.map((item, i) => (
+                      {selectedOrder.items.map((item, idx) => (
                         <div
-                          key={i}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs p-3 rounded-2xl bg-stone-50 border border-stone-200"
+                          key={idx}
+                          className="p-2.5 rounded-xl border border-pink-100 bg-white flex items-center justify-between text-xs"
                         >
-                          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
                             <img
                               src={item.product.image}
                               alt={item.product.nameAr}
-                              className="w-11 h-11 rounded-xl object-cover border border-stone-200 shrink-0"
+                              className="w-10 h-10 object-cover rounded-lg border border-pink-50"
                             />
-                            <div className="min-w-0 flex-1">
-                              <span className="font-extrabold text-stone-900 block truncate">
-                                {item.product.nameAr}
-                              </span>
-                              <div className="flex items-center gap-2 text-stone-500 text-[11px] mt-0.5">
-                                <span>كمية: {item.quantity}</span>
-                                <span>•</span>
-                                <span className="text-emerald-800 font-bold">
-                                  {item.product.price * item.quantity} جنيه
-                                </span>
+                            <div>
+                              <div className="font-bold text-stone-900">{item.product.nameAr}</div>
+                              <div className="text-stone-500 text-[11px]">
+                                الكمية: {item.quantity} × {item.product.price} ج
                               </div>
                             </div>
                           </div>
 
-                          {/* Rate Product Action */}
-                          {onOpenReviewModal && (
+                          {selectedOrder.status === 'delivered' && onOpenReviewModal && (
                             <button
-                              type="button"
                               onClick={() =>
                                 onOpenReviewModal(
                                   item.product,
                                   selectedOrder.id,
                                   selectedOrder.customerName,
-                                  `${selectedOrder.city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر'} - ${selectedOrder.zoneName}`
+                                  selectedOrder.zoneName
                                 )
                               }
-                              className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-black text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs shrink-0 self-end sm:self-center"
+                              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-[11px] font-bold border border-amber-200 flex items-center gap-1 cursor-pointer transition-colors"
                             >
-                              <Star className="w-3.5 h-3.5 fill-stone-950" />
-                              <span>قيّم هذا المنتج ⭐</span>
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                              <span>تقييم</span>
                             </button>
                           )}
                         </div>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Quick WhatsApp Support */}
+                  <div className="pt-2">
+                    <a
+                      href={`https://wa.me/201012345678?text=${encodeURIComponent(
+                        `مرحباً خدمة عملاء متجر m&l، أود الاستفسار عن طلبي رقم #${selectedOrder.id}`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-2.5 rounded-xl bg-pink-100/70 hover:bg-pink-200 text-pink-950 font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer text-center no-underline"
+                    >
+                      <MessageCircle className="w-4 h-4 text-pink-700" />
+                      <span>تواصل مع خدمة العملاء بخصوص هذا الطلب</span>
+                    </a>
                   </div>
                 </div>
               )}

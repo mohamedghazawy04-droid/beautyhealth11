@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import {
   X,
   Star,
-  CheckCircle2,
   MapPin,
   User,
   MessageSquare,
@@ -11,7 +10,6 @@ import {
   Camera,
   Image as ImageIcon,
   Trash2,
-  UploadCloud,
   Eye,
 } from 'lucide-react';
 import { Product, ProductReview } from '../types';
@@ -37,7 +35,7 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
 }) => {
   const [rating, setRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
-  const [userName, setUserName] = useState(defaultUserName || 'عميل موثق');
+  const [userName, setUserName] = useState(defaultUserName || 'عميلة موثقة');
   const [userArea, setUserArea] = useState(defaultUserArea || 'الشيخ زايد');
   const [comment, setComment] = useState('');
   const [selectedQuickTags, setSelectedQuickTags] = useState<string[]>([]);
@@ -80,7 +78,6 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
     }
   };
 
-  // Helper to compress image before adding to state
   const handleImageUpload = (file: File) => {
     if (!file.type.startsWith('image/')) {
       setError('يرجى اختيار ملف صورة صالح (JPEG أو PNG أو WEBP)');
@@ -100,19 +97,19 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 900;
-        const MAX_HEIGHT = 900;
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
         let width = img.width;
         let height = img.height;
 
         if (width > height) {
           if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
+            height = Math.round((height * MAX_WIDTH) / width);
             width = MAX_WIDTH;
           }
         } else {
           if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
+            width = Math.round((width * MAX_HEIGHT) / height);
             height = MAX_HEIGHT;
           }
         }
@@ -128,14 +125,14 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
         setIsProcessingImage(false);
       };
       img.onerror = () => {
+        setError('تعذر تحميل هذه الصورة، يرجى تجربة صورة أخرى');
         setIsProcessingImage(false);
-        setError('حدث خطأ أثناء معالجة الصورة');
       };
       img.src = event.target?.result as string;
     };
     reader.onerror = () => {
+      setError('خطأ في قراءة ملف الصورة');
       setIsProcessingImage(false);
-      setError('حدث خطأ أثناء قراءة ملف الصورة');
     };
     reader.readAsDataURL(file);
   };
@@ -146,7 +143,6 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
       Array.from(files).forEach((file: File) => {
         handleImageUpload(file);
       });
-      // reset file input
       e.target.value = '';
     }
   };
@@ -175,7 +171,6 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
       image: images.length > 0 ? images[0] : undefined,
     });
 
-    // Reset and close
     setComment('');
     setSelectedQuickTags([]);
     setImages([]);
@@ -187,17 +182,17 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs text-right">
-      <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-pink-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-900 via-teal-900 to-stone-900 text-white flex items-center justify-between">
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-pink-700 via-rose-700 to-pink-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-300">
+            <div className="w-10 h-10 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-amber-300">
               <Star className="w-5 h-5 fill-amber-300" />
             </div>
             <div>
               <h2 className="font-extrabold text-base sm:text-lg">تقييم المنتج وتصوير التجربة</h2>
-              <p className="text-xs text-emerald-200">
-                شارك صور المنتج الحقيقية لزيادة المصداقية ومساعدة المشترين
+              <p className="text-xs text-pink-100">
+                شاركي صور المنتج الحقيقية لزيادة المصداقية ومساعدة العميلات
               </p>
             </div>
           </div>
@@ -212,14 +207,14 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {/* Product Summary Card */}
-          <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 flex items-center gap-3">
+          <div className="p-3.5 rounded-2xl bg-pink-50/40 border border-pink-100 flex items-center gap-3">
             <img
               src={product.image}
               alt={product.nameAr}
-              className="w-14 h-14 rounded-xl object-cover border border-stone-200 shrink-0"
+              className="w-14 h-14 rounded-xl object-cover border border-pink-100 shrink-0"
             />
             <div className="space-y-0.5 flex-1 min-w-0">
-              <div className="text-[11px] font-bold text-emerald-800 uppercase">
+              <div className="text-[11px] font-bold text-pink-700 uppercase">
                 {product.brand} • {product.volume}
               </div>
               <h4 className="font-extrabold text-xs sm:text-sm text-stone-900 truncate">
@@ -236,7 +231,7 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
           {/* Star Rating Section */}
           <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-center space-y-2">
             <label className="text-xs font-bold text-amber-950 block">
-              ما هو تقييمك للمنتج؟ (اضغط على النجوم)
+              ما هو تقييمك للمنتج؟ (اضغطي على النجوم)
             </label>
             <div className="flex items-center justify-center gap-2 py-1">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -268,7 +263,7 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-bold text-stone-700 flex items-center gap-1.5 mb-1">
-                <User className="w-3.5 h-3.5 text-emerald-700" />
+                <User className="w-3.5 h-3.5 text-pink-600" />
                 <span>الاسم / اللقب</span>
               </label>
               <input
@@ -276,14 +271,14 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
                 placeholder="مثال: سارة، أم ياسين..."
-                className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-stone-300 focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                className="w-full px-3 py-2 text-xs rounded-xl bg-pink-50/30 border border-pink-200 focus:ring-2 focus:ring-pink-500 focus:outline-none"
                 required
               />
             </div>
 
             <div>
               <label className="text-xs font-bold text-stone-700 flex items-center gap-1.5 mb-1">
-                <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+                <MapPin className="w-3.5 h-3.5 text-pink-600" />
                 <span>المنطقة / المدينة</span>
               </label>
               <input
@@ -291,19 +286,19 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
                 value={userArea}
                 onChange={(e) => setUserArea(e.target.value)}
                 placeholder="مثال: الشيخ زايد، 6 أكتوبر، القاهرة..."
-                className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-stone-300 focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                className="w-full px-3 py-2 text-xs rounded-xl bg-pink-50/30 border border-pink-200 focus:ring-2 focus:ring-pink-500 focus:outline-none"
               />
             </div>
           </div>
 
           {/* Photo Upload with Camera Section */}
-          <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 space-y-3">
+          <div className="p-3.5 rounded-2xl bg-pink-50/40 border border-pink-200/70 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                <Camera className="w-4 h-4 text-emerald-700" />
+              <label className="text-xs font-bold text-pink-950 flex items-center gap-1.5">
+                <Camera className="w-4 h-4 text-pink-600" />
                 <span>إرفاق صور المنتج الحقيقية (اختياري)</span>
               </label>
-              <span className="text-[11px] font-bold text-emerald-700">
+              <span className="text-[11px] font-bold text-pink-700">
                 {images.length} / 3 صور
               </span>
             </div>
@@ -333,9 +328,9 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
                   type="button"
                   onClick={() => cameraInputRef.current?.click()}
                   disabled={isProcessingImage}
-                  className="py-2.5 px-3 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-100/50 text-emerald-900 text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                  className="py-2.5 px-3 rounded-xl bg-white border border-pink-200 hover:bg-pink-100/50 text-pink-900 text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
                 >
-                  <Camera className="w-4 h-4 text-emerald-700" />
+                  <Camera className="w-4 h-4 text-pink-600" />
                   <span>📸 فتح الكاميرا والتقاط صورة</span>
                 </button>
 
@@ -343,16 +338,16 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
                   type="button"
                   onClick={() => galleryInputRef.current?.click()}
                   disabled={isProcessingImage}
-                  className="py-2.5 px-3 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-100/50 text-emerald-900 text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                  className="py-2.5 px-3 rounded-xl bg-white border border-pink-200 hover:bg-pink-100/50 text-pink-900 text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
                 >
-                  <ImageIcon className="w-4 h-4 text-emerald-700" />
+                  <ImageIcon className="w-4 h-4 text-pink-600" />
                   <span>🖼️ اختيار من معرض الصور</span>
                 </button>
               </div>
             )}
 
             {isProcessingImage && (
-              <div className="text-center py-2 text-xs text-emerald-800 font-bold animate-pulse">
+              <div className="text-center py-2 text-xs text-pink-800 font-bold animate-pulse">
                 ⏳ جاري معالجة وضغط الصورة بجودة عالية...
               </div>
             )}
@@ -365,7 +360,7 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
                   {images.map((imgSrc, idx) => (
                     <div
                       key={idx}
-                      className="relative group w-20 h-20 rounded-xl overflow-hidden border-2 border-emerald-600 shadow-sm bg-stone-100"
+                      className="relative group w-20 h-20 rounded-xl overflow-hidden border-2 border-pink-500 shadow-sm bg-stone-100"
                     >
                       <img
                         src={imgSrc}
@@ -395,15 +390,15 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
               </div>
             )}
 
-            <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
-              💡 صور المنتج والتغليف الطبيعية من هاتفك تزيد من مصداقية تقييمك وتكسب ثقة المشترين.
+            <p className="text-[11px] text-pink-800 leading-relaxed font-medium">
+              💡 صور المنتج والتغليف الطبيعية من هاتفك تزيد من مصداقية تقييمك وتكسب ثقة المشتريات.
             </p>
           </div>
 
           {/* Quick Tag Pills */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-bold text-stone-500 block">
-              عبارات سريعة مقترحة (اضغط للإضافة):
+              عبارات سريعة مقترحة (اضغطي للإضافة):
             </label>
             <div className="flex flex-wrap gap-1.5">
               {quickTags.map((tag) => (
@@ -413,8 +408,8 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
                   onClick={() => toggleQuickTag(tag)}
                   className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
                     selectedQuickTags.includes(tag)
-                      ? 'bg-emerald-800 text-white border-emerald-800'
-                      : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                      ? 'bg-pink-700 text-white border-pink-700'
+                      : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-pink-50'
                   }`}
                 >
                   {tag}
@@ -426,20 +421,20 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
           {/* Comment Text Area */}
           <div>
             <label className="text-xs font-bold text-stone-700 flex items-center gap-1.5 mb-1">
-              <MessageSquare className="w-3.5 h-3.5 text-emerald-700" />
+              <MessageSquare className="w-3.5 h-3.5 text-pink-600" />
               <span>رأيك وتعليقك بعد الاستخدام</span>
             </label>
             <textarea
               rows={3}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="اكتب تجربتك مع المنتج، مفعوله، ورأيك في جودة التغليف والتوصيل..."
-              className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-stone-300 focus:ring-2 focus:ring-emerald-700 focus:outline-none resize-none"
+              placeholder="اكتبي تجربتك مع المنتج، مفعوله، ورأيك في جودة التغليف والتوصيل..."
+              className="w-full px-3 py-2 text-xs rounded-xl bg-pink-50/20 border border-pink-200 focus:ring-2 focus:ring-pink-500 focus:outline-none resize-none"
               maxLength={400}
               required
             />
             <div className="flex justify-between items-center text-[10px] text-stone-400 mt-1">
-              <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+              <span className="flex items-center gap-1 text-pink-700 font-semibold">
                 <ShieldCheck className="w-3 h-3" />
                 سيتم نشر التقييم كـ مشتري موثق فوراً
               </span>
@@ -458,7 +453,7 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
             <button
               type="submit"
               disabled={isProcessingImage}
-              className="flex-1 py-3 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer disabled:opacity-50"
+              className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
               <span>نشر التقييم مع الصور ⭐</span>

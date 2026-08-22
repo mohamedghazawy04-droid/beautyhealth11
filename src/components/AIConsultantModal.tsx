@@ -5,11 +5,7 @@ import {
   Send,
   Bot,
   User,
-  ShoppingBag,
   Clock,
-  HeartHandshake,
-  CheckCircle2,
-  HelpCircle,
   Wand2,
   RefreshCw,
   Plus,
@@ -39,7 +35,7 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
     {
       id: 'welcome',
       role: 'assistant',
-      content: `أهلاً بكِ! أنا د. سارة، مستشارتكِ الذكية للعناية بالبشرة والشعر والطفل في متجر M&l (٦ أكتوبر والشيخ زايد). 🌸\n\nكيف يمكنني مساعدتك اليوم؟ يمكنكِ سؤالي عن:
+      content: `أهلاً بكِ في متجر m&l! أنا د. سارة، مستشارتكِ الذكية للعناية بالبشرة والشعر والطفل في ٦ أكتوبر والشيخ زايد. 🌸\n\nكيف يمكنني مساعدتك اليوم؟ يمكنكِ سؤالي عن:
 • علاج تساقط الشعر وإنبات الفراغات
 • روتين العناية بتموجات الشعر الكيرلي
 • ترطيب الجسم وعلاج جلد الإوزة وحماية الشمس
@@ -93,7 +89,7 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
       });
 
       const data = await res.json();
-      const botReply = data.reply || 'يسعدني تقديم الإرشادات لك دائماً. يمكنك تصفح المنتجات وطلب التوصيل السريع لأكتوبر وزايد.';
+      const botReply = data.reply || 'يسعدني تقديم الإرشادات لكِ دائماً في متجر m&l. يمكنك تصفح المنتجات وطلب التوصيل السريع لأكتوبر وزايد.';
 
       const assistantMsg: AIChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -103,14 +99,14 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch (error) {
-      console.error('Advisor Chat error:', error);
+    } catch (err) {
+      console.error('Chat error:', err);
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: 'نعتذر، حدث اضطراب في الاتصال. يمكنك التواصل المباشر مع الصيدلي عبر واتساب أو تكرار السؤال.',
+          content: 'نحن هنا لمساعدتك دائماً في متجر m&l! تفضلي بتصفح منتجاتنا المميزة.',
           timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -122,32 +118,30 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
   const handleGenerateRoutine = async () => {
     if (!quizConcern) return;
     setRoutineLoading(true);
-    setGeneratedRoutine(null);
 
     try {
       const res = await fetch('/api/advisor/routine', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          category: quizCategory === 'baby' ? 'العناية بالطفل' : quizCategory === 'hair' ? 'العناية بالشعر' : 'العناية بالجسم والبشرة',
-          concerns: quizConcern,
-          ageOrType: quizAgeOrType || 'عام',
-          targetBudget: 'متوسطة / اقتصادية',
+          category: quizCategory,
+          concern: quizConcern,
+          ageOrType: quizAgeOrType,
+          userArea: selectedZone.name,
         }),
       });
 
       const data = await res.json();
-      if (data && data.steps) {
-        setGeneratedRoutine(data);
+      if (data.routine) {
+        setGeneratedRoutine(data.routine);
       } else {
-        // Fallback default routine
         setGeneratedRoutine({
-          title: `روتين مخصص لعلاج ${quizConcern}`,
-          summary: `هذا الروتين مدروس بعناية لتغذية وحماية الأنسجة وتحقيق نتائج ملموسة في أسبوعين.`,
+          title: `روتين مخصص للعناية بـ ${quizCategory === 'baby' ? 'الطفل' : quizCategory === 'hair' ? 'الشعر' : 'البشرة'}`,
+          summary: `روتين طبي متكامل لعلاج ${quizConcern} مصمم خصيصاً لكِ.`,
           steps: [
-            { stepNumber: 1, name: 'التنظيف اللطيف', description: 'استخدام غسول خالي من السلفات لا يجرد الجلد أو الشعر من زيوته الطبيعية.', recommendedTime: 'صباحاً' },
-            { stepNumber: 2, name: 'العلاج والترميم', description: 'سيروم أو مرهم نشط غني بالبانثينول أو الروزماري لتعزيز الشفاء.', recommendedTime: 'مساءً' },
-            { stepNumber: 3, name: 'الحماية اليومية', description: 'كريم حاجز أو واقي شمس مناسب لطقس أكتوبر وزايد.', recommendedTime: 'صباحاً' },
+            { stepNumber: 1, name: 'الخطوة الأولى: التنظيف والتجهيز', description: 'استخدام غسول أو شامبو خالي من المواد القاسية.', recommendedTime: 'صباحاً أو عند الاستحمام' },
+            { stepNumber: 2, name: 'الخطوة الثانية: العلاج والترطيب العميق', description: 'تطبيق السيروم أو الزيت أو كريم الترطيب المركز.', recommendedTime: 'مساءً قبل النوم' },
+            { stepNumber: 3, name: 'الخطوة الثالثة: الحماية اليومية', description: 'حاجز حماية للبشرة أو واقي شمس مناسب لطقس أكتوبر وزايد.', recommendedTime: 'صباحاً' },
           ],
           octoberZayedDeliveryTip: `متوفر توصيل سريع خلال ${selectedZone.estimatedDeliveryTime} إلى ${selectedZone.name}.`,
         });
@@ -159,7 +153,6 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
     }
   };
 
-  // Quick prompt suggestions
   const quickPrompts = [
     'عايزة علاج سريع لتسلخات الحفاض الشديدة عند البيبي',
     'شعري بيتساقط وخفيف من قدام، أبدأ بإيه؟',
@@ -168,22 +161,22 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
-      <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs text-right">
+      <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-pink-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-800 via-teal-800 to-stone-900 text-white flex items-center justify-between">
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-pink-700 via-rose-700 to-pink-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-amber-300 shadow-md">
+            <div className="w-11 h-11 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center text-pink-200 shadow-md">
               <Sparkles className="w-6 h-6 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-black text-lg">مستشارة العناية والطفل (AI)</h2>
-                <span className="bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  د. سارة • ٦ أكتوبر وزايد
+                <span className="bg-pink-400/20 text-pink-200 border border-pink-300/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  د. سارة • متجر m&l
                 </span>
               </div>
-              <p className="text-xs text-stone-300">
+              <p className="text-xs text-pink-100">
                 استشارات فورية وتصميم روتين عناية متكامل ومخصص لاحتياجك
               </p>
             </div>
@@ -197,16 +190,16 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
         </div>
 
         {/* Mode Selector Tabs */}
-        <div className="flex border-b border-stone-200 bg-stone-50 p-2 gap-2 text-xs font-bold">
+        <div className="flex border-b border-pink-100 bg-pink-50/40 p-2 gap-2 text-xs font-bold">
           <button
             onClick={() => setActiveMode('chat')}
             className={`flex-1 py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeMode === 'chat'
-                ? 'bg-white text-emerald-800 shadow-sm border border-stone-200 font-extrabold'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                ? 'bg-white text-pink-700 shadow-sm border border-pink-200 font-extrabold'
+                : 'text-stone-600 hover:text-pink-700 hover:bg-pink-100/50'
             }`}
           >
-            <Bot className="w-4 h-4 text-emerald-700" />
+            <Bot className="w-4 h-4 text-pink-600" />
             <span>محادثة واستشارة مباشرة</span>
           </button>
 
@@ -214,18 +207,18 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
             onClick={() => setActiveMode('routineQuiz')}
             className={`flex-1 py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeMode === 'routineQuiz'
-                ? 'bg-white text-emerald-800 shadow-sm border border-stone-200 font-extrabold'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                ? 'bg-white text-pink-700 shadow-sm border border-pink-200 font-extrabold'
+                : 'text-stone-600 hover:text-pink-700 hover:bg-pink-100/50'
             }`}
           >
-            <Wand2 className="w-4 h-4 text-amber-500" />
+            <Wand2 className="w-4 h-4 text-rose-500" />
             <span>صانع الروتين المخصص الذكي</span>
           </button>
         </div>
 
         {/* MODE 1: CHAT */}
         {activeMode === 'chat' && (
-          <div className="flex-1 flex flex-col min-h-0 bg-stone-50/50">
+          <div className="flex-1 flex flex-col min-h-0 bg-stone-50/40">
             {/* Messages Scroll Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((msg) => {
@@ -236,21 +229,21 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
                     className={`flex items-start gap-2.5 ${isAssistant ? 'justify-start' : 'justify-end'}`}
                   >
                     {isAssistant && (
-                      <div className="w-8 h-8 rounded-xl bg-emerald-800 text-white flex items-center justify-center text-xs shrink-0 shadow-xs mt-0.5">
+                      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-pink-600 to-rose-600 text-white flex items-center justify-center text-xs shrink-0 shadow-xs mt-0.5">
                         <Bot className="w-4 h-4" />
                       </div>
                     )}
                     <div
                       className={`max-w-[85%] sm:max-w-[75%] p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-2xs whitespace-pre-line ${
                         isAssistant
-                          ? 'bg-white text-stone-800 border border-stone-200 rounded-tr-none'
-                          : 'bg-emerald-800 text-white rounded-tl-none font-medium'
+                          ? 'bg-white text-stone-800 border border-pink-100 rounded-tr-none'
+                          : 'bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-tl-none font-medium'
                       }`}
                     >
                       {msg.content}
                       <div
                         className={`text-[10px] mt-1.5 font-sans ${
-                          isAssistant ? 'text-stone-400 text-left' : 'text-emerald-200 text-right'
+                          isAssistant ? 'text-stone-400 text-left' : 'text-pink-100 text-right'
                         }`}
                       >
                         {msg.timestamp}
@@ -266,8 +259,8 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
               })}
 
               {loading && (
-                <div className="flex items-center gap-2 text-xs text-stone-500 bg-white p-3 rounded-2xl border border-stone-200 w-fit">
-                  <RefreshCw className="w-4 h-4 text-emerald-600 animate-spin" />
+                <div className="flex items-center gap-2 text-xs text-stone-500 bg-white p-3 rounded-2xl border border-pink-100 w-fit">
+                  <RefreshCw className="w-4 h-4 text-pink-600 animate-spin" />
                   <span>د. سارة تقوم بتحليل استفسارك وصياغة الروتين الطبي المناسب...</span>
                 </div>
               )}
@@ -275,15 +268,15 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
             </div>
 
             {/* Quick Prompts Bar */}
-            <div className="px-4 py-2 bg-stone-100/80 border-t border-stone-200 flex items-center gap-2 overflow-x-auto scrollbar-none text-xs">
-              <span className="text-[11px] font-bold text-stone-500 whitespace-nowrap">
+            <div className="px-4 py-2 bg-pink-50/50 border-t border-pink-100 flex items-center gap-2 overflow-x-auto scrollbar-none text-xs">
+              <span className="text-[11px] font-bold text-pink-800 whitespace-nowrap">
                 مقترحات سريعة:
               </span>
               {quickPrompts.map((q, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(q)}
-                  className="px-2.5 py-1 bg-white hover:bg-emerald-50 hover:text-emerald-800 border border-stone-200 rounded-lg text-stone-700 whitespace-nowrap text-[11px] transition-colors cursor-pointer"
+                  className="px-2.5 py-1 bg-white hover:bg-pink-100 hover:text-pink-900 border border-pink-200 rounded-lg text-stone-700 whitespace-nowrap text-[11px] transition-colors cursor-pointer"
                 >
                   {q}
                 </button>
@@ -291,7 +284,7 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
             </div>
 
             {/* Input Bar */}
-            <div className="p-3 sm:p-4 bg-white border-t border-stone-200">
+            <div className="p-3 sm:p-4 bg-white border-t border-pink-100">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -304,13 +297,13 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   placeholder="اكتبي استفسارك عن بشرتك، شعرك، أو طفلك..."
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-stone-100 border border-stone-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white focus:outline-none text-stone-900"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-pink-50/30 border border-pink-200 text-xs sm:text-sm focus:ring-2 focus:ring-pink-500 focus:bg-white focus:outline-none text-stone-900"
                   disabled={loading}
                 />
                 <button
                   type="submit"
                   disabled={!inputMessage.trim() || loading}
-                  className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
                 >
                   <span>إرسال</span>
                   <Send className="w-3.5 h-3.5" />
@@ -322,11 +315,11 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
 
         {/* MODE 2: ROUTINE QUIZ */}
         {activeMode === 'routineQuiz' && (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-stone-50/50">
-            <div className="space-y-4 bg-white p-5 rounded-2xl border border-stone-200">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-stone-50/40">
+            <div className="space-y-4 bg-white p-5 rounded-2xl border border-pink-100">
               <h3 className="font-extrabold text-sm text-stone-900 flex items-center gap-2">
-                <Wand2 className="w-4 h-4 text-emerald-700" />
-                اختر تخصص الروتين واحتياجك الشخصي:
+                <Wand2 className="w-4 h-4 text-pink-600" />
+                اختاري تخصص الروتين واحتياجك الشخصي:
               </h3>
 
               {/* Category Picker */}
@@ -349,8 +342,8 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
                       }}
                       className={`p-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                         quizCategory === c.id
-                          ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
-                          : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
+                          ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white border-pink-600 shadow-xs'
+                          : 'bg-pink-50/30 border-stone-200 text-stone-700 hover:bg-pink-50'
                       }`}
                     >
                       {c.label}
@@ -392,8 +385,8 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
                       onClick={() => setQuizConcern(concern)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                         quizConcern === concern
-                          ? 'bg-emerald-100 text-emerald-900 border-emerald-500 font-bold ring-1 ring-emerald-500'
-                          : 'bg-stone-100 text-stone-700 border-stone-200 hover:bg-stone-200'
+                          ? 'bg-pink-100 text-pink-900 border-pink-500 font-bold ring-1 ring-pink-500'
+                          : 'bg-stone-100 text-stone-700 border-stone-200 hover:bg-pink-50 hover:text-pink-900'
                       }`}
                     >
                       {concern}
@@ -411,8 +404,8 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
                   type="text"
                   value={quizAgeOrType}
                   onChange={(e) => setQuizAgeOrType(e.target.value)}
-                  placeholder="مثال: بشرة مختلطة حساسة، أو رضيع عمر 4 أشهر، أو شعر كيرلي نوع 3B..."
-                  className="w-full px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                  placeholder="مثال: بشرة مختلطة حساسة، أو رضيع عمر 4 أشهر، أو شعر كيرلي..."
+                  className="w-full px-3.5 py-2 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none"
                 />
               </div>
 
@@ -420,7 +413,7 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
                 type="button"
                 onClick={handleGenerateRoutine}
                 disabled={!quizConcern || routineLoading}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-800 hover:to-teal-900 disabled:opacity-50 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/15 transition-all cursor-pointer"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 disabled:opacity-50 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 transition-all cursor-pointer"
               >
                 {routineLoading ? (
                   <>
@@ -429,7 +422,7 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
                   </>
                 ) : (
                   <>
-                    <Wand2 className="w-4 h-4 text-amber-300" />
+                    <Wand2 className="w-4 h-4 text-pink-200" />
                     <span>إنشاء الروتين المخصص وترشيح المنتجات</span>
                   </>
                 )}
@@ -438,9 +431,9 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
 
             {/* Generated Routine Results */}
             {generatedRoutine && (
-              <div className="bg-white p-5 rounded-2xl border border-emerald-300 shadow-md space-y-4 animate-in fade-in">
-                <div className="border-b border-stone-200 pb-3">
-                  <div className="inline-block bg-emerald-100 text-emerald-900 text-xs font-bold px-2.5 py-0.5 rounded-md mb-1">
+              <div className="bg-white p-5 rounded-2xl border border-pink-200 shadow-md space-y-4 animate-in fade-in">
+                <div className="border-b border-pink-100 pb-3">
+                  <div className="inline-block bg-pink-100 text-pink-900 text-xs font-bold px-2.5 py-0.5 rounded-md mb-1">
                     روتينك المعتمد من د. سارة ✨
                   </div>
                   <h4 className="font-black text-base text-stone-900">{generatedRoutine.title}</h4>
@@ -452,15 +445,15 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
                   {generatedRoutine.steps.map((st, i) => (
                     <div
                       key={i}
-                      className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 flex items-start gap-3"
+                      className="p-3.5 rounded-xl bg-pink-50/30 border border-pink-100 flex items-start gap-3"
                     >
-                      <div className="w-7 h-7 rounded-lg bg-emerald-800 text-white font-black text-xs flex items-center justify-center shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-pink-700 text-white font-black text-xs flex items-center justify-center shrink-0">
                         {st.stepNumber || i + 1}
                       </div>
                       <div className="space-y-0.5 text-xs flex-1">
                         <div className="flex items-center justify-between">
                           <span className="font-extrabold text-stone-900">{st.name}</span>
-                          <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold">
+                          <span className="text-[10px] bg-pink-100 text-pink-700 px-2 py-0.5 rounded font-bold">
                             {st.recommendedTime}
                           </span>
                         </div>
@@ -472,8 +465,8 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
 
                 {/* Hyperlocal Delivery Tip */}
                 {generatedRoutine.octoberZayedDeliveryTip && (
-                  <div className="p-3 rounded-xl bg-emerald-50 text-emerald-900 text-xs font-semibold flex items-center gap-2 border border-emerald-200">
-                    <Clock className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <div className="p-3 rounded-xl bg-pink-50 text-pink-900 text-xs font-semibold flex items-center gap-2 border border-pink-200">
+                    <Clock className="w-4 h-4 text-pink-600 shrink-0" />
                     <span>{generatedRoutine.octoberZayedDeliveryTip}</span>
                   </div>
                 )}
@@ -495,7 +488,7 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
                       .map((prod) => (
                         <div
                           key={prod.id}
-                          className="p-3 rounded-xl border border-stone-200 flex items-center justify-between gap-2 bg-stone-50"
+                          className="p-3 rounded-xl border border-pink-100 flex items-center justify-between gap-2 bg-pink-50/20"
                         >
                           <div className="flex items-center gap-2 text-xs">
                             <img
@@ -505,7 +498,7 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
                             />
                             <div>
                               <div className="font-bold text-stone-900 line-clamp-1">{prod.nameAr}</div>
-                              <div className="text-emerald-700 font-extrabold">{prod.price} جنيه</div>
+                              <div className="text-pink-700 font-extrabold">{prod.price} جنيه</div>
                             </div>
                           </div>
                           <button
@@ -513,7 +506,7 @@ export const AIConsultantModal: React.FC<AIConsultantModalProps> = ({
                               onAddToCart(prod);
                               onClose();
                             }}
-                            className="p-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0"
+                            className="p-2 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             <span>شراء</span>

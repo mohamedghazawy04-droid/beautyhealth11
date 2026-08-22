@@ -593,11 +593,11 @@ export default function App() {
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col selection:bg-emerald-800 selection:text-white pb-20 md:pb-0">
+    <div className="min-h-screen bg-stone-50 flex flex-col selection:bg-pink-600 selection:text-white pb-20 md:pb-0">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-stone-900 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-2xl border border-stone-700 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-5">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-stone-900 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-2xl border border-pink-500/30 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-5">
+          <CheckCircle2 className="w-4 h-4 text-pink-400" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -641,9 +641,9 @@ export default function App() {
         />
 
         {/* Hyperlocal Zone Delivery Bar for October & Zayed */}
-        <div className="mx-3 sm:mx-6 lg:mx-8 mb-4 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-stone-200 shadow-2xs flex flex-wrap items-center justify-between gap-2 sm:gap-3 text-right">
+        <div className="mx-3 sm:mx-6 lg:mx-8 mb-4 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-pink-100 shadow-2xs flex flex-wrap items-center justify-between gap-2 sm:gap-3 text-right">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center shrink-0 font-bold">
               <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
@@ -657,8 +657,8 @@ export default function App() {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 text-[11px] sm:text-xs font-semibold text-stone-700">
-            <span className="bg-emerald-50 text-emerald-800 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-emerald-200 flex items-center gap-1">
-              <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600" />
+            <span className="bg-pink-50 text-pink-800 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-pink-200 flex items-center gap-1">
+              <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-pink-600" />
               خلال {selectedZone.estimatedDeliveryTime}
             </span>
             <span className="bg-amber-50 text-amber-900 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-amber-200">
@@ -910,45 +910,45 @@ export default function App() {
         </div>
 
         {/* Hyperlocal 6th of October & Sheikh Zayed Features Footer Highlights */}
-        <section className="bg-emerald-950 text-white rounded-2xl sm:rounded-3xl mx-3 sm:mx-6 lg:mx-8 mb-12 p-4 sm:p-10 border border-emerald-900 shadow-xl">
+        <section className="bg-gradient-to-br from-pink-950 via-rose-950 to-stone-950 text-white rounded-2xl sm:rounded-3xl mx-3 sm:mx-6 lg:mx-8 mb-12 p-4 sm:p-10 border border-pink-900/50 shadow-xl">
           <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-right">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-800/80 border border-emerald-600/50 flex items-center justify-center text-emerald-300 shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-pink-900/80 border border-pink-700/50 flex items-center justify-center text-pink-300 shrink-0">
                 <Truck className="w-6 h-6" />
               </div>
               <div className="space-y-1">
                 <h3 className="font-extrabold text-base text-white">
                   توصيل فوري خلال ساعتين
                 </h3>
-                <p className="text-xs text-stone-300 leading-relaxed">
+                <p className="text-xs text-pink-100/80 leading-relaxed">
                   أسطول مناديب مخصص لكافة أحياء ٦ أكتوبر والشيخ زايد والكمبوندات (بيفرلي هيلز، الحصري، سوديك، الربوة، حدائق أكتوبر، بالم هيلز).
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-800/80 border border-emerald-600/50 flex items-center justify-center text-amber-300 shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-pink-900/80 border border-pink-700/50 flex items-center justify-center text-amber-300 shrink-0">
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div className="space-y-1">
                 <h3 className="font-extrabold text-base text-white">
                   منتجات أصلية ١٠٠٪ ومضمونة
                 </h3>
-                <p className="text-xs text-stone-300 leading-relaxed">
+                <p className="text-xs text-pink-100/80 leading-relaxed">
                   نوفر فقط المنتجات الأصلية الصادرة من الوكلاء المعتمدين مع إمكانية فحص الباركود والمعاينة عند الاستلام قبل الدفع.
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-800/80 border border-emerald-600/50 flex items-center justify-center text-teal-300 shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-pink-900/80 border border-pink-700/50 flex items-center justify-center text-pink-300 shrink-0">
                 <Sparkles className="w-6 h-6" />
               </div>
               <div className="space-y-1">
                 <h3 className="font-extrabold text-base text-white">
                   استشارة طبية وتجميلية ذكية
                 </h3>
-                <p className="text-xs text-stone-300 leading-relaxed">
+                <p className="text-xs text-pink-100/80 leading-relaxed">
                   مستشارة العناية الذكية (د. سارة) تعمل على مدار الساعة لترشيح أفضل روتين ملائم لنوع بشرتك وشعرك ولعناية طفلك بأمان تام.
                 </p>
               </div>
@@ -962,30 +962,30 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right">
           <div>
             <div className="font-black text-sm text-white flex items-center justify-center sm:justify-start gap-2">
-              <span className="font-['Plus_Jakarta_Sans',sans-serif] text-base text-emerald-400 font-extrabold">M&l</span>
-              <span>• متجر العناية ومستلزمات الأطفال (٦ أكتوبر والشيخ زايد)</span>
+              <span className="font-['Plus_Jakarta_Sans',sans-serif] text-base text-pink-400 font-extrabold lowercase">m&l</span>
+              <span>• متجر العناية والجمال والطفل (٦ أكتوبر والشيخ زايد)</span>
             </div>
             <p className="text-[11px] text-stone-500 mt-1">
-              متجر M&l المتخصص في منتجات العناية بالبشرة والجسم والشعر ومستلزمات الأطفال في مدينتي ٦ أكتوبر والشيخ زايد
+              متجر m&l المتخصص في منتجات العناية بالمرأة والبشرة والجسم والشعر ومستلزمات الأطفال في مدينتي ٦ أكتوبر والشيخ زايد
             </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-stone-300">
             <button
               onClick={() => setIsOrderTrackingOpen(true)}
-              className="hover:text-emerald-400 transition-colors cursor-pointer"
+              className="hover:text-pink-400 transition-colors cursor-pointer"
             >
               تتبع الطلبات
             </button>
             <button
               onClick={() => setIsZoneModalOpen(true)}
-              className="hover:text-emerald-400 transition-colors cursor-pointer"
+              className="hover:text-pink-400 transition-colors cursor-pointer"
             >
               أحياء ومناطق التوصيل
             </button>
             <button
               onClick={() => setIsAdminOpen(true)}
-              className="hover:text-emerald-400 transition-colors cursor-pointer"
+              className="hover:text-pink-400 transition-colors cursor-pointer"
             >
               بوابة الإدارة
             </button>
@@ -993,7 +993,7 @@ export default function App() {
               href="https://wa.me/201000000000?text=مرحباً، أود التواصل مع خدمة العملاء"
               target="_blank"
               rel="noreferrer"
-              className="text-emerald-400 hover:text-emerald-300"
+              className="text-pink-400 hover:text-pink-300"
             >
               واتساب الدعم السريع
             </a>
