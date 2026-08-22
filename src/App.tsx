@@ -36,6 +36,7 @@ import { ReviewSubmissionModal } from './components/ReviewSubmissionModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { InstallAppModal } from './components/InstallAppModal';
 import { CategoriesModal } from './components/CategoriesModal';
+import { FeaturedDealsCarousel } from './components/FeaturedDealsCarousel';
 import { db } from './firebase';
 import {
   collection,
@@ -671,6 +672,16 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        {/* Featured Deals Carousel (العروض والتخفيضات المميزة) */}
+        <FeaturedDealsCarousel
+          products={products}
+          onAddToCart={handleAddToCart}
+          onQuickView={(prod) => setDetailProduct(prod)}
+          wishlist={wishlist}
+          onToggleWishlist={handleToggleWishlist}
+          cart={cart}
+        />
 
         {/* Products Catalog Section */}
         <div id="products-section" className="mx-4 sm:mx-6 lg:mx-8 space-y-6 pb-16 scroll-mt-24">
