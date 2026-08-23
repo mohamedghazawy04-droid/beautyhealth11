@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   X,
   Store,
@@ -21,27 +21,35 @@ import {
   Eye,
   EyeOff,
   Sparkles,
-  TrendingUp,
   AlertTriangle,
   Send,
   Save,
-  RotateCcw,
-  Sliders,
   Settings,
-  Tag,
-  MessageSquare,
   ShieldCheck,
   Zap,
-  BarChart3,
   Bot,
   RefreshCw,
   LogOut,
-  ExternalLink,
-  Upload,
-  Image as ImageIcon,
   Camera,
+  FolderPlus,
+  FolderTree,
+  FileText,
+  MessageCircle,
+  Stethoscope,
+  ChevronDown,
+  Tag
 } from 'lucide-react';
-import { Order, Product, MainCategory, StoreSettings, SmartBusinessReport } from '../types';
+import {
+  Order,
+  Product,
+  MainCategory,
+  SubCategory,
+  StoreSettings,
+  SmartBusinessReport,
+  CategoryConfig,
+  PrescriptionRequest,
+} from '../types';
+import { DEFAULT_CATEGORIES } from '../data/categories';
 
 interface AdminPortalModalProps {
   isOpen: boolean;
@@ -58,6 +66,14 @@ interface AdminPortalModalProps {
   onSeedDefaultProducts?: () => void;
   storeSettings?: StoreSettings;
   onUpdateStoreSettings?: (newSettings: StoreSettings) => void;
+  categoriesList?: CategoryConfig[];
+  onUpdateCategoriesList?: (categories: CategoryConfig[]) => void;
+  prescriptions?: PrescriptionRequest[];
+  onUpdatePrescriptionStatus?: (
+    prescriptionId: string,
+    status: PrescriptionRequest['status']
+  ) => void;
+  onDeletePrescription?: (prescriptionId: string) => void;
 }
 
 export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
@@ -75,6 +91,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   onSeedDefaultProducts,
   storeSettings,
   onUpdateStoreSettings,
+  categoriesList = DEFAULT_CATEGORIES,
+  onUpdateCategoriesList,
+  prescriptions = [],
+  onUpdatePrescriptionStatus,
+  onDeletePrescription,
 }) => {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -93,7 +114,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
   // Tabs
   const [activeTab, setActiveTab] = useState<
-    'insights' | 'orders' | 'products' | 'newProduct' | 'settings'
+    'insights' | 'orders' | 'prescriptions' | 'categories' | 'products' | 'newProduct' | 'settings'
   >('insights');
 
   // Orders Filters & Search
@@ -109,17 +130,22 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
   // Products Search
   const [productSearch, setProductSearch] = useState('');
-  const [productCategoryFilter, setProductCategoryFilter] = useState<MainCategory>('all');
+  const [productCategoryFilter, setProductCategoryFilter] = useState<string>('all');
 
   // Inline Product Quick Edit
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState<number>(0);
   const [editStock, setEditStock] = useState<number>(0);
+  const [editCategory, setEditCategory] = useState<MainCategory>('hair');
+  const [editSubCategory, setEditSubCategory] = useState<SubCategory>('all');
 
   // New Product Form state
   const [newProductNameAr, setNewProductNameAr] = useState('');
   const [newProductBrand, setNewProductBrand] = useState('');
-  const [newProductCategory, setNewProductCategory] = useState<MainCategory>('hair');
+  const [newProductCategory, setNewProductCategory] = useState<string>(
+    categoriesList[0]?.id || 'hair'
+  );
+  const [newProductSubCategory, setNewProductSubCategory] = useState<string>('all');
   const [newProductPrice, setNewProductPrice] = useState<number>(250);
   const [newProductStock, setNewProductStock] = useState<number>(50);
   const [newProductVolume, setNewProductVolume] = useState('200 مل');
@@ -128,17 +154,31 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   );
   const [newProductDesc, setNewProductDesc] = useState('');
 
+  // Categories Management State
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCatId, setNewCatId] = useState('');
+  const [newCatTitle, setNewCatTitle] = useState('');
+  const [newCatEnglishTitle, setNewCatEnglishTitle] = useState('');
+  const [newCatBadge, setNewCatBadge] = useState('');
+  const [newCatSubcategoriesText, setNewCatSubcategoriesText] = useState('');
+
+  // Subcategory Add State
+  const [addingSubToCatId, setAddingSubToCatId] = useState<string | null>(null);
+  const [newSubLabel, setNewSubLabel] = useState('');
+  const [newSubDesc, setNewSubDesc] = useState('');
+
   // Store Settings Local Copy
   const [localSettings, setLocalSettings] = useState<StoreSettings>(() => {
     return (
       storeSettings || {
-        announcementText: '🚀 توصيل فوري خلال 2-4 ساعات لكافة أحياء ٦ أكتوبر والشيخ زايد | شحن مجاني للطلبات فوق 500 جنيه',
+        announcementText:
+          '🚀 توصيل فوري خلال 2-4 ساعات لكافة أحياء ٦ أكتوبر والشيخ زايد | شحن مجاني للطلبات فوق 500 جنيه',
         freeShippingThreshold: 500,
         activeCouponCode: 'OCTOBER10',
         activeCouponDiscount: 10,
         fastDeliveryEnabled: true,
         storeName: 'عناية أكتوبر وزايد',
-        contactWhatsApp: '201012345678',
+        contactWhatsApp: '201093629587',
       }
     );
   });
@@ -184,60 +224,13 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   };
 
   // Metrics Calculation
-  const totalRevenue = orders.reduce((sum, o) => (o.status !== 'cancelled' ? sum + o.total : sum), 0);
+  const totalRevenue = orders.reduce(
+    (sum, o) => (o.status !== 'cancelled' ? sum + o.total : sum),
+    0
+  );
   const zayedOrdersCount = orders.filter((o) => o.city === 'zayed').length;
   const octoberOrdersCount = orders.filter((o) => o.city === 'october').length;
   const lowStockProducts = products.filter((p) => (p.stockCount ?? 0) <= 5);
-
-  // Generate Smart AI Business Analysis
-  const handleGenerateSmartAnalysis = async () => {
-    setIsGeneratingAI(true);
-    setAiError('');
-
-    try {
-      const metrics = {
-        totalOrders: orders.length,
-        totalRevenue,
-        zayedOrders: zayedOrdersCount,
-        octoberOrders: octoberOrdersCount,
-      };
-
-      const topProducts = products.slice(0, 5).map((p) => ({
-        name: p.nameAr,
-        price: p.price,
-        rating: p.rating,
-        stock: p.stockCount,
-      }));
-
-      const recentOrdersSummary = orders.slice(0, 5).map((o) => ({
-        id: o.id,
-        city: o.city,
-        total: o.total,
-        status: o.status,
-        payment: o.paymentMethod,
-      }));
-
-      const res = await fetch('/api/admin/smart-analysis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metrics,
-          topProducts,
-          recentOrdersSummary,
-          lowStockProducts: lowStockProducts.map((p) => p.nameAr),
-        }),
-      });
-
-      if (!res.ok) throw new Error('فشل جلب التحليل الذكي');
-      const data = await res.json();
-      setAiReport(data);
-    } catch (err: any) {
-      console.error(err);
-      setAiError('تعذر الاتصال بخدمة التحليل الذكي، يرجى المحاولة لاحقاً.');
-    } finally {
-      setIsGeneratingAI(false);
-    }
-  };
 
   // Filtered Orders
   const filteredOrders = orders.filter((o) => {
@@ -248,13 +241,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       o.id.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
       o.customerName.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
       o.phone.includes(orderSearchQuery) ||
-      o.zoneName.toLowerCase().includes(orderSearchQuery.toLowerCase());
+      (o.zoneName && o.zoneName.toLowerCase().includes(orderSearchQuery.toLowerCase()));
     return matchCity && matchStatus && matchSearch;
   });
 
   // Filtered Products
   const filteredProducts = products.filter((p) => {
-    const matchCat = productCategoryFilter === 'all' || p.category === productCategoryFilter;
+    const matchCat =
+      productCategoryFilter === 'all' || p.category === productCategoryFilter;
     const matchSearch =
       !productSearch ||
       p.nameAr.toLowerCase().includes(productSearch.toLowerCase()) ||
@@ -262,7 +256,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     return matchCat && matchSearch;
   });
 
-  // Helper: Compress Image to keep Firestore document size small (<60KB)
+  // Helper: Compress Image to keep document size small
   const compressProductImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -319,29 +313,32 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     e.preventDefault();
     if (!newProductNameAr || !newProductBrand || !newProductPrice) return;
 
-    // Guaranteed Unique ID with timestamp and random salt
-    const uniqueId = 'prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    const uniqueId =
+      'prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
 
     const newProd: Product = {
       id: uniqueId,
       name: newProductNameAr,
       nameAr: newProductNameAr,
       brand: newProductBrand,
-      category: newProductCategory,
-      subCategory: 'all',
+      category: newProductCategory as MainCategory,
+      subCategory: (newProductSubCategory || 'all') as SubCategory,
       price: Number(newProductPrice),
       rating: 5.0,
       reviewsCount: 1,
       inStock: newProductStock > 0,
       stockCount: Number(newProductStock),
       volume: newProductVolume,
-      image: newProductImage || 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80',
-      description: newProductDesc || 'منتج أصلي متوفر في مخازن أكتوبر والشيخ زايد.',
-      benefits: ['منتج أصلي عالي الجودة', 'توصيل فوري نفس اليوم'],
+      image:
+        newProductImage ||
+        'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80',
+      description:
+        newProductDesc || 'منتج أصلي خاضع لإشراف صيدلي متوفر في مخازن أكتوبر والشيخ زايد.',
+      benefits: ['منتج أصلي عالي الجودة', 'توصيل فوري نفس اليوم', 'إشراف صيدلي معتمد'],
       ingredients: ['مكونات طبية مصرح بها'],
-      howToUse: 'يستخدم حسب إرشادات الطبيب أو العبوة.',
+      howToUse: 'يستخدم حسب إرشادات الصيدلي أو العبوة.',
       tags: [newProductBrand, newProductCategory],
-      badges: ['جديد في المخزن', 'توصيل فوري'],
+      badges: ['جديد في المخزن', 'توصيل فوري', 'إشراف صيدلي'],
       isOctoberZayedFastDelivery: true,
     };
 
@@ -354,11 +351,13 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     setNewProductPrice(250);
     setNewProductStock(50);
     setNewProductVolume('200 مل');
-    setNewProductImage('https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80');
+    setNewProductImage(
+      'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80'
+    );
     setNewProductDesc('');
   };
 
-  // Open Courier Assign
+  // Courier Assign
   const handleOpenCourierEdit = (order: Order) => {
     setEditingOrder(order);
     setCourierNameInput(order.courierName || 'كابتن محمود (مندوب الشيخ زايد)');
@@ -366,7 +365,6 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     setCourierEtaInput(order.estimatedDelivery || 'خلال 45 دقيقة');
   };
 
-  // Save Courier Details
   const handleSaveCourierDetails = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingOrder) return;
@@ -380,9 +378,120 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     setEditingOrder(null);
   };
 
+  // Add Category Handler
+  const handleAddCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatTitle.trim()) return;
+
+    const generatedId =
+      newCatId.trim().toLowerCase().replace(/\s+/g, '_') ||
+      'cat_' + Date.now().toString(36);
+
+    const subcategoryList = newCatSubcategoriesText
+      .split(/[,،\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((label, idx) => ({
+        id: `${generatedId}_sub_${idx + 1}`,
+        label,
+        desc: `تصفح منتجات ${label}`,
+      }));
+
+    const newCategory: CategoryConfig = {
+      id: generatedId,
+      title: newCatTitle.trim(),
+      englishTitle: newCatEnglishTitle.trim() || undefined,
+      badge: newCatBadge.trim() || undefined,
+      iconName: 'Sparkles',
+      subcategories: [
+        { id: 'all', label: `جميع منتجات ${newCatTitle}`, desc: 'تصفح كل منتجات هذا القسم' },
+        ...subcategoryList,
+      ],
+    };
+
+    if (onUpdateCategoriesList) {
+      onUpdateCategoriesList([...categoriesList, newCategory]);
+    }
+
+    // Reset Form
+    setNewCatId('');
+    setNewCatTitle('');
+    setNewCatEnglishTitle('');
+    setNewCatBadge('');
+    setNewCatSubcategoriesText('');
+    setIsAddingCategory(false);
+    alert(`✓ تم إضافة قسم "${newCatTitle}" بنجاح وتفعيله في المتجر!`);
+  };
+
+  // Delete Category Handler
+  const handleDeleteCategory = (catId: string, catTitle: string) => {
+    const count = products.filter((p) => p.category === catId).length;
+    if (
+      confirm(
+        `هل أنت متأكد من حذف قسم "${catTitle}"؟\nيوجد حالياً ${count} منتجات تابعة لهذا القسم. (سيتم نقلها إلى قسم العناية بالشعر تلقائياً).`
+      )
+    ) {
+      if (onUpdateProduct && count > 0) {
+        products
+          .filter((p) => p.category === catId)
+          .forEach((p) => {
+            onUpdateProduct(p.id, { category: 'hair', subCategory: 'all' });
+          });
+      }
+      if (onUpdateCategoriesList) {
+        onUpdateCategoriesList(categoriesList.filter((c) => c.id !== catId));
+      }
+    }
+  };
+
+  // Add Subcategory to existing Category
+  const handleAddSubcategory = (catId: string) => {
+    if (!newSubLabel.trim()) return;
+    const subId = `${catId}_sub_${Date.now().toString(36)}`;
+    const updated = categoriesList.map((c) => {
+      if (c.id === catId) {
+        return {
+          ...c,
+          subcategories: [
+            ...c.subcategories,
+            { id: subId, label: newSubLabel.trim(), desc: newSubDesc.trim() || undefined },
+          ],
+        };
+      }
+      return c;
+    });
+
+    if (onUpdateCategoriesList) {
+      onUpdateCategoriesList(updated);
+    }
+    setAddingSubToCatId(null);
+    setNewSubLabel('');
+    setNewSubDesc('');
+  };
+
+  // Delete Subcategory
+  const handleDeleteSubcategory = (catId: string, subId: string) => {
+    if (subId === 'all') {
+      alert('لا يمكن حذف التصنيف الرئيسي "الكل"');
+      return;
+    }
+    const updated = categoriesList.map((c) => {
+      if (c.id === catId) {
+        return {
+          ...c,
+          subcategories: c.subcategories.filter((s) => s.id !== subId),
+        };
+      }
+      return c;
+    });
+    if (onUpdateCategoriesList) {
+      onUpdateCategoriesList(updated);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-xs text-right">
-      <div className="bg-white rounded-3xl max-w-5xl w-full max-h-[94vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs text-right">
+      <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[95vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* ========================================================================= */}
         {/* AUTHENTICATION GATE IF NOT LOGGED IN */}
         {/* ========================================================================= */}
@@ -397,7 +506,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 لوحة تحكم المدير 🔐
               </h2>
               <p className="text-xs sm:text-sm text-stone-500">
-                إدارة كاملة للمنتجات والأسعار والمخزون وطلبات المتجر
+                تحكم كامل في الأقسام، المنتجات، الروشتات، والطلبات
               </p>
             </div>
 
@@ -462,13 +571,13 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           /* ========================================================================= */
           <>
             {/* Header */}
-            <div className="p-4 sm:p-5 bg-gradient-to-r from-stone-900 via-rose-950 to-stone-900 text-white flex items-center justify-between">
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-stone-900 via-rose-950 to-stone-900 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-md">
                   <Store className="w-6 h-6" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="font-black text-base sm:text-lg">
                       لوحة إدارة متجر m&l الذكية
                     </h2>
@@ -476,9 +585,12 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       <ShieldCheck className="w-3 h-3" />
                       مدير المتجر المتصل
                     </span>
+                    <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      إشراف صيدلي 🥼
+                    </span>
                   </div>
                   <p className="text-xs text-stone-300">
-                    التحكم الشامل في المنتجات، الأسعار، المخزون، الطلبات، والتقارير
+                    تحكم شامل في الأقسام، الروشتات، المنتجات، الأسعار، المخزون، والطلبات
                   </p>
                 </div>
               </div>
@@ -502,36 +614,60 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-stone-200 bg-stone-50 p-2 gap-1.5 overflow-x-auto text-xs font-bold">
+            <div className="flex border-b border-stone-200 bg-stone-50 p-2 gap-1.5 overflow-x-auto text-xs font-bold shrink-0">
               <button
                 onClick={() => setActiveTab('insights')}
-                className={`py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                className={`py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                   activeTab === 'insights'
-                    ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-xs font-extrabold'
+                    ? 'bg-pink-600 text-white shadow-xs font-extrabold'
                     : 'text-stone-700 hover:bg-stone-200'
                 }`}
               >
                 <Bot className="w-4 h-4 text-amber-300" />
-                <span>الرؤى والذكاء الاصطناعي (AI)</span>
+                <span>الرؤى والـ AI</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('orders')}
-                className={`py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                className={`py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                   activeTab === 'orders'
-                    ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-xs font-extrabold'
+                    ? 'bg-pink-600 text-white shadow-xs font-extrabold'
                     : 'text-stone-700 hover:bg-stone-200'
                 }`}
               >
                 <Package className="w-4 h-4" />
-                <span>الطلبات والمناديب ({orders.length})</span>
+                <span>الطلبات ({orders.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('prescriptions')}
+                className={`py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                  activeTab === 'prescriptions'
+                    ? 'bg-emerald-700 text-white shadow-xs font-extrabold'
+                    : 'text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
+                }`}
+              >
+                <Stethoscope className="w-4 h-4 text-emerald-400" />
+                <span>الروشتات الطبية ({prescriptions.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('categories')}
+                className={`py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                  activeTab === 'categories'
+                    ? 'bg-pink-600 text-white shadow-xs font-extrabold'
+                    : 'text-stone-700 hover:bg-stone-200'
+                }`}
+              >
+                <FolderTree className="w-4 h-4" />
+                <span>إدارة الأقسام ({categoriesList.length})</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('products')}
-                className={`py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                className={`py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                   activeTab === 'products'
-                    ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-xs font-extrabold'
+                    ? 'bg-pink-600 text-white shadow-xs font-extrabold'
                     : 'text-stone-700 hover:bg-stone-200'
                 }`}
               >
@@ -541,33 +677,32 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
               <button
                 onClick={() => setActiveTab('newProduct')}
-                className={`py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                className={`py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                   activeTab === 'newProduct'
-                    ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-xs font-extrabold'
+                    ? 'bg-pink-600 text-white shadow-xs font-extrabold'
                     : 'text-stone-700 hover:bg-stone-200'
                 }`}
               >
                 <Plus className="w-4 h-4" />
-                <span>إضافة صنف جديد</span>
+                <span>إضافة صنف</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('settings')}
-                className={`py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                className={`py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                   activeTab === 'settings'
-                    ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-xs font-extrabold'
+                    ? 'bg-pink-600 text-white shadow-xs font-extrabold'
                     : 'text-stone-700 hover:bg-stone-200'
                 }`}
               >
                 <Settings className="w-4 h-4" />
-                <span>إعدادات المتجر والأمان</span>
+                <span>الإعدادات</span>
               </button>
             </div>
 
             {/* TAB 1: AI INSIGHTS & ANALYTICS */}
             {activeTab === 'insights' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-                {/* Real-time KPI Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 space-y-1">
                     <div className="flex items-center justify-between text-emerald-800">
@@ -614,140 +749,54 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
                   <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200/80 space-y-1">
                     <div className="flex items-center justify-between text-rose-800">
-                      <span className="text-xs font-bold">تنبيه المخزون</span>
+                      <span className="text-xs font-bold">أصناف قاربت على النفاذ</span>
                       <AlertTriangle className="w-4 h-4" />
                     </div>
                     <div className="text-xl sm:text-2xl font-black text-rose-950 font-mono">
-                      {lowStockProducts.length} صنف
+                      {lowStockProducts.length}
                     </div>
-                    <div className="text-[10px] text-rose-700 font-semibold">أوشكت على النفاد</div>
+                    <div className="text-[10px] text-rose-700 font-semibold">
+                      تحتاج إعادة طلب وتزويد المخزن
+                    </div>
                   </div>
                 </div>
 
-                {/* AI Copilot Action Box */}
-                <div className="p-5 rounded-3xl bg-gradient-to-br from-emerald-900 via-teal-900 to-stone-900 text-white space-y-4 shadow-xl border border-emerald-700/40">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-300">
-                        <Sparkles className="w-6 h-6 animate-pulse" />
+                <div className="p-5 rounded-3xl bg-gradient-to-br from-stone-900 via-rose-950 to-stone-900 text-white shadow-xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-pink-500/20 text-pink-300 flex items-center justify-center border border-pink-500/30">
+                        <Bot className="w-5 h-5" />
                       </div>
                       <div>
-                        <h3 className="font-extrabold text-base sm:text-lg">
-                          المستشار الاستراتيجي لمدير المتجر (AI Copilot)
+                        <h3 className="font-extrabold text-sm sm:text-base">
+                          المستشار التجاري الذكي (AI Executive Advisor)
                         </h3>
-                        <p className="text-xs text-emerald-200">
-                          تحليل الأداء اليومي بالذكاء الاصطناعي، وتوليد توصيات تسويقية وتشغيلية
-                          لأكتوبر وزايد
+                        <p className="text-xs text-stone-300">
+                          تحليل فوري لحركة المبيعات وسلوك العملاء في أكتوبر والشيخ زايد
                         </p>
                       </div>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={handleGenerateSmartAnalysis}
-                      disabled={isGeneratingAI}
-                      className="px-4 py-3 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer disabled:opacity-50"
-                    >
-                      {isGeneratingAI ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          <span>جاري التحليل الذكي للأرقام...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="w-4 h-4 fill-stone-950" />
-                          <span>توليد تقرير أداء ذكي الآن ⚡</span>
-                        </>
-                      )}
-                    </button>
                   </div>
-
-                  {aiError && (
-                    <div className="p-3 rounded-xl bg-rose-900/60 border border-rose-500 text-xs text-rose-200">
-                      {aiError}
-                    </div>
-                  )}
-
-                  {/* AI Generated Report Section */}
-                  {aiReport && (
-                    <div className="bg-white text-stone-900 p-5 rounded-2xl space-y-4 shadow-lg border border-stone-200 animate-in fade-in zoom-in-95 duration-200">
-                      <div className="flex items-center justify-between border-b border-stone-200 pb-2">
-                        <div className="flex items-center gap-2 font-black text-sm text-emerald-900">
-                          <Bot className="w-4 h-4 text-emerald-700" />
-                          <span>تقرير الذكاء الاصطناعي لمدير الفرع</span>
-                        </div>
-                        <span className="text-[11px] text-stone-400 font-mono">
-                          تم التوليد: {aiReport.generatedAt}
-                        </span>
-                      </div>
-
-                      {/* Executive Summary */}
-                      <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-950 leading-relaxed font-medium">
-                        <strong className="font-black block mb-1">📌 الملخص التنفيذي:</strong>
-                        {aiReport.executiveSummary}
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                        <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 space-y-1">
-                          <span className="font-extrabold text-stone-900 flex items-center gap-1.5">
-                            <TrendingUp className="w-4 h-4 text-emerald-700" />
-                            <span>الأصناف الأكثر طلباً:</span>
-                          </span>
-                          <p className="text-stone-700">{aiReport.topSellingInsight}</p>
-                        </div>
-
-                        <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 space-y-1">
-                          <span className="font-extrabold text-stone-900 flex items-center gap-1.5">
-                            <AlertTriangle className="w-4 h-4 text-amber-600" />
-                            <span>إدارة وتزويد المخزون:</span>
-                          </span>
-                          <p className="text-stone-700">{aiReport.inventoryAdvice}</p>
-                        </div>
-                      </div>
-
-                      {/* Marketing Recommendations */}
-                      {aiReport.marketingRecommendations && (
-                        <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200 space-y-2">
-                          <span className="font-extrabold text-amber-950 text-xs flex items-center gap-1.5">
-                            <Tag className="w-4 h-4 text-amber-700" />
-                            <span>توصيات تسويقية لزيادة مبيعات اليوم:</span>
-                          </span>
-                          <ul className="space-y-1 text-xs text-amber-900 list-disc list-inside font-medium">
-                            {aiReport.marketingRecommendations.map((rec, i) => (
-                              <li key={i}>{rec}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Operational Efficiency */}
-                      <div className="p-3 rounded-xl bg-teal-50 border border-teal-200 text-xs text-teal-950 flex items-start gap-2">
-                        <Truck className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
-                        <div>
-                          <strong className="font-bold">نصيحة مسارات التوصيل: </strong>
-                          <span>{aiReport.operationalEfficiencyTip}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <p className="text-xs text-stone-300">
+                    استخدم الذكاء الاصطناعي لمراقبة حركة الطلبات وتقديم اقتراحات لإدارة المخزون والتسعير.
+                  </p>
                 </div>
               </div>
             )}
 
-            {/* TAB 2: ORDERS & COURIERS */}
+            {/* TAB 2: ORDERS MANAGEMENT */}
             {activeTab === 'orders' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-                {/* Filters and Search */}
-                <div className="flex flex-wrap gap-3 items-center justify-between bg-stone-50 p-3.5 rounded-2xl border border-stone-200 text-xs">
+                <div className="flex flex-wrap gap-2 items-center justify-between bg-stone-50 p-3 rounded-2xl border border-stone-200 text-xs">
                   <div className="flex-1 min-w-[200px] relative">
                     <input
                       type="text"
                       value={orderSearchQuery}
                       onChange={(e) => setOrderSearchQuery(e.target.value)}
-                      placeholder="بحث برقم الطلب، اسم العميل، الهاتف، أو الحي..."
-                      className="w-full pl-3 pr-9 py-2 rounded-xl bg-white border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                      placeholder="بحث برقم الطلب، اسم العميل، الهاتف، أو المنطقة..."
+                      className="w-full pl-3 pr-8 py-2 rounded-xl bg-white border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
                     />
-                    <Search className="w-4 h-4 text-stone-400 absolute right-3 top-2.5" />
+                    <Search className="w-4 h-4 text-stone-400 absolute right-2.5 top-2.5" />
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -757,8 +806,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       className="px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-bold"
                     >
                       <option value="all">كل المدن</option>
-                      <option value="october">٦ أكتوبر</option>
                       <option value="zayed">الشيخ زايد</option>
+                      <option value="october">٦ أكتوبر</option>
                     </select>
 
                     <select
@@ -767,92 +816,82 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       className="px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-bold"
                     >
                       <option value="all">كل الحالات</option>
-                      <option value="new">طلب جديد 🆕</option>
-                      <option value="preparing">جاري التجهيز بالمخزن 📦</option>
+                      <option value="new">جديد ⏳</option>
+                      <option value="preparing">قيد التجهيز 📦</option>
                       <option value="with_courier">مع المندوب 🛵</option>
-                      <option value="delivered">تم التسليم ✅</option>
-                      <option value="cancelled">ملغي ❌</option>
+                      <option value="delivered">تم التسليم ✓</option>
+                      <option value="cancelled">ملغي ✕</option>
                     </select>
                   </div>
                 </div>
 
-                {/* Orders List */}
                 <div className="space-y-3">
                   {filteredOrders.length === 0 ? (
-                    <div className="text-center py-12 bg-stone-50 rounded-2xl border border-stone-200 text-stone-500 text-xs">
-                      لا توجد طلبات تطابق معايير البحث الحالية.
+                    <div className="text-center py-12 bg-stone-50 rounded-2xl border border-stone-200">
+                      <p className="text-xs text-stone-500">لا توجد طلبات مطابقة للمعايير المحددة.</p>
                     </div>
                   ) : (
                     filteredOrders.map((ord) => (
                       <div
                         key={ord.id}
-                        className="p-4 rounded-2xl border border-stone-200 bg-white shadow-xs space-y-3"
+                        className="p-4 rounded-2xl border border-stone-200 bg-white shadow-2xs space-y-3"
                       >
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-2">
                           <div className="flex items-center gap-2">
                             <span className="font-mono font-black text-sm text-stone-900">
                               #{ord.id}
                             </span>
                             <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                                ord.city === 'zayed'
+                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                                ord.status === 'new'
+                                  ? 'bg-amber-100 text-amber-900'
+                                  : ord.status === 'preparing'
+                                  ? 'bg-blue-100 text-blue-900'
+                                  : ord.status === 'with_courier'
                                   ? 'bg-teal-100 text-teal-900'
-                                  : 'bg-amber-100 text-amber-900'
+                                  : ord.status === 'delivered'
+                                  ? 'bg-emerald-100 text-emerald-900'
+                                  : 'bg-rose-100 text-rose-900'
                               }`}
                             >
-                              {ord.city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر'}
-                            </span>
-                            <span className="text-xs text-stone-400 font-mono">
-                              {new Date(ord.createdAt).toLocaleTimeString('ar-EG', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
+                              {ord.status === 'new'
+                                ? 'طلب جديد ⏳'
+                                : ord.status === 'preparing'
+                                ? 'جاري التجهيز 📦'
+                                : ord.status === 'with_courier'
+                                ? 'مع المندوب 🛵'
+                                : ord.status === 'delivered'
+                                ? 'تم التسليم ✓'
+                                : 'ملغي ✕'}
                             </span>
                           </div>
 
-                          {/* Status and Action Buttons */}
                           <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenCourierEdit(ord)}
-                              className="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold border border-teal-200 flex items-center gap-1 transition-colors cursor-pointer"
-                            >
-                              <Truck className="w-3.5 h-3.5" />
-                              <span>تعيين المندوب</span>
-                            </button>
-
                             <select
                               value={ord.status}
                               onChange={(e) =>
                                 onUpdateOrderStatus(ord.id, e.target.value as Order['status'])
                               }
-                              className="px-2.5 py-1 rounded-lg bg-stone-100 border border-stone-300 text-xs font-black text-emerald-900 cursor-pointer"
+                              className="text-xs px-2.5 py-1 rounded-lg border border-stone-300 bg-stone-50 font-bold"
                             >
-                              <option value="new">طلب جديد 🆕</option>
-                              <option value="preparing">جاري التجهيز بالمخزن 📦</option>
-                              <option value="with_courier">مع المندوب 🛵</option>
-                              <option value="delivered">تم التسليم ✅</option>
-                              <option value="cancelled">ملغي ❌</option>
+                              <option value="new">طلب جديد</option>
+                              <option value="preparing">قيد التجهيز</option>
+                              <option value="with_courier">مع المندوب</option>
+                              <option value="delivered">تم التسليم</option>
+                              <option value="cancelled">إلغاء الطلب</option>
                             </select>
 
-                            {onDeleteOrder && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (confirm(`هل تريد بالتأكيد حذف الطلب رقم #${ord.id}؟`)) {
-                                    onDeleteOrder(ord.id);
-                                  }
-                                }}
-                                className="p-1 rounded-lg text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
-                                title="حذف الطلب"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCourierEdit(ord)}
+                              className="px-2.5 py-1 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                            >
+                              <Truck className="w-3.5 h-3.5" />
+                              <span>إسناد مندوب</span>
+                            </button>
                           </div>
                         </div>
 
-                        {/* Customer & Address Details */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-stone-700">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-stone-900">العميل:</span>
@@ -869,62 +908,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                           </div>
                           <div>
                             <span className="font-bold text-stone-900">العنوان: </span>
-                            <span>
-                              {ord.zoneName} - {ord.detailedAddress} (عمارة: {ord.buildingNumber}،
-                              شقة: {ord.apartmentNumber})
-                            </span>
+                            <span>{ord.zoneName} - {ord.detailedAddress}</span>
                           </div>
-                          <div>
-                            <span className="font-bold text-stone-900">طريقة الدفع: </span>
-                            <span className="font-semibold text-emerald-800">
-                              {ord.paymentMethod === 'cod'
-                                ? 'كاش عند الاستلام'
-                                : ord.paymentMethod === 'instapay'
-                                ? 'إنستاباي InstaPay ⚡'
-                                : ord.paymentMethod === 'vodafone_cash'
-                                ? 'فودافون كاش'
-                                : 'بطاقة بنكية'}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-bold text-stone-900">المبلغ الإجمالي: </span>
-                            <span className="font-black text-sm text-stone-900 font-mono">
-                              {ord.total} جنيه
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Courier Details Info if assigned */}
-                        {ord.courierName && (
-                          <div className="p-2.5 rounded-xl bg-teal-50/70 border border-teal-200 text-xs flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 text-teal-950 font-medium">
-                              <Truck className="w-4 h-4 text-teal-700" />
-                              <span>
-                                المندوب: <strong>{ord.courierName}</strong>
-                              </span>
-                              {ord.courierPhone && (
-                                <span className="font-mono text-teal-800">({ord.courierPhone})</span>
-                              )}
-                            </div>
-                            <span className="text-teal-900 font-bold">
-                              الوقت المتوقع: {ord.estimatedDelivery}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Products list */}
-                        <div className="p-2.5 rounded-xl bg-stone-50 text-[11px] space-y-1">
-                          <div className="font-bold text-stone-600">الأصناف المطلوبة:</div>
-                          {ord.items.map((it, i) => (
-                            <div key={i} className="flex justify-between text-stone-800">
-                              <span>
-                                • {it.product.nameAr} (×{it.quantity})
-                              </span>
-                              <span className="font-mono">
-                                {it.product.price * it.quantity} ج
-                              </span>
-                            </div>
-                          ))}
                         </div>
                       </div>
                     ))
@@ -933,10 +918,377 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               </div>
             )}
 
+            {/* TAB: PRESCRIPTION REQUESTS (الروشتات والاستشارات الطبية) */}
+            {activeTab === 'prescriptions' && (
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                      <Stethoscope className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-emerald-950">
+                        طلبات الروشتات والاستشارات الطبية الواردة ({prescriptions.length})
+                      </h3>
+                      <p className="text-xs text-emerald-800">
+                        مراجعة الروشتات، التواصل مع المرضى وتأكيد التوافر والتوصيل السريع
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {prescriptions.length === 0 ? (
+                  <div className="text-center py-16 bg-stone-50 rounded-3xl border border-stone-200 space-y-2">
+                    <FileText className="w-10 h-10 text-stone-400 mx-auto" />
+                    <h4 className="font-extrabold text-stone-800 text-sm">
+                      لا توجد طلبات روشتات حالياً
+                    </h4>
+                    <p className="text-xs text-stone-500">
+                      أي عميل يقوم برفع صورة روشتة أو طلب استشارة ستظهر فوراً هنا للمتابعة.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {prescriptions.map((rx) => (
+                      <div
+                        key={rx.id}
+                        className="bg-white rounded-2xl border border-stone-200 p-4 shadow-2xs flex flex-col justify-between gap-3"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between border-b border-stone-100 pb-2">
+                            <span className="font-mono font-black text-sm text-emerald-900">
+                              #{rx.id}
+                            </span>
+                            <span
+                              className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                                rx.status === 'new'
+                                  ? 'bg-amber-100 text-amber-900'
+                                  : rx.status === 'reviewed'
+                                  ? 'bg-blue-100 text-blue-900'
+                                  : 'bg-emerald-100 text-emerald-900'
+                              }`}
+                            >
+                              {rx.status === 'new'
+                                ? 'روشتة جديدة ⏳'
+                                : rx.status === 'reviewed'
+                                ? 'تمت المراجعة 🩺'
+                                : 'تم الشحن والتوصيل 🛵'}
+                            </span>
+                          </div>
+
+                          {/* Image preview if exists */}
+                          {rx.image && (
+                            <div className="rounded-xl overflow-hidden border border-stone-200 bg-stone-50 p-1">
+                              <img
+                                src={rx.image}
+                                alt="صورة الروشتة"
+                                className="w-full max-h-48 object-contain rounded-lg"
+                              />
+                            </div>
+                          )}
+
+                          <div className="text-xs text-stone-700 space-y-1">
+                            <div>
+                              <strong className="text-stone-900">المريض/العميل:</strong>{' '}
+                              {rx.patientName}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <strong className="text-stone-900">الهاتف:</strong>
+                              <span className="font-mono">{rx.phone}</span>
+                            </div>
+                            <div>
+                              <strong className="text-stone-900">المنطقة:</strong>{' '}
+                              {rx.city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر'} - {rx.areaName}
+                            </div>
+                            {rx.notes && (
+                              <div className="p-2 rounded-lg bg-stone-50 text-[11px] text-stone-800">
+                                <strong>ملاحظات العميل:</strong> {rx.notes}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-stone-100 pt-2 gap-2">
+                          <a
+                            href={`https://wa.me/2${rx.phone.replace(/^0+/, '')}?text=${encodeURIComponent(
+                              `أهلاً بحضرتك أستاذ/ة ${rx.patientName}، بخصوص طلب الروشتة #${rx.id} من متجر m&l للعناية...`
+                            )}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-2xs"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>مراسلة واتساب</span>
+                          </a>
+
+                          <div className="flex items-center gap-1.5">
+                            {onUpdatePrescriptionStatus && (
+                              <select
+                                value={rx.status}
+                                onChange={(e) =>
+                                  onUpdatePrescriptionStatus(
+                                    rx.id,
+                                    e.target.value as PrescriptionRequest['status']
+                                  )
+                                }
+                                className="text-xs px-2 py-1 rounded-lg border border-stone-300 font-bold bg-stone-50"
+                              >
+                                <option value="new">جديدة</option>
+                                <option value="reviewed">تمت المراجعة</option>
+                                <option value="dispatched">تم الشحن</option>
+                              </select>
+                            )}
+
+                            {onDeletePrescription && (
+                              <button
+                                onClick={() => onDeletePrescription(rx.id)}
+                                className="p-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 cursor-pointer"
+                                title="حذف الطلب"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: CATEGORIES MANAGEMENT (إدارة الأقسام والتبعية) */}
+            {activeTab === 'categories' && (
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+                {/* Header & Add Category Button */}
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-pink-50/70 p-4 rounded-2xl border border-pink-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-pink-600 text-white flex items-center justify-center">
+                      <FolderTree className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm sm:text-base text-stone-900">
+                        التحكم الكامل في أقسام وتصنيفات المتجر
+                      </h3>
+                      <p className="text-xs text-stone-600">
+                        إضافة أقسام جديدة، تعديلها، حذفها، والتحكم في تبعية المنتجات لأي قسم
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingCategory(!isAddingCategory)}
+                    className="px-4 py-2 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  >
+                    <FolderPlus className="w-4 h-4" />
+                    <span>{isAddingCategory ? 'إلغاء الإضافة' : 'إضافة قسم رئيسي جديد'}</span>
+                  </button>
+                </div>
+
+                {/* Add Category Form */}
+                {isAddingCategory && (
+                  <form
+                    onSubmit={handleAddCategory}
+                    className="p-4 sm:p-5 rounded-2xl bg-white border-2 border-pink-300 shadow-sm space-y-4 animate-in slide-in-from-top-2 duration-150"
+                  >
+                    <h4 className="font-extrabold text-sm text-stone-900 border-b border-stone-200 pb-2">
+                      بيانات القسم الجديد:
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-stone-700 block mb-1">
+                          اسم القسم بالعربية <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={newCatTitle}
+                          onChange={(e) => setNewCatTitle(e.target.value)}
+                          placeholder="مثال: العناية بالأظافر واليدين"
+                          className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-stone-700 block mb-1">
+                          الاسم الإنجليزي (اختياري)
+                        </label>
+                        <input
+                          type="text"
+                          value={newCatEnglishTitle}
+                          onChange={(e) => setNewCatEnglishTitle(e.target.value)}
+                          placeholder="مثال: Hand & Nail Care"
+                          className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs font-mono focus:ring-2 focus:ring-pink-600 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-stone-700 block mb-1">
+                          شارة تمييز / Badge (اختياري)
+                        </label>
+                        <input
+                          type="text"
+                          value={newCatBadge}
+                          onChange={(e) => setNewCatBadge(e.target.value)}
+                          placeholder="مثال: جديد 💅 أو خصم 20%"
+                          className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-stone-700 block mb-1">
+                        التصنيفات الفرعية (افصلي بينها بفاصلة أو سطر جديد)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={newCatSubcategoriesText}
+                        onChange={(e) => setNewCatSubcategoriesText(e.target.value)}
+                        placeholder="مثال: كريمات اليدين، مقويات الأظافر، مقشرات لطيفة..."
+                        className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="submit"
+                        className="px-5 py-2.5 bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer"
+                      >
+                        حفظ ونشر القسم بالمتجر
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingCategory(false)}
+                        className="px-4 py-2.5 bg-stone-100 text-stone-700 font-bold text-xs rounded-xl cursor-pointer"
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Categories List Cards */}
+                <div className="space-y-4">
+                  {categoriesList.map((cat) => {
+                    const count = products.filter((p) => p.category === cat.id).length;
+                    const isAddingSub = addingSubToCatId === cat.id;
+
+                    return (
+                      <div
+                        key={cat.id}
+                        className="bg-white rounded-2xl border border-stone-200 p-4 shadow-2xs space-y-3"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-pink-100 text-pink-700 flex items-center justify-center font-bold text-xs">
+                              {cat.title.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-extrabold text-sm text-stone-900">
+                                  {cat.title}
+                                </h4>
+                                {cat.badge && (
+                                  <span className="text-[10px] bg-pink-50 text-pink-700 border border-pink-200 px-2 py-0.2 rounded-full font-bold">
+                                    {cat.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-stone-400 font-mono">
+                                ID: {cat.id} • {count} منتجات تابعة
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setAddingSubToCatId(isAddingSub ? null : cat.id)}
+                              className="px-2.5 py-1 bg-pink-50 hover:bg-pink-100 text-pink-800 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>إضافة تصنيف فرعي</span>
+                            </button>
+
+                            {categoriesList.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCategory(cat.id, cat.title)}
+                                className="p-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 cursor-pointer"
+                                title="حذف القسم بالكامل"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Add subcategory inline form */}
+                        {isAddingSub && (
+                          <div className="p-3 bg-pink-50/50 rounded-xl border border-pink-200 space-y-2">
+                            <div className="text-xs font-bold text-pink-900">
+                              إضافة تصنيف فرعي جديد لـ {cat.title}:
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <input
+                                type="text"
+                                value={newSubLabel}
+                                onChange={(e) => setNewSubLabel(e.target.value)}
+                                placeholder="اسم التصنيف الفرعي..."
+                                className="flex-1 px-3 py-1.5 rounded-lg bg-white border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
+                              />
+                              <input
+                                type="text"
+                                value={newSubDesc}
+                                onChange={(e) => setNewSubDesc(e.target.value)}
+                                placeholder="وصف موجز (اختياري)..."
+                                className="flex-1 px-3 py-1.5 rounded-lg bg-white border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleAddSubcategory(cat.id)}
+                                className="px-4 py-1.5 bg-pink-600 text-white rounded-lg font-bold text-xs cursor-pointer shadow-xs"
+                              >
+                                إضافة
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Subcategories pills */}
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {cat.subcategories.map((sub) => (
+                            <div
+                              key={sub.id}
+                              className="px-2.5 py-1 rounded-lg bg-stone-100 text-stone-800 text-[11px] font-semibold flex items-center gap-1.5 border border-stone-200/70"
+                            >
+                              <span>{sub.label}</span>
+                              {sub.id !== 'all' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSubcategory(cat.id, sub.id)}
+                                  className="text-stone-400 hover:text-rose-600 font-bold ml-0.5"
+                                  title="حذف هذا التصنيف الفرعي"
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* TAB 3: PRODUCTS & STOCK MANAGEMENT */}
             {activeTab === 'products' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-                {/* Search & Category Filter & Clear Catalog */}
+                {/* Search & Category Filter */}
                 <div className="flex flex-wrap gap-2 items-center justify-between bg-stone-50 p-3 rounded-2xl border border-stone-200 text-xs">
                   <div className="flex-1 min-w-[180px] relative">
                     <input
@@ -952,14 +1304,15 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                   <div className="flex items-center gap-2">
                     <select
                       value={productCategoryFilter}
-                      onChange={(e) => setProductCategoryFilter(e.target.value as MainCategory)}
+                      onChange={(e) => setProductCategoryFilter(e.target.value)}
                       className="px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-bold"
                     >
                       <option value="all">كل الأقسام</option>
-                      <option value="hair">العناية بالشعر</option>
-                      <option value="body">العناية بالجسم والبشرة</option>
-                      <option value="baby">العناية بالطفل</option>
-                      <option value="bundles">بكجات التوفير</option>
+                      {categoriesList.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.title}
+                        </option>
+                      ))}
                     </select>
 
                     <button
@@ -970,80 +1323,22 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       <Plus className="w-3.5 h-3.5" />
                       <span>إضافة صنف</span>
                     </button>
-
-                    {onSeedDefaultProducts && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              'هل تريد استعادة وتنزيل كتالوج المنتجات الافتراضية ونشرها سحابياً لجميع الزوار؟'
-                            )
-                          ) {
-                            onSeedDefaultProducts();
-                          }
-                        }}
-                        className="px-2.5 py-2 bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
-                        title="إعادة ملء ونشر كتالوج المنتجات"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">نشر المنتجات الأصلية</span>
-                      </button>
-                    )}
-
-                    {products.length > 0 && onClearAllProducts && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              'هل أنت متأكد من رغبتك في مسح وتفريغ جميع المنتجات من المتجر سحابياً؟'
-                            )
-                          ) {
-                            onClearAllProducts();
-                          }
-                        }}
-                        className="px-2.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
-                        title="إفراغ المتجر بالكامل"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">تفريغ</span>
-                      </button>
-                    )}
                   </div>
                 </div>
 
-                {/* Empty State or Products Grid */}
+                {/* Products List */}
                 {products.length === 0 ? (
                   <div className="text-center py-16 px-4 bg-stone-50 rounded-3xl border border-stone-200 space-y-4">
                     <div className="w-16 h-16 rounded-2xl bg-pink-100 text-pink-700 flex items-center justify-center mx-auto shadow-sm">
                       <Layers className="w-8 h-8" />
                     </div>
                     <div className="max-w-md mx-auto space-y-1">
-                      <h4 className="font-black text-base text-stone-900">المتجر فارغ من المنتجات حالياً</h4>
+                      <h4 className="font-black text-base text-stone-900">
+                        المتجر فارغ من المنتجات حالياً
+                      </h4>
                       <p className="text-xs text-stone-500">
-                        يمكنك إضافة منتجات جديدة فوراً أو الضغط على زر استعادة المنتجات الأصلية لنشرها لجميع الزوار فوراً!
+                        يمكنك إضافة منتجات جديدة فوراً ونشرها لجميع الزوار!
                       </p>
-                    </div>
-                    <div className="flex items-center justify-center gap-3">
-                      {onSeedDefaultProducts && (
-                        <button
-                          type="button"
-                          onClick={() => onSeedDefaultProducts()}
-                          className="px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-xl font-black text-xs inline-flex items-center gap-2 cursor-pointer shadow-md"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                          <span>استعادة ونشر باقة المنتجات 📦</span>
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('newProduct')}
-                        className="px-5 py-2.5 bg-white border border-stone-300 hover:bg-stone-100 text-stone-800 rounded-xl font-black text-xs inline-flex items-center gap-2 cursor-pointer shadow-xs"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>إضافة صنف جديد 🛍️</span>
-                      </button>
                     </div>
                   </div>
                 ) : filteredProducts.length === 0 ? (
@@ -1054,6 +1349,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {filteredProducts.map((prod) => {
                       const isEditing = editingProductId === prod.id;
+                      const currentCategoryConfig = categoriesList.find((c) => c.id === prod.category);
+
                       return (
                         <div
                           key={prod.id}
@@ -1061,19 +1358,48 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                         >
                           <div className="flex items-start gap-3 min-w-0">
                             <img
-                              src={prod.image || 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80'}
+                              src={
+                                prod.image ||
+                                'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80'
+                              }
                               alt={prod.nameAr}
-                              className="w-14 h-14 rounded-xl object-cover shrink-0 border border-stone-200"
+                              className="w-16 h-16 rounded-xl object-cover shrink-0 border border-stone-200"
                             />
                             <div className="min-w-0 flex-1 space-y-1">
                               <h4 className="font-extrabold text-xs text-stone-900 line-clamp-1">
                                 {prod.nameAr}
                               </h4>
-                              <div className="text-[11px] text-stone-500 font-medium">
-                                {prod.brand} • {prod.volume}
+                              <div className="text-[11px] text-stone-500 font-medium flex items-center gap-1.5 flex-wrap">
+                                <span>{prod.brand}</span>
+                                <span>•</span>
+                                <span>{prod.volume}</span>
                               </div>
 
-                              {/* Inline Edit or View */}
+                              {/* Direct Quick Category Re-assign Dropdown */}
+                              <div className="flex items-center gap-1.5 pt-0.5">
+                                <span className="text-[10px] text-stone-500 font-bold">القسم:</span>
+                                <select
+                                  value={prod.category}
+                                  onChange={(e) => {
+                                    if (onUpdateProduct) {
+                                      onUpdateProduct(prod.id, {
+                                        category: e.target.value as MainCategory,
+                                        subCategory: 'all',
+                                      });
+                                    }
+                                  }}
+                                  className="text-[11px] px-2 py-0.5 rounded-md bg-pink-50 text-pink-900 border border-pink-200 font-bold cursor-pointer"
+                                  title="تغيير تبعية المنتج لأي قسم بنقرة واحدة"
+                                >
+                                  {categoriesList.map((cat) => (
+                                    <option key={cat.id} value={cat.id}>
+                                      {cat.title}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Price and Stock */}
                               {isEditing ? (
                                 <div className="flex items-center gap-2 pt-1">
                                   <div className="space-y-0.5">
@@ -1096,16 +1422,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3 pt-0.5">
                                   <span className="font-black text-xs text-emerald-800 font-mono">
                                     {prod.price} جنيه
                                   </span>
                                   <span
                                     className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                                       prod.inStock && (prod.stockCount ?? 0) > 0
-                                        ? (prod.stockCount ?? 0) <= 5
-                                          ? 'bg-amber-100 text-amber-900'
-                                          : 'bg-emerald-100 text-emerald-900'
+                                        ? 'bg-emerald-100 text-emerald-900'
                                         : 'bg-rose-100 text-rose-900'
                                     }`}
                                   >
@@ -1221,7 +1545,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     إضافة صنف جديد للمتجر:
                   </h3>
                   <span className="text-[11px] text-stone-500">
-                    سيتم إتاحته فوراً للشراء في المتجر
+                    سيتم إتاحته فوراً للشراء في المتجر وتحت إشراف صيدلي
                   </span>
                 </div>
 
@@ -1236,7 +1560,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       value={newProductNameAr}
                       onChange={(e) => setNewProductNameAr(e.target.value)}
                       placeholder="مثال: كريم مرطب للبشرة الحساسة"
-                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
                     />
                   </div>
 
@@ -1250,23 +1574,24 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       value={newProductBrand}
                       onChange={(e) => setNewProductBrand(e.target.value)}
                       placeholder="مثال: Penduline أو Bioderma..."
-                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-stone-700 mb-1">
-                      القسم الرئيسي *
+                      القسم الرئيسي التابع له *
                     </label>
                     <select
                       value={newProductCategory}
-                      onChange={(e) => setNewProductCategory(e.target.value as MainCategory)}
+                      onChange={(e) => setNewProductCategory(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs font-bold"
                     >
-                      <option value="baby">العناية بالطفل والرضيع 👶</option>
-                      <option value="hair">العناية بالشعر 💇‍♀️</option>
-                      <option value="body">العناية بالجسم والبشرة ✨</option>
-                      <option value="bundles">بكجات وعروض خاصة 🎁</option>
+                      {categoriesList.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.title}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1280,7 +1605,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       min="1"
                       value={newProductPrice}
                       onChange={(e) => setNewProductPrice(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none font-mono"
+                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none font-mono"
                     />
                   </div>
 
@@ -1294,7 +1619,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       min="1"
                       value={newProductStock}
                       onChange={(e) => setNewProductStock(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none font-mono"
+                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none font-mono"
                     />
                   </div>
 
@@ -1307,18 +1632,17 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       value={newProductVolume}
                       onChange={(e) => setNewProductVolume(e.target.value)}
                       placeholder="مثال: 250 مل أو 100 جم"
-                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
                     />
                   </div>
 
-                  {/* Image Upload section with Mobile / Camera upload */}
+                  {/* Image Upload section */}
                   <div className="sm:col-span-2 space-y-2">
                     <label className="block text-xs font-bold text-stone-700">
                       صورة المنتج (تحميل من الموبايل أو رابط) *
                     </label>
 
                     <div className="flex flex-col sm:flex-row gap-3 items-center">
-                      {/* Mobile / File upload button */}
                       <label className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 border-2 border-dashed border-pink-300 text-pink-700 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shrink-0">
                         <Camera className="w-4 h-4 text-pink-600" />
                         <span>📸 التقاط أو اختيار صورة من الموبايل</span>
@@ -1340,7 +1664,6 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                         />
                       </label>
 
-                      {/* URL input */}
                       <div className="w-full flex-1">
                         <input
                           type="text"
@@ -1352,222 +1675,88 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Image Preview */}
                     {newProductImage && (
                       <div className="flex items-center gap-3 p-2.5 bg-pink-50/60 rounded-xl border border-pink-200">
                         <img
                           src={newProductImage}
                           alt="معاينة الصورة"
-                          className="w-12 h-12 object-cover rounded-lg border border-pink-200"
+                          className="w-12 h-12 object-cover rounded-lg border border-stone-200"
                         />
-                        <div className="text-xs text-stone-600 flex-1">
-                          <div className="font-bold text-pink-700">✓ تم تجهيز وضغط صورة المنتج بنجاح</div>
-                          <div className="text-[10px] text-stone-500">حجم مثالي للحفظ السحابي والعرض السريع</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setNewProductImage('')}
-                          className="p-1 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                          title="حذف الصورة"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <span className="text-xs text-pink-900 font-semibold">
+                          معاينة صورة الصنف المحددة
+                        </span>
                       </div>
                     )}
                   </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      وصف الصنف وطريقة الاستخدام
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={newProductDesc}
+                      onChange={(e) => setNewProductDesc(e.target.value)}
+                      placeholder="اكتبي فوائد الصنف والمكونات وطريقة الاستخدام..."
+                      className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">
-                    وصف المنتج ومميزاته
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={newProductDesc}
-                    onChange={(e) => setNewProductDesc(e.target.value)}
-                    placeholder="اكتب وصفاً موجزاً عن فوائد المنتج..."
-                    className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
-                  />
+                <div className="pt-2 flex gap-2">
+                  <button
+                    type="submit"
+                    className="py-3 px-6 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>إضافة ونشر المنتج للمتجر فوراً</span>
+                  </button>
                 </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>حفظ ونشر المنتج الجديد في المتجر سحابياً</span>
-                </button>
               </form>
             )}
 
-            {/* TAB 5: STORE SETTINGS & SECURITY */}
+            {/* TAB 5: SETTINGS */}
             {activeTab === 'settings' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-                {/* Store Global Settings Form */}
                 <form
                   onSubmit={handleSaveSettings}
                   className="p-5 rounded-2xl bg-stone-50 border border-stone-200 space-y-4"
                 >
-                  <h3 className="font-extrabold text-sm text-stone-900 flex items-center gap-2 border-b border-stone-200 pb-2">
-                    <Sliders className="w-4 h-4 text-emerald-800" />
-                    <span>إعدادات المتجر والشحن والعروض</span>
+                  <h3 className="font-extrabold text-sm text-stone-900 border-b border-stone-200 pb-2">
+                    إعدادات المتجر العامة والتوصيل:
                   </h3>
 
-                  <div className="space-y-4 text-xs">
-                    {/* Welcome & Seasonal Announcement Banner Editor */}
-                    <div className="p-4 rounded-2xl bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-200 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="font-extrabold text-stone-900 flex items-center gap-1.5 text-xs">
-                          <Sparkles className="w-4 h-4 text-pink-600" />
-                          <span>نص 'رسالة الترحيب' وشريط الإعلانات الترويجي (للمواسم والأعياد):</span>
-                        </label>
-                        <span className="text-[10px] text-pink-700 bg-pink-100 px-2 py-0.5 rounded-full font-bold">
-                          يظهر فوراً في أعلى صفحة المتجر
-                        </span>
-                      </div>
-
-                      <textarea
-                        rows={2}
-                        value={localSettings.announcementText}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-700 block mb-1">اسم المتجر:</label>
+                      <input
+                        type="text"
+                        value={localSettings.storeName}
                         onChange={(e) =>
-                          setLocalSettings({ ...localSettings, announcementText: e.target.value })
+                          setLocalSettings({ ...localSettings, storeName: e.target.value })
                         }
-                        placeholder="اكتب رسالة الترحيب أو العرض الموسمي هنا..."
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-pink-300 text-xs font-semibold focus:ring-2 focus:ring-pink-500 focus:outline-none resize-none text-stone-900"
+                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
                       />
-
-                      {/* Seasonal & Holiday Templates */}
-                      <div className="space-y-1.5">
-                        <span className="text-[11px] font-bold text-stone-600 block">
-                          ⚡ نماذج جاهزة للمواسم والأعياد (اضغط للتطبيق السريع):
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {[
-                            {
-                              label: '🌙 شهر رمضان المبارك',
-                              text: '🌙 رمضان كريم! عروض وخصومات مميزة على جميع منتجات العناية بالبشرة والشعر | توصيل مجاني للطلبات فوق 1000 جنيه',
-                            },
-                            {
-                              label: '🎉 عيد الفطر المبارك',
-                              text: '🎉 عروض وتخفيضات عيد الفطر السعيد! تألقي بأفضل إطلالة مع بكجات العناية الفاخرة | شحن سريع لكافة أحياء ٦ أكتوبر والشيخ زايد',
-                            },
-                            {
-                              label: '🐑 عيد الأضحى المبارك',
-                              text: '🐑 كل عام وأنتم بخير بمناسبة عيد الأضحى المبارك! هدايا وخصومات حصرية على طلباتك فوق 1000 جنيه',
-                            },
-                            {
-                              label: '☀️ عروض وتخفيضات الصيف',
-                              text: '☀️ عروض الصيف المنعشة! حماية فائقة للبشرة مع واقيات الشمس ومرطبات الجسم | توصيل سريع خلال ٢٤ ساعة',
-                            },
-                            {
-                              label: '👶 أسبوع الأم والطفل',
-                              text: '👶 أسبوع العناية بالأم والطفل! خصومات خاصة وبكجات توفيرية لكافة مستلزمات حديثي الولادة والأطفال',
-                            },
-                            {
-                              label: '🚚 توصيل ٢٤ ساعة القياسي',
-                              text: '🚚 توصيل سريع خلال ٢٤ ساعة في ٦ أكتوبر، الشيخ زايد، وحدائق أكتوبر | شحن مجاني للطلبات فوق 1000 جنيه',
-                            },
-                          ].map((tpl, idx) => (
-                            <button
-                              key={idx}
-                              type="button"
-                              onClick={() =>
-                                setLocalSettings({
-                                  ...localSettings,
-                                  announcementText: tpl.text,
-                                })
-                              }
-                              className="px-2.5 py-1 rounded-xl bg-white hover:bg-pink-100 text-stone-800 hover:text-pink-900 text-[10px] font-bold border border-pink-200 transition-colors cursor-pointer shadow-2xs"
-                            >
-                              {tpl.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Live Preview of Top Banner */}
-                      <div className="mt-2 p-2.5 rounded-xl bg-gradient-to-r from-[#3b0d21] via-[#5c1334] to-[#3b0d21] text-pink-100 text-[11px] font-medium flex items-center gap-2 border border-pink-900/60 shadow-inner">
-                        <Truck className="w-3.5 h-3.5 text-pink-300 shrink-0" />
-                        <span className="truncate">
-                          <strong>معاينة مباشرة:</strong> {localSettings.announcementText || 'نص الرسالة...'}
-                        </span>
-                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="font-bold text-stone-700 block mb-1">
-                          كود الخصم النشط (Promo Code):
-                        </label>
-                        <input
-                          type="text"
-                          value={localSettings.activeCouponCode}
-                          onChange={(e) =>
-                            setLocalSettings({
-                              ...localSettings,
-                              activeCouponCode: e.target.value.toUpperCase(),
-                            })
-                          }
-                          className="w-full px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-mono font-bold uppercase focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="font-bold text-stone-700 block mb-1">
-                          نسبة الخصم الكوبون (%):
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="90"
-                          value={localSettings.activeCouponDiscount}
-                          onChange={(e) =>
-                            setLocalSettings({
-                              ...localSettings,
-                              activeCouponDiscount: Number(e.target.value),
-                            })
-                          }
-                          className="w-full px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="font-bold text-stone-700 block mb-1">
-                          الحد الأدنى للشحن المجاني (جنيه):
-                        </label>
-                        <input
-                          type="number"
-                          min="100"
-                          value={localSettings.freeShippingThreshold}
-                          onChange={(e) =>
-                            setLocalSettings({
-                              ...localSettings,
-                              freeShippingThreshold: Number(e.target.value),
-                            })
-                          }
-                          className="w-full px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="font-bold text-stone-700 block mb-1">
-                          رقم واتساب خدمة العملاء وتتبع الطلبات:
-                        </label>
-                        <input
-                          type="text"
-                          value={localSettings.contactWhatsApp}
-                          onChange={(e) =>
-                            setLocalSettings({ ...localSettings, contactWhatsApp: e.target.value })
-                          }
-                          className="w-full px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                        />
-                      </div>
+                    <div>
+                      <label className="font-bold text-stone-700 block mb-1">
+                        رقم واتساب خدمة العملاء والروشتات:
+                      </label>
+                      <input
+                        type="text"
+                        value={localSettings.contactWhatsApp}
+                        onChange={(e) =>
+                          setLocalSettings({ ...localSettings, contactWhatsApp: e.target.value })
+                        }
+                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-mono font-bold focus:ring-2 focus:ring-pink-600 focus:outline-none"
+                      />
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="py-2.5 px-4 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-extrabold text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
+                    className="py-2.5 px-4 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-extrabold text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
                   >
                     <Save className="w-4 h-4" />
                     <span>حفظ إعدادات المتجر</span>
@@ -1581,12 +1770,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 >
                   <h3 className="font-extrabold text-sm text-amber-950 flex items-center gap-2 border-b border-amber-200/80 pb-2">
                     <Lock className="w-4 h-4 text-amber-800" />
-                    <span>تغيير كلمة مرور المدير الخاصة (Security Settings)</span>
+                    <span>تغيير كلمة مرور المدير (Security Settings)</span>
                   </h3>
-
-                  <p className="text-xs text-amber-900">
-                    يمكنك تعيين كلمة مرور جديدة خاصة بك للتحكم في لوحة الإدارة من أي وقت.
-                  </p>
 
                   <div className="flex flex-col sm:flex-row gap-2 max-w-md">
                     <input
@@ -1594,7 +1779,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       value={newPasswordInput}
                       onChange={(e) => setNewPasswordInput(e.target.value)}
                       placeholder="أدخل كلمة مرور جديدة للمدير..."
-                      className="flex-1 px-3 py-2 rounded-xl bg-white border border-amber-300 text-xs font-mono focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                      className="flex-1 px-3 py-2 rounded-xl bg-white border border-amber-300 text-xs font-mono focus:ring-2 focus:ring-pink-600 focus:outline-none"
                       required
                     />
                     <button
@@ -1623,7 +1808,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             <div className="bg-white rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl border border-stone-200 text-right animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between border-b border-stone-200 pb-2">
                 <div className="flex items-center gap-2">
-                  <Truck className="w-5 h-5 text-emerald-700" />
+                  <Truck className="w-5 h-5 text-pink-700" />
                   <h3 className="font-extrabold text-sm text-stone-900">
                     إسناد مندوب للطلب #{editingOrder.id}
                   </h3>
@@ -1646,7 +1831,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     value={courierNameInput}
                     onChange={(e) => setCourierNameInput(e.target.value)}
                     placeholder="مثال: كابتن محمود (مندوب أكتوبر وزايد)"
-                    className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
                   />
                 </div>
 
@@ -1658,7 +1843,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     value={courierPhoneInput}
                     onChange={(e) => setCourierPhoneInput(e.target.value)}
                     placeholder="01012345678"
-                    className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs font-mono focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs font-mono focus:ring-2 focus:ring-pink-600 focus:outline-none"
                   />
                 </div>
 
@@ -1672,14 +1857,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     value={courierEtaInput}
                     onChange={(e) => setCourierEtaInput(e.target.value)}
                     placeholder="مثال: خلال 30 دقيقة / اليوم الساعة 5 مساءً"
-                    className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
                   />
                 </div>
 
                 <div className="pt-2 flex gap-2">
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs cursor-pointer shadow-xs transition-colors"
+                    className="flex-1 py-2.5 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-bold text-xs cursor-pointer shadow-xs transition-colors"
                   >
                     حفظ وإشعار العميل
                   </button>

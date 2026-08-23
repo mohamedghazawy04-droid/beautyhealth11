@@ -140,6 +140,33 @@ export interface StoreSettings {
   contactWhatsApp: string;
 }
 
+export interface SubCategoryItem {
+  id: string;
+  label: string;
+  desc?: string;
+}
+
+export interface CategoryConfig {
+  id: string;
+  title: string;
+  englishTitle?: string;
+  badge?: string;
+  iconName?: string;
+  subcategories: SubCategoryItem[];
+}
+
+export interface PrescriptionRequest {
+  id: string;
+  patientName: string;
+  phone: string;
+  city: 'october' | 'zayed';
+  areaName?: string;
+  notes?: string;
+  image?: string;
+  status: 'new' | 'reviewed' | 'dispatched';
+  createdAt: string;
+}
+
 export interface SmartBusinessReport {
   executiveSummary: string;
   topSellingInsight: string;

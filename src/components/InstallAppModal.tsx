@@ -105,6 +105,23 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({ isOpen, onClos
           </div>
         </div>
 
+        {/* Download Options */}
+        <div className="space-y-3 mb-5">
+          {/* Option 1: Direct APK Download Link */}
+          <a
+            href="https://www.mediafire.com/file/96n9dd1yvi1upyg/app-release.apk/file"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-pink-600 via-rose-600 to-pink-700 hover:from-pink-700 hover:to-rose-800 active:scale-[0.99] text-white font-black text-sm shadow-lg shadow-pink-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer border border-pink-400/40"
+          >
+            <Download className="w-5 h-5 animate-bounce" />
+            <span>تحميل ملف التطبيق المباشر (Android APK) 📲</span>
+          </a>
+          <p className="text-[11px] text-center text-stone-500 font-medium">
+            ملف APK أصلي مجاني جاهز للتثبيت على جميع هواتف أندرويد (سامسونج، شاومي، أوبو، وغيرها).
+          </p>
+        </div>
+
         {/* Installation Instructions */}
         {isInstalled ? (
           <div className="p-4 rounded-2xl bg-pink-100 text-pink-900 text-center space-y-2 mb-4">
@@ -134,17 +151,17 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({ isOpen, onClos
             </ol>
           </div>
         ) : (
-          /* Android / Chrome One-Click Install */
-          <div className="space-y-3 mb-5">
+          /* Android / Chrome One-Click Web PWA Install */
+          <div className="space-y-2.5 mb-5 p-3.5 bg-pink-50/70 rounded-2xl border border-pink-100">
             <button
               onClick={handleInstallClick}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 active:scale-[0.99] text-white font-black text-sm shadow-lg shadow-pink-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-pink-100 text-pink-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-pink-200 shadow-2xs"
             >
-              <Download className="w-5 h-5 animate-bounce" />
-              <span>تثبيت تطبيق m&l على الهاتف فوراً 📲</span>
+              <Smartphone className="w-4 h-4 text-pink-600" />
+              <span>أو تثبيت كـ تطبيق ويب فوري (PWA Web)</span>
             </button>
-            <p className="text-[11px] text-center text-stone-500">
-              سيتم إضافة أيقونة تطبيق m&l إلى شاشتك الرئيسية فوراً دون استهلاك مساحة ذاكرة.
+            <p className="text-[10px] text-center text-stone-500">
+              يضيف أيقونة مباشرة على الشاشة الرئيسية بدون تحميل ملفات.
             </p>
           </div>
         )}

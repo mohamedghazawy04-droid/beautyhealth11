@@ -89,6 +89,19 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               <span className="text-[10px] font-bold mt-0.5">البكجات</span>
             </button>
           </div>
+
+          {/* Quick Android APK Download Button on Mobile */}
+          <div className="pt-1 flex items-center gap-2">
+            <a
+              href="https://www.mediafire.com/file/96n9dd1yvi1upyg/app-release.apk/file"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-1.5 px-2.5 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white font-extrabold text-[11px] flex items-center justify-center gap-1.5 shadow-xs border border-pink-300/40 active:scale-98 transition-all"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>تحميل تطبيق الأندرويد (APK) 📲</span>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -118,13 +131,23 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
               {/* Quick Actions */}
               <div className="flex flex-wrap items-center gap-3 pt-1">
+                <a
+                  href="https://www.mediafire.com/file/96n9dd1yvi1upyg/app-release.apk/file"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 hover:from-pink-400 hover:to-rose-400 text-white font-black text-xs sm:text-sm transition-all shadow-md shadow-pink-500/30 cursor-pointer border border-pink-300/40"
+                >
+                  <Download className="w-4 h-4 text-white animate-bounce" />
+                  <span>تحميل تطبيق الأندرويد (APK) 📲</span>
+                </a>
+
                 {onOpenInstallApp && (
                   <button
                     onClick={onOpenInstallApp}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white font-black text-xs sm:text-sm transition-all shadow-md shadow-pink-500/30 cursor-pointer"
+                    className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 border border-pink-300/30 text-white font-bold text-xs sm:text-sm transition-all cursor-pointer"
                   >
-                    <Smartphone className="w-4 h-4 text-white" />
-                    <span>تثبيت تطبيق m&l على هاتفك 📲</span>
+                    <Smartphone className="w-4 h-4 text-pink-200" />
+                    <span>تثبيت كـ PWA</span>
                   </button>
                 )}
 
@@ -135,7 +158,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-pink-300/30 text-pink-100 font-bold text-xs sm:text-sm transition-all cursor-pointer"
                 >
                   <MessageCircle className="w-4 h-4 text-pink-300" />
-                  <span>محادثة استشارية عبر واتساب</span>
+                  <span>محادثة واتساب</span>
                 </a>
               </div>
             </div>

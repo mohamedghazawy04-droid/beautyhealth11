@@ -18,10 +18,24 @@ import {
   Star,
   Layers,
   SlidersHorizontal,
+  Stethoscope,
+  FileText
 } from 'lucide-react';
-import { Product, DeliveryZone, CartItem, Order, MainCategory, SubCategory, ProductReview, StoreSettings } from './types';
+import {
+  Product,
+  DeliveryZone,
+  CartItem,
+  Order,
+  MainCategory,
+  SubCategory,
+  ProductReview,
+  StoreSettings,
+  CategoryConfig,
+  PrescriptionRequest,
+} from './types';
 import { PRODUCTS_DATA } from './data/products';
 import { OCTOBER_ZAYED_ZONES } from './data/zones';
+import { DEFAULT_CATEGORIES } from './data/categories';
 import { Navbar } from './components/Navbar';
 import { HeroBanner } from './components/HeroBanner';
 import { ProductCard } from './components/ProductCard';
@@ -36,7 +50,9 @@ import { ReviewSubmissionModal } from './components/ReviewSubmissionModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { InstallAppModal } from './components/InstallAppModal';
 import { CategoriesModal } from './components/CategoriesModal';
+import { PrescriptionModal } from './components/PrescriptionModal';
 import { FeaturedDealsCarousel } from './components/FeaturedDealsCarousel';
+import { AmazonCategoryGrid } from './components/AmazonCategoryGrid';
 import { db } from './firebase';
 import {
   collection,
@@ -63,6 +79,36 @@ export default function App() {
       }
     }
     return PRODUCTS_DATA;
+  });
+
+  const [categoriesList, setCategoriesList] = useState<CategoryConfig[]>(() => {
+    const saved = localStorage.getItem('carehub_categories');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return DEFAULT_CATEGORIES;
+  });
+
+  const [prescriptions, setPrescriptions] = useState<PrescriptionRequest[]>(() => {
+    const saved = localStorage.getItem('carehub_prescriptions');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [];
   });
 
   const [selectedZone, setSelectedZone] = useState<DeliveryZone>(() => {
@@ -110,7 +156,6 @@ export default function App() {
         console.error(e);
       }
     }
-    // Seed initial demo orders in October & Zayed
     return [
       {
         id: 'OCT-772150',
@@ -182,7 +227,8 @@ export default function App() {
     }
     return {
       storeNameAr: 'M&l - متجر العناية ومستلزمات الأطفال',
-      announcementText: 'توصيل سريع خلال ٢٤ ساعة في ٦ أكتوبر والشيخ زايد وحدائق أكتوبر 🚚 | شحن مجاني للطلبات فوق 1000 جنيه',
+      announcementText:
+        'توصيل سريع خلال ٢٤ ساعة في ٦ أكتوبر والشيخ زايد وحدائق أكتوبر 🚚 | شحن مجاني للطلبات فوق 1000 جنيه',
       contactPhone: '01093629587',
       contactWhatsApp: '201093629587',
       defaultDeliveryFee: 30,
@@ -190,13 +236,13 @@ export default function App() {
       activeCoupons: [
         { code: 'OCTOBER10', discountPercent: 10, description: 'خصم 10% لجميع سكان 6 أكتوبر وزايد' },
         { code: 'ZAYEDFREE', discountPercent: 100, description: 'شحن مجاني لكافة أحياء الشيخ زايد' },
-        { code: 'MOM2026', discountPercent: 15, description: 'خصم 15% على قسم العناية بالأم والطفل' }
-      ]
+        { code: 'MOM2026', discountPercent: 15, description: 'خصم 15% على قسم العناية بالأم والطفل' },
+      ],
     };
   });
 
   // Filter & Search States
-  const [activeCategory, setActiveCategory] = useState<MainCategory>('all');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'featured' | 'priceLow' | 'priceHigh' | 'rating'>('featured');
@@ -210,6 +256,7 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
+  const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
   const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -225,9 +272,8 @@ export default function App() {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Real-time synchronization with Firestore for permanent cross-device persistence
+  // Real-time synchronization with Firestore
   useEffect(() => {
-    // 1. Listen for Products updates from Firestore
     const unsubProducts = onSnapshot(
       collection(db, 'products'),
       (snapshot) => {
@@ -243,7 +289,6 @@ export default function App() {
           setProducts(prodsList);
           localStorage.setItem('carehub_products', JSON.stringify(prodsList));
         } else {
-          // If Firestore is empty and PRODUCTS_DATA has items, seed them
           if (PRODUCTS_DATA.length > 0) {
             const batch = writeBatch(db);
             PRODUCTS_DATA.forEach((prod) => {
@@ -259,7 +304,6 @@ export default function App() {
       }
     );
 
-    // 2. Listen for Orders from Firestore (real-time cross-device sync)
     const unsubOrders = onSnapshot(
       collection(db, 'orders'),
       (snapshot) => {
@@ -272,7 +316,6 @@ export default function App() {
               id: docSnap.id,
             });
           });
-          // Sort newest first
           ordersList.sort(
             (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
@@ -285,7 +328,6 @@ export default function App() {
       }
     );
 
-    // 3. Listen for Store Settings
     const unsubSettings = onSnapshot(
       collection(db, 'storeSettings'),
       (snapshot) => {
@@ -310,10 +352,18 @@ export default function App() {
     };
   }, []);
 
-  // Local fallback storage
+  // Sync to Local Storage
   useEffect(() => {
     localStorage.setItem('carehub_products', JSON.stringify(products));
   }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem('carehub_categories', JSON.stringify(categoriesList));
+  }, [categoriesList]);
+
+  useEffect(() => {
+    localStorage.setItem('carehub_prescriptions', JSON.stringify(prescriptions));
+  }, [prescriptions]);
 
   useEffect(() => {
     localStorage.setItem('carehub_selected_zone', JSON.stringify(selectedZone));
@@ -453,10 +503,10 @@ export default function App() {
       try {
         await setDoc(doc(db, 'orders', orderId), updatedOrderObj);
       } catch (e) {
-        console.error('Failed to update order in Firestore:', e);
+        console.error('Failed to update order status in Firestore:', e);
       }
     }
-    showToast('تم تحديث حالة الطلب');
+    showToast(`تم تحديث حالة الطلب #${orderId}`);
   };
 
   const handleUpdateOrderDetails = async (orderId: string, updates: Partial<Order>) => {
@@ -475,10 +525,10 @@ export default function App() {
       try {
         await setDoc(doc(db, 'orders', orderId), updatedOrderObj);
       } catch (e) {
-        console.error('Failed to update order details in Firestore:', e);
+        console.error('Failed to update courier in Firestore:', e);
       }
     }
-    showToast('تم حفظ تعديلات الطلب والمندوب');
+    showToast(`تم تحديث بيانات المندوب للطلب #${orderId}`);
   };
 
   const handleDeleteOrder = async (orderId: string) => {
@@ -488,24 +538,18 @@ export default function App() {
     } catch (e) {
       console.error('Failed to delete order from Firestore:', e);
     }
-    showToast('تم حذف الطلب نهائياً من السجل');
+    showToast(`تم حذف الطلب #${orderId}`);
   };
 
-  const handleAddNewProduct = async (newProd: Product) => {
-    setProducts((prev) => {
-      const exists = prev.some((p) => p.id === newProd.id);
-      if (exists) {
-        return prev.map((p) => (p.id === newProd.id ? newProd : p));
-      }
-      return [newProd, ...prev];
-    });
+  // Product Admin Operations
+  const handleAddNewProduct = async (newProduct: Product) => {
+    setProducts((prev) => [newProduct, ...prev]);
     try {
-      await setDoc(doc(db, 'products', newProd.id), newProd);
-      showToast('✓ تمت إضافة ونشر المنتج بنجاح في المتجر سحابياً');
+      await setDoc(doc(db, 'products', newProduct.id), newProduct);
     } catch (e) {
-      console.error('Failed to sync new product to Firestore:', e);
-      showToast('⚠️ تم حفظ المنتج محلياً');
+      console.error('Failed to add product to Firestore:', e);
     }
+    showToast(`✓ تم إضافة المنتج "${newProduct.nameAr}" للمتجر بنجاح`);
   };
 
   const handleUpdateProduct = async (productId: string, updates: Partial<Product>) => {
@@ -513,9 +557,9 @@ export default function App() {
     setProducts((prev) =>
       prev.map((p) => {
         if (p.id === productId) {
-          const merged = { ...p, ...updates };
-          updatedFullProd = merged;
-          return merged;
+          const updated = { ...p, ...updates };
+          updatedFullProd = updated;
+          return updated;
         }
         return p;
       })
@@ -530,7 +574,7 @@ export default function App() {
         console.error('Failed to update product in Firestore:', e);
       }
     }
-    showToast('تم تعديل بيانات وسعر المنتج وحفظه بنجاح');
+    showToast('تم تعديل بيانات المنتج وحفظه بنجاح');
   };
 
   const handleDeleteProduct = async (productId: string) => {
@@ -586,6 +630,34 @@ export default function App() {
     showToast('تم حفظ إعدادات المتجر العامة سحابياً بنجاح');
   };
 
+  // Categories Operations
+  const handleUpdateCategoriesList = (newCategories: CategoryConfig[]) => {
+    setCategoriesList(newCategories);
+    localStorage.setItem('carehub_categories', JSON.stringify(newCategories));
+    showToast('✓ تم تحديث الأقسام والتصنيفات بنجاح');
+  };
+
+  // Prescription Operations
+  const handleAddNewPrescription = (req: PrescriptionRequest) => {
+    setPrescriptions((prev) => [req, ...prev]);
+    showToast('✓ تم استلام الروشتة وإرسالها للصيدلي بنجاح');
+  };
+
+  const handleUpdatePrescriptionStatus = (
+    id: string,
+    status: PrescriptionRequest['status']
+  ) => {
+    setPrescriptions((prev) =>
+      prev.map((rx) => (rx.id === id ? { ...rx, status } : rx))
+    );
+    showToast('✓ تم تحديث حالة الروشتة بنجاح');
+  };
+
+  const handleDeletePrescription = (id: string) => {
+    setPrescriptions((prev) => prev.filter((rx) => rx.id !== id));
+    showToast('✓ تم حذف الطلب');
+  };
+
   // Open Review Submission Modal
   const handleOpenReviewModal = (
     product: Product,
@@ -600,50 +672,46 @@ export default function App() {
     setIsReviewModalOpen(true);
   };
 
-  // Submit Product Review and recalculate average rating
   const handleAddProductReview = async (
     productId: string,
-    newRevData: Omit<ProductReview, 'id' | 'date'>
+    newRevData: Omit<ProductReview, 'id' | 'createdAt'>
   ) => {
-    const newReview: ProductReview = {
+    const newRev: ProductReview = {
       ...newRevData,
-      id: 'rev-' + Date.now(),
-      date: 'اليوم (الآن)',
+      id: 'rev_' + Date.now(),
+      createdAt: new Date().toISOString(),
     };
 
-    let updatedProductRef: Product | null = null;
+    let updatedProd: Product | null = null;
 
     setProducts((prev) =>
-      prev.map((prod) => {
-        if (prod.id === productId) {
-          const currentReviews = prod.reviews || [];
-          const updatedReviews = [newReview, ...currentReviews];
-          const newReviewsCount = (prod.reviewsCount || 0) + 1;
-          // Calculate new weighted average rating accurately
-          const totalScore =
-            ((prod.rating || 5) * (prod.reviewsCount || 0)) + newRevData.rating;
-          const newRating = Number((totalScore / newReviewsCount).toFixed(1));
+      prev.map((p) => {
+        if (p.id === productId) {
+          const currentReviews = p.reviewsList || [];
+          const updatedReviews = [newRev, ...currentReviews];
+          const newTotalRatings = updatedReviews.reduce((sum, r) => sum + r.rating, 0);
+          const newAvgRating = Number((newTotalRatings / updatedReviews.length).toFixed(1));
 
-          const updatedProd: Product = {
-            ...prod,
-            rating: newRating,
-            reviewsCount: newReviewsCount,
-            reviews: updatedReviews,
+          const up = {
+            ...p,
+            reviewsList: updatedReviews,
+            reviewsCount: updatedReviews.length,
+            rating: newAvgRating,
           };
-          updatedProductRef = updatedProd;
-          return updatedProd;
+          updatedProd = up;
+          return up;
         }
-        return prod;
+        return p;
       })
     );
 
-    if (detailProduct && detailProduct.id === productId && updatedProductRef) {
-      setDetailProduct(updatedProductRef);
+    if (detailProduct && detailProduct.id === productId && updatedProd) {
+      setDetailProduct(updatedProd);
     }
 
-    if (updatedProductRef) {
+    if (updatedProd) {
       try {
-        await setDoc(doc(db, 'products', productId), updatedProductRef);
+        await setDoc(doc(db, 'products', productId), updatedProd);
       } catch (e) {
         console.error('Failed to sync review to Firestore:', e);
       }
@@ -658,39 +726,47 @@ export default function App() {
     return ['all', ...Array.from(set)];
   }, [products]);
 
+  // Active Category Object
+  const currentCategoryConfig = useMemo(() => {
+    return categoriesList.find((c) => c.id === activeCategory);
+  }, [categoriesList, activeCategory]);
+
   // Filtered Products
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      // Category filter
-      if (activeCategory !== 'all' && p.category !== activeCategory) {
-        return false;
-      }
-      // Subcategory filter
-      if (activeSubCategory !== 'all' && p.subCategory !== activeSubCategory) {
-        return false;
-      }
-      // Brand filter
-      if (selectedBrand !== 'all' && p.brand !== selectedBrand) {
-        return false;
-      }
-      // Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesName = p.nameAr.toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
-        const matchesBrand = p.brand.toLowerCase().includes(q);
-        const matchesTags = p.tags.some((t) => t.toLowerCase().includes(q));
-        const matchesDesc = p.description.toLowerCase().includes(q);
-        if (!matchesName && !matchesBrand && !matchesTags && !matchesDesc) {
+    return products
+      .filter((p) => {
+        // Category filter
+        if (activeCategory !== 'all' && p.category !== activeCategory) {
           return false;
         }
-      }
-      return true;
-    }).sort((a, b) => {
-      if (sortBy === 'priceLow') return a.price - b.price;
-      if (sortBy === 'priceHigh') return b.price - a.price;
-      if (sortBy === 'rating') return b.rating - a.rating;
-      return 0; // featured
-    });
+        // Subcategory filter
+        if (activeSubCategory !== 'all' && p.subCategory !== activeSubCategory) {
+          return false;
+        }
+        // Brand filter
+        if (selectedBrand !== 'all' && p.brand !== selectedBrand) {
+          return false;
+        }
+        // Search query
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase();
+          const matchesName =
+            p.nameAr?.toLowerCase().includes(q) || p.name?.toLowerCase().includes(q);
+          const matchesBrand = p.brand?.toLowerCase().includes(q);
+          const matchesTags = p.tags?.some((t) => t.toLowerCase().includes(q));
+          const matchesDesc = p.description?.toLowerCase().includes(q);
+          if (!matchesName && !matchesBrand && !matchesTags && !matchesDesc) {
+            return false;
+          }
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'priceLow') return a.price - b.price;
+        if (sortBy === 'priceHigh') return b.price - a.price;
+        if (sortBy === 'rating') return b.rating - a.rating;
+        return 0; // featured
+      });
   }, [products, activeCategory, activeSubCategory, selectedBrand, searchQuery, sortBy]);
 
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -717,6 +793,8 @@ export default function App() {
         onOpenAdmin={() => setIsAdminOpen(true)}
         onOpenInstallApp={() => setIsInstallAppOpen(true)}
         onOpenCategories={() => setIsCategoriesModalOpen(true)}
+        onOpenPrescription={() => setIsPrescriptionModalOpen(true)}
+        categoriesList={categoriesList}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         activeCategory={activeCategory}
@@ -745,15 +823,15 @@ export default function App() {
           }}
         />
 
-        {/* Hyperlocal Zone Delivery Bar for October & Zayed */}
-        <div className="mx-3 sm:mx-6 lg:mx-8 mb-4 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-pink-100 shadow-2xs flex flex-wrap items-center justify-between gap-2 sm:gap-3 text-right">
+        {/* Hyperlocal Zone Delivery Bar for October & Zayed + Pharmacist Guarantee */}
+        <div className="mx-3 sm:mx-6 lg:mx-8 mb-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-pink-100 shadow-2xs flex flex-wrap items-center justify-between gap-2 sm:gap-3 text-right">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center shrink-0 font-bold">
               <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
               <div className="text-[10px] sm:text-xs text-stone-500 font-medium">
-                توصيل مخزن ٦ أكتوبر والشيخ زايد
+                توصيل مخزن ٦ أكتوبر والشيخ زايد • إشراف صيدلي معتمد
               </div>
               <div className="text-xs sm:text-sm font-extrabold text-stone-900">
                 الحي: {selectedZone.name}
@@ -762,18 +840,28 @@ export default function App() {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 text-[11px] sm:text-xs font-semibold text-stone-700">
+            <button
+              onClick={() => setIsPrescriptionModalOpen(true)}
+              className="bg-emerald-50 text-emerald-800 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-emerald-200 flex items-center gap-1 hover:bg-emerald-100 font-extrabold cursor-pointer"
+            >
+              <Stethoscope className="w-3.5 h-3.5 text-emerald-600" />
+              <span>طلب روشتة خاصة 📄</span>
+            </button>
+
             <span className="bg-pink-50 text-pink-800 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-pink-200 flex items-center gap-1">
               <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-pink-600" />
               خلال {selectedZone.estimatedDeliveryTime}
             </span>
+
             <span className="bg-amber-50 text-amber-900 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-amber-200">
               التوصيل: {selectedZone.deliveryFee}ج
             </span>
+
             <button
               onClick={() => setIsZoneModalOpen(true)}
               className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold transition-colors cursor-pointer text-[10px] sm:text-xs"
             >
-              تغيير
+              تغيير المنطقة
             </button>
           </div>
         </div>
@@ -788,6 +876,17 @@ export default function App() {
           cart={cart}
         />
 
+        {/* Amazon-Style Department Grid (تسوقي حسب الأقسام) */}
+        <AmazonCategoryGrid
+          products={products}
+          categoriesList={categoriesList}
+          onSelectCategory={(cat, sub) => {
+            setActiveCategory(cat);
+            setActiveSubCategory(sub || 'all');
+          }}
+          onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
+        />
+
         {/* Products Catalog Section */}
         <div id="products-section" className="mx-3 sm:mx-6 lg:mx-8 space-y-4 sm:space-y-6 pb-16 scroll-mt-20">
           {/* Section Header with Category Title & Filters */}
@@ -796,16 +895,12 @@ export default function App() {
               <h2 className="text-base sm:text-xl md:text-2xl font-black text-stone-900">
                 {activeCategory === 'all'
                   ? 'جميع منتجات العناية والطفل 🛍️'
-                  : activeCategory === 'baby'
-                  ? 'منتجات العناية بالطفل والرضيع 👶'
-                  : activeCategory === 'hair'
-                  ? 'منتجات العناية بالشعر والتساقط 💇‍♀️'
-                  : activeCategory === 'body'
-                  ? 'منتجات العناية بالجسم والبشرة ✨'
-                  : 'بكجات التوفير والهدايا الفاخرة 🎁'}
+                  : currentCategoryConfig
+                  ? `${currentCategoryConfig.title} ✨`
+                  : 'منتجات القسم المحدد'}
               </h2>
               <p className="text-[11px] sm:text-xs text-stone-500 mt-0.5">
-                عرض {filteredProducts.length} منتج أصلي متوفر للشحن الفوري
+                عرض {filteredProducts.length} منتج أصلي متوفر للشحن الفوري بإشراف صيدلي
               </p>
             </div>
 
@@ -820,11 +915,13 @@ export default function App() {
                   className="bg-transparent font-extrabold text-stone-900 focus:outline-none cursor-pointer"
                 >
                   <option value="all">الكل</option>
-                  {brandsList.filter((b) => b !== 'all').map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
+                  {brandsList
+                    .filter((b) => b !== 'all')
+                    .map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
                 </select>
               </div>
 
@@ -845,240 +942,99 @@ export default function App() {
             </div>
           </div>
 
-          {/* Subcategory Filter Pills */}
+          {/* Dynamic Subcategory Filter Pills */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
-            <button
-              onClick={() => setActiveSubCategory('all')}
-              className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
-                activeSubCategory === 'all'
-                  ? 'bg-stone-900 text-white shadow-2xs'
-                  : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-              }`}
-            >
-              الكل
-            </button>
-
-            {activeCategory === 'baby' && (
-              <>
+            {currentCategoryConfig?.subcategories && currentCategoryConfig.subcategories.length > 0 ? (
+              currentCategoryConfig.subcategories.map((sub) => (
                 <button
-                  onClick={() => setActiveSubCategory('baby_wash_shampoo')}
+                  key={sub.id}
+                  onClick={() => setActiveSubCategory(sub.id)}
                   className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
-                    activeSubCategory === 'baby_wash_shampoo'
-                      ? 'bg-stone-900 text-white'
-                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                    activeSubCategory === sub.id
+                      ? 'bg-stone-900 text-white shadow-2xs font-extrabold'
+                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100 font-bold'
                   }`}
                 >
-                  شامبو وغسول أطفال (لا دموع)
+                  {sub.label}
                 </button>
-                <button
-                  onClick={() => setActiveSubCategory('diaper_cream')}
-                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
-                    activeSubCategory === 'diaper_cream'
-                      ? 'bg-stone-900 text-white'
-                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                  }`}
-                >
-                  علاج ومنع تسلخات الحفاض
-                </button>
-              </>
-            )}
-
-            {activeCategory === 'hair' && (
-              <>
-                <button
-                  onClick={() => setActiveSubCategory('hair_oil_serum')}
-                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
-                    activeSubCategory === 'hair_oil_serum'
-                      ? 'bg-stone-900 text-white'
-                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                  }`}
-                >
-                  زيوت إنبات وسيرومات ترطيب
-                </button>
-                <button
-                  onClick={() => setActiveSubCategory('curly_care')}
-                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
-                    activeSubCategory === 'curly_care'
-                      ? 'bg-stone-900 text-white'
-                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                  }`}
-                >
-                  عناية الشعر الكيرلي والحرارة
-                </button>
-              </>
-            )}
-
-            {activeCategory === 'body' && (
-              <>
-                <button
-                  onClick={() => setActiveSubCategory('body_lotion')}
-                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
-                    activeSubCategory === 'body_lotion'
-                      ? 'bg-stone-900 text-white'
-                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                  }`}
-                >
-                  ترطيب الجسم وحاجز البشرة
-                </button>
-                <button
-                  onClick={() => setActiveSubCategory('sunscreen')}
-                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
-                    activeSubCategory === 'sunscreen'
-                      ? 'bg-stone-900 text-white'
-                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                  }`}
-                >
-                  واقي شمس (صن بلوك)
-                </button>
-                <button
-                  onClick={() => setActiveSubCategory('body_mist')}
-                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
-                    activeSubCategory === 'body_mist'
-                      ? 'bg-stone-900 text-white'
-                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                  }`}
-                >
-                  بودي ميست وعطور الجسم
-                </button>
-                <button
-                  onClick={() => setActiveSubCategory('face_serum_cream')}
-                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
-                    activeSubCategory === 'face_serum_cream'
-                      ? 'bg-stone-900 text-white'
-                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                  }`}
-                >
-                  سيرومات النضارة والمسام
-                </button>
-              </>
+              ))
+            ) : (
+              <button
+                onClick={() => setActiveSubCategory('all')}
+                className="px-3 py-1.5 rounded-xl whitespace-nowrap bg-stone-900 text-white font-extrabold"
+              >
+                الكل
+              </button>
             )}
           </div>
 
-          {/* Products Grid */}
-          {products.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-3xl border border-stone-200 p-8 space-y-4 shadow-sm">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto shadow-sm">
-                <ShoppingBag className="w-8 h-8" />
+          {/* Product Cards Grid */}
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-16 px-4 bg-white rounded-3xl border border-pink-100 space-y-3">
+              <div className="w-16 h-16 rounded-2xl bg-pink-50 text-pink-600 flex items-center justify-center mx-auto">
+                <Layers className="w-8 h-8" />
               </div>
-              <div className="space-y-1 max-w-md mx-auto">
-                <h3 className="font-black text-stone-900 text-lg">المتجر فارغ وبانتظار إضافة المنتجات</h3>
-                <p className="text-xs text-stone-500 leading-relaxed">
-                  يمكنك الآن إضافة وتصوير المنتجات مباشرة من هاتفك المحمول وتحديد الأسعار عبر بوابة الإدارة لتظهر للعملاء فوراً!
-                </p>
-              </div>
-              <button
-                onClick={() => setIsAdminOpen(true)}
-                className="px-6 py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs sm:text-sm font-extrabold transition-colors cursor-pointer shadow-md inline-flex items-center gap-2"
-              >
-                <span>🔐 فتح لوحة الإدارة وإضافة أول منتج</span>
-              </button>
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-3xl border border-stone-200 p-8 space-y-3">
-              <Search className="w-12 h-12 text-stone-400 mx-auto" />
-              <h3 className="font-bold text-stone-800 text-base">لم نجد منتجات مطابقة لبحثك</h3>
+              <h3 className="text-base font-extrabold text-stone-900">
+                لا توجد منتجات مطابقة في هذا القسم حالياً
+              </h3>
               <p className="text-xs text-stone-500 max-w-sm mx-auto">
-                جربي البحث باسم آخر أو إعادة ضبط التصفيات!
+                يمكنك إعادة ضبط الفلاتر أو تصفح باقي الأقسام. كما يمكنك إرسال طلب خاص للصيدلي مباشرة.
               </p>
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setActiveCategory('all');
-                  setActiveSubCategory('all');
-                  setSelectedBrand('all');
-                }}
-                className="px-4 py-2 bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
-              >
-                عرض كل المنتجات
-              </button>
+              <div className="pt-2 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => {
+                    setActiveCategory('all');
+                    setActiveSubCategory('all');
+                    setSelectedBrand('all');
+                    setSearchQuery('');
+                  }}
+                  className="px-4 py-2 bg-pink-600 text-white font-bold text-xs rounded-xl shadow-xs"
+                >
+                  عرض جميع المنتجات
+                </button>
+                <button
+                  onClick={() => setIsPrescriptionModalOpen(true)}
+                  className="px-4 py-2 bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold text-xs rounded-xl"
+                >
+                  طلب خاص أو روشتة 📄
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-5">
-              {filteredProducts.map((product) => {
-                const cartItem = cart.find((i) => i.product.id === product.id);
-                const isWishlisted = wishlist.some((w) => w.id === product.id);
-
-                return (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onAddToCart={(p) => handleAddToCart(p, 1)}
-                    onQuickView={(p) => setDetailProduct(p)}
-                    isWishlisted={isWishlisted}
-                    onToggleWishlist={handleToggleWishlist}
-                    cartQuantity={cartItem?.quantity || 0}
-                  />
-                );
-              })}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+              {filteredProducts.map((prod) => (
+                <ProductCard
+                  key={prod.id}
+                  product={prod}
+                  onAddToCart={handleAddToCart}
+                  onQuickView={(p) => setDetailProduct(p)}
+                  isWishlisted={wishlist.some((w) => w.id === prod.id)}
+                  onToggleWishlist={handleToggleWishlist}
+                  cartQuantity={cart.find((c) => c.product.id === prod.id)?.quantity || 0}
+                />
+              ))}
             </div>
           )}
         </div>
-
-        {/* Hyperlocal 6th of October, Sheikh Zayed & October Gardens Features Highlights */}
-        <section className="bg-gradient-to-br from-pink-950 via-rose-950 to-stone-950 text-white rounded-2xl mx-3 sm:mx-6 lg:mx-8 mb-6 p-4 sm:p-6 border border-pink-900/50 shadow-md">
-          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-right">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-pink-900/80 border border-pink-700/50 flex items-center justify-center text-pink-300 shrink-0">
-                <Truck className="w-5 h-5" />
-              </div>
-              <div className="space-y-0.5">
-                <h3 className="font-extrabold text-xs sm:text-sm text-white">
-                  توصيل خلال ٢٤ ساعة فقط
-                </h3>
-                <p className="text-[11px] text-pink-100/80 leading-relaxed">
-                  متاح في ٦ أكتوبر، الشيخ زايد، وحدائق أكتوبر مع شحن مجاني للطلبات فوق 1000 جنيه.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-pink-900/80 border border-pink-700/50 flex items-center justify-center text-amber-300 shrink-0">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div className="space-y-0.5">
-                <h3 className="font-extrabold text-xs sm:text-sm text-white">
-                  منتجات أصلية ١٠٠٪ ومضمونة
-                </h3>
-                <p className="text-[11px] text-pink-100/80 leading-relaxed">
-                  أصلية وموثوقة من الوكلاء المعتمدين مع إمكانية المعاينة عند الاستلام قبل الدفع.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-pink-900/80 border border-pink-700/50 flex items-center justify-center text-pink-300 shrink-0">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div className="space-y-0.5">
-                <h3 className="font-extrabold text-xs sm:text-sm text-white">
-                  طلب فوري وخدمة عملاء نشطة
-                </h3>
-                <p className="text-[11px] text-pink-100/80 leading-relaxed">
-                  لطلب الأوردر والاستفسار عبر الموبايل والواتساب: <span className="font-mono font-bold text-pink-300 dir-ltr inline-block">01093629587</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
 
-      {/* Slim & Compact Footer */}
-      <footer className="bg-stone-950 text-stone-400 text-xs py-4 border-t border-stone-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
-          <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
-            <span className="font-['Plus_Jakarta_Sans',sans-serif] text-sm text-pink-400 font-black lowercase">m&l</span>
-            <span className="text-stone-300 font-bold text-xs">متجر العناية والجمال والطفل</span>
-            <span className="text-stone-600 hidden sm:inline">•</span>
-            <span className="text-[11px] text-stone-400">توصيل خلال ٢٤ ساعة (أكتوبر • زايد • حدائق أكتوبر)</span>
+      {/* Footer */}
+      <footer className="mt-12 bg-stone-900 text-stone-300 text-xs py-8 border-t border-stone-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-['Playfair_Display',Georgia,serif] text-lg font-black text-pink-500">
+              m<span className="text-white">&</span>l
+            </span>
+            <span>• متجر العناية ومستلزمات الطفل - إشراف صيدلي معتمد 🥼</span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] font-bold text-stone-300">
-            <a
-              href="tel:01093629587"
-              className="text-pink-400 hover:text-pink-300 font-mono transition-colors"
+          <div className="flex items-center gap-4 text-[11px] font-bold">
+            <button
+              onClick={() => setIsPrescriptionModalOpen(true)}
+              className="text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
             >
-              📞 01093629587
-            </a>
+              📄 طلب روشتة صيدلية
+            </button>
             <a
               href="https://wa.me/201093629587?text=مرحباً، أود الاستفسار وطلب أوردر من متجر m%26l"
               target="_blank"
@@ -1168,6 +1124,15 @@ export default function App() {
           handleOpenReviewModal(prod, orderId, name, area)
         }
         onMarkDelivered={(orderId) => handleUpdateOrderStatus(orderId, 'delivered')}
+        onReorder={(reorderItems) => {
+          reorderItems.forEach((item) => {
+            handleAddToCart(item.product, item.quantity);
+          });
+          setIsOrderTrackingOpen(false);
+          setIsCartOpen(true);
+          showToast('🛒 تمت إضافة المنتجات لسلة التسوق');
+        }}
+        onCancelOrder={(orderId) => handleUpdateOrderStatus(orderId, 'cancelled')}
       />
 
       <WishlistModal
@@ -1193,6 +1158,11 @@ export default function App() {
         onSeedDefaultProducts={handleSeedDefaultProducts}
         storeSettings={storeSettings}
         onUpdateStoreSettings={handleUpdateStoreSettings}
+        categoriesList={categoriesList}
+        onUpdateCategoriesList={handleUpdateCategoriesList}
+        prescriptions={prescriptions}
+        onUpdatePrescriptionStatus={handleUpdatePrescriptionStatus}
+        onDeletePrescription={handleDeletePrescription}
       />
 
       <ReviewSubmissionModal
@@ -1228,6 +1198,7 @@ export default function App() {
       <CategoriesModal
         isOpen={isCategoriesModalOpen}
         onClose={() => setIsCategoriesModalOpen(false)}
+        categoriesList={categoriesList}
         activeCategory={activeCategory}
         activeSubCategory={activeSubCategory}
         onSelectCategory={(cat, sub) => {
@@ -1235,6 +1206,13 @@ export default function App() {
           setActiveSubCategory(sub || 'all');
         }}
         products={products}
+      />
+
+      {/* Prescription / Medical Accessory Modal with Direct WhatsApp */}
+      <PrescriptionModal
+        isOpen={isPrescriptionModalOpen}
+        onClose={() => setIsPrescriptionModalOpen(false)}
+        onSubmitPrescription={handleAddNewPrescription}
       />
 
       {/* Progressive Web App Install Modal */}
