@@ -9,6 +9,28 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
+// Enable CORS for PWA Analyzers and manifest validators
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// Explicitly serve public assets with correct MIME types and cache headers
+const publicDir = path.join(process.cwd(), 'public');
+app.use(express.static(publicDir, {
+  setHeaders: (res, filePath) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (filePath.endsWith('manifest.json')) {
+      res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+    }
+  }
+}));
+
 app.use(express.json({ limit: '10mb' }));
 
 // Lazy initialize Gemini client
