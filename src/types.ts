@@ -66,6 +66,8 @@ export interface DeliveryZone {
   estimatedDeliveryTime?: string;
   freeDeliveryThreshold?: number;
   popularLandmarks?: string[];
+  distanceKm?: number;
+  distanceTier?: 'قريبة (1-5 كم)' | 'متوسطة (5-12 كم)' | 'أبعد (12-25 كم)' | string;
 }
 
 export interface CartItem {

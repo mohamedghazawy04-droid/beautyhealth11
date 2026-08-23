@@ -725,6 +725,8 @@ export default function App() {
           setActiveSubCategory('all');
         }}
         storeSettings={storeSettings}
+        products={products}
+        onSelectProduct={(p) => setDetailProduct(p)}
       />
 
       {/* Main Content Area */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ShoppingBag,
   Sparkles,
@@ -6,16 +6,17 @@ import {
   MessageCircle,
   Truck,
   Heart,
-  Store,
-  ShieldCheck,
   Clock,
   Lock,
   Smartphone,
   Grid,
   Download,
   X,
+  TrendingUp,
+  Flame,
+  ArrowUpLeft,
 } from 'lucide-react';
-import { StoreSettings } from '../types';
+import { StoreSettings, Product } from '../types';
 
 interface NavbarProps {
   cartCount: number;
@@ -33,7 +34,20 @@ interface NavbarProps {
   storeSettings?: StoreSettings;
   selectedZone?: any;
   onOpenZoneModal?: () => void;
+  products?: Product[];
+  onSelectProduct?: (product: Product) => void;
 }
+
+const POPULAR_SEARCHES = [
+  'سيروم الهيالورونيك اسيد',
+  'واقي شمس لاروش بوزيه',
+  'شامبو أطفال خالي من السلفات',
+  'مرطب بيبانثين للبشرة',
+  'زيت الأرجان وروتين الشعر',
+  'عروض وبكجات التوفير',
+  'كريم الحفاض للأطفال',
+  'لوشن مرطب للجسم',
+];
 
 export const Navbar: React.FC<NavbarProps> = ({
   cartCount,
@@ -49,8 +63,74 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectCategory,
   activeCategory,
   storeSettings,
+  products = [],
+  onSelectProduct,
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [isDesktopFocused, setIsDesktopFocused] = useState(false);
+  const [isMobileFocused, setIsMobileFocused] = useState(false);
+
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        desktopSearchRef.current &&
+        !desktopSearchRef.current.contains(e.target as Node)
+      ) {
+        setIsDesktopFocused(false);
+      }
+      if (
+        mobileSearchRef.current &&
+        !mobileSearchRef.current.contains(e.target as Node)
+      ) {
+        setIsMobileFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filter matched products
+  const cleanQuery = searchQuery.trim().toLowerCase();
+  const matchedProducts = cleanQuery
+    ? products
+        .filter(
+          (p) =>
+            p.nameAr?.toLowerCase().includes(cleanQuery) ||
+            p.name?.toLowerCase().includes(cleanQuery) ||
+            p.brand?.toLowerCase().includes(cleanQuery) ||
+            p.description?.toLowerCase().includes(cleanQuery) ||
+            p.tags?.some((t) => t.toLowerCase().includes(cleanQuery))
+        )
+        .slice(0, 5)
+    : [];
+
+  const filteredPopularSearches = cleanQuery
+    ? POPULAR_SEARCHES.filter((term) => term.toLowerCase().includes(cleanQuery))
+    : POPULAR_SEARCHES;
+
+  const handleSelectSuggestion = (term: string) => {
+    onSearchChange(term);
+    setIsDesktopFocused(false);
+    setIsMobileFocused(false);
+    const section = document.getElementById('products-section');
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleProductClick = (prod: Product) => {
+    setIsDesktopFocused(false);
+    setIsMobileFocused(false);
+    if (onSelectProduct) {
+      onSelectProduct(prod);
+    } else {
+      onSearchChange(prod.nameAr || prod.name);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-pink-100 shadow-xs text-right transition-all">
@@ -86,7 +166,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <a
-              href={`https://wa.me/${(storeSettings?.contactWhatsApp || '201012345678').replace(/\D/g, '')}?text=مرحباً، أود الاستفسار عن منتجات المتجر`}
+              href={`https://wa.me/${(storeSettings?.contactWhatsApp || '201093629587').replace(/\D/g, '')}?text=مرحباً، أود الاستفسار عن منتجات المتجر`}
               target="_blank"
               rel="noreferrer"
               className="hidden sm:flex items-center gap-1 text-pink-300 hover:text-pink-100 font-bold transition-colors"
@@ -136,23 +216,97 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Search Input on Desktop */}
-          <div className="hidden md:flex flex-1 max-w-md relative mx-2">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="ابحثي عن منتج، ماركة، أو علاج للبشرة والشعر..."
-              className="w-full pl-4 pr-9 py-1.5 rounded-xl bg-pink-50/50 border border-pink-200/80 text-xs focus:outline-none focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all text-stone-800 placeholder:text-stone-400"
-            />
-            <Search className="w-3.5 h-3.5 text-pink-400 absolute right-3 top-1/2 -translate-y-1/2" />
-            {searchQuery && (
-              <button
-                onClick={() => onSearchChange('')}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs bg-pink-100 hover:bg-pink-200 rounded-full w-4 h-4 flex items-center justify-center cursor-pointer"
-              >
-                ✕
-              </button>
+          {/* Search Input on Desktop with Live Autocomplete Suggestions */}
+          <div ref={desktopSearchRef} className="hidden md:flex flex-1 max-w-md relative mx-2">
+            <div className="w-full relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onFocus={() => setIsDesktopFocused(true)}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="ابحثي عن منتج، ماركة، أو علاج للبشرة والشعر..."
+                className="w-full pl-8 pr-9 py-2 rounded-2xl bg-pink-50/60 border border-pink-200 text-xs focus:outline-none focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all text-stone-800 placeholder:text-stone-400 shadow-2xs"
+              />
+              <Search className="w-4 h-4 text-pink-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              {searchQuery && (
+                <button
+                  onClick={() => onSearchChange('')}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs bg-pink-100 hover:bg-pink-200 rounded-full w-4 h-4 flex items-center justify-center cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Desktop Search Suggestions Dropdown */}
+            {isDesktopFocused && (
+              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-2xl shadow-xl border border-pink-100 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150 max-h-[420px] overflow-y-auto">
+                {/* Popular Keywords Section */}
+                {filteredPopularSearches.length > 0 && (
+                  <div className="px-3 pb-2 border-b border-pink-50">
+                    <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-stone-600 mb-2">
+                      <Flame className="w-3.5 h-3.5 text-rose-500" />
+                      <span>{cleanQuery ? 'اقتراحات كلمات البحث:' : 'الأكثر بحثاً وشهرة في المتجر:'}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {filteredPopularSearches.slice(0, 6).map((term, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onMouseDown={() => handleSelectSuggestion(term)}
+                          className="px-2.5 py-1 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-900 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer border border-pink-100/80"
+                        >
+                          <TrendingUp className="w-2.5 h-2.5 text-pink-600" />
+                          <span>{term}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Matching Products Section */}
+                {cleanQuery && (
+                  <div className="pt-2 px-3">
+                    <div className="text-[11px] font-extrabold text-stone-600 mb-2 flex items-center justify-between">
+                      <span>منتجات متطابقة ({matchedProducts.length}):</span>
+                      <span className="text-[10px] text-pink-600">اضغطي لمعاينة المنتج</span>
+                    </div>
+
+                    {matchedProducts.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {matchedProducts.map((prod) => (
+                          <div
+                            key={prod.id}
+                            onMouseDown={() => handleProductClick(prod)}
+                            className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-pink-50/70 transition-colors cursor-pointer border border-transparent hover:border-pink-200/60"
+                          >
+                            <img
+                              src={prod.image}
+                              alt={prod.nameAr || prod.name}
+                              className="w-10 h-10 rounded-lg object-cover border border-pink-100 shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-xs font-bold text-stone-900 truncate">
+                                {prod.nameAr || prod.name}
+                              </h4>
+                              <div className="flex items-center gap-2 text-[10px] text-stone-500">
+                                <span>{prod.brand}</span>
+                                <span>•</span>
+                                <span className="font-extrabold text-pink-700">{prod.price} جنيه</span>
+                              </div>
+                            </div>
+                            <ArrowUpLeft className="w-3.5 h-3.5 text-pink-400" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-xs text-stone-400">
+                        لم يتم العثور على منتجات مطابقة لـ "{cleanQuery}". جرّبي كلمة أخرى أو تصفحي الأقسام.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -160,7 +314,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Toggle Search for Mobile */}
             <button
-              onClick={() => setShowMobileSearch(!showMobileSearch)}
+              onClick={() => {
+                setShowMobileSearch(!showMobileSearch);
+                setIsMobileFocused(!showMobileSearch);
+              }}
               className={`md:hidden p-2 rounded-xl transition-colors cursor-pointer border ${
                 showMobileSearch || searchQuery
                   ? 'bg-pink-50 text-pink-700 border-pink-300 ring-2 ring-pink-200'
@@ -215,16 +372,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Mobile Expandable Search Bar */}
+        {/* Mobile Expandable Search Bar with Suggestions */}
         {(showMobileSearch || searchQuery) && (
-          <div className="mt-2 md:hidden animate-in fade-in slide-in-from-top-1 duration-150">
+          <div ref={mobileSearchRef} className="mt-2 md:hidden relative animate-in fade-in slide-in-from-top-1 duration-150">
             <div className="relative">
               <input
                 type="text"
                 value={searchQuery}
+                onFocus={() => setIsMobileFocused(true)}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="ابحثي عن منتج، ماركة، أو علاج..."
-                className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-pink-50/70 border border-pink-200 text-xs focus:outline-none focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all text-stone-800"
+                className="w-full pl-8 pr-8 py-2 rounded-xl bg-pink-50/80 border border-pink-200 text-xs focus:outline-none focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all text-stone-800"
                 autoFocus
               />
               <Search className="w-3.5 h-3.5 text-pink-400 absolute right-2.5 top-1/2 -translate-y-1/2" />
@@ -237,6 +395,56 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               )}
             </div>
+
+            {/* Mobile Dropdown Suggestions */}
+            {isMobileFocused && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl shadow-xl border border-pink-200 py-2.5 px-3 z-50 max-h-[320px] overflow-y-auto">
+                {filteredPopularSearches.length > 0 && (
+                  <div className="pb-2 border-b border-pink-50">
+                    <div className="flex items-center gap-1 text-[10px] font-extrabold text-stone-600 mb-1.5">
+                      <Flame className="w-3 h-3 text-rose-500" />
+                      <span>{cleanQuery ? 'اقتراحات كلمات البحث:' : 'الأكثر بحثاً:'}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filteredPopularSearches.slice(0, 5).map((term, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onMouseDown={() => handleSelectSuggestion(term)}
+                          className="px-2 py-0.5 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-900 text-[10px] font-bold flex items-center gap-1"
+                        >
+                          <span>{term}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {cleanQuery && matchedProducts.length > 0 && (
+                  <div className="pt-2 space-y-1">
+                    {matchedProducts.map((prod) => (
+                      <div
+                        key={prod.id}
+                        onMouseDown={() => handleProductClick(prod)}
+                        className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-pink-50 text-right cursor-pointer"
+                      >
+                        <img
+                          src={prod.image}
+                          alt={prod.nameAr || prod.name}
+                          className="w-8 h-8 rounded object-cover shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-bold text-stone-900 truncate">
+                            {prod.nameAr || prod.name}
+                          </p>
+                          <p className="text-[10px] text-pink-700 font-extrabold">{prod.price} جنيه</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -284,3 +492,4 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
+

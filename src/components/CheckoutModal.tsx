@@ -5,8 +5,12 @@ import {
   User,
   MessageCircle,
   AlertCircle,
+  Truck,
+  Sparkles,
+  Navigation,
 } from 'lucide-react';
-import { CartItem, Order, PaymentMethod, StoreSettings } from '../types';
+import { CartItem, Order, PaymentMethod, StoreSettings, DeliveryZone } from '../types';
+import { OCTOBER_ZAYED_ZONES } from '../data/zones';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -17,6 +21,7 @@ interface CheckoutModalProps {
   onOrderCompleted: (order: Order) => void;
   onClearCart: () => void;
   storeSettings?: StoreSettings;
+  selectedZone?: DeliveryZone;
 }
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
@@ -28,11 +33,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onOrderCompleted,
   onClearCart,
   storeSettings,
+  selectedZone: initialZone,
 }) => {
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [alternatePhone, setAlternatePhone] = useState('');
-  const [city] = useState('القاهرة والجيزة (٦ أكتوبر والشيخ زايد)');
+  const [selectedZoneId, setSelectedZoneId] = useState<string>(
+    initialZone?.id || OCTOBER_ZAYED_ZONES[0]?.id || 'oct-1'
+  );
   const [detailedAddress, setDetailedAddress] = useState('');
   const [buildingNumber, setBuildingNumber] = useState('');
   const [floorNumber, setFloorNumber] = useState('');
@@ -45,11 +53,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   if (!isOpen) return null;
 
+  const currentZone =
+    OCTOBER_ZAYED_ZONES.find((z) => z.id === selectedZoneId) || OCTOBER_ZAYED_ZONES[0];
+
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const freeThreshold = storeSettings?.freeShippingThreshold || 1000;
   const isFreeDelivery = subtotal >= freeThreshold || appliedCoupon === 'ZAYEDFREE';
-  const deliveryFee = isFreeDelivery ? 0 : 30;
+  const rawDeliveryFee = currentZone.deliveryFee ?? 30;
+  const deliveryFee = isFreeDelivery ? 0 : rawDeliveryFee;
   const grandTotal = Math.max(0, subtotal - discountAmount + deliveryFee);
+  const remainingForFreeDelivery = Math.max(0, freeThreshold - subtotal);
 
   const defaultWhatsApp = storeSettings?.contactWhatsApp || '201093629587';
   const cleanWhatsAppNumber = defaultWhatsApp.replace(/\D/g, '');
@@ -64,7 +77,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       return;
     }
     if (!detailedAddress.trim()) {
-      setErrorMsg('يرجى كتابة عنوان التوصيل بالتفصيل (المنطقة / الشارع / المبنى)');
+      setErrorMsg('يرجى كتابة عنوان التوصيل بالتفصيل (اسم الشارع / المنطقة)');
       return;
     }
 
@@ -77,9 +90,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       customerName,
       phone,
       alternatePhone,
-      city,
-      zoneId: 'default',
-      zoneName: city,
+      city: currentZone.city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر',
+      zoneId: currentZone.id,
+      zoneName: currentZone.name,
       detailedAddress,
       buildingNumber,
       floorNumber,
@@ -95,7 +108,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       notes,
       status: 'new',
       createdAt: new Date().toISOString(),
-      estimatedDelivery: 'خلال ٢٤ ساعة من الطلب',
+      estimatedDelivery: currentZone.estimatedDeliveryTime || 'خلال ٢٤ ساعة من الطلب',
     };
 
     setTimeout(() => {
@@ -114,11 +127,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           : 'بطاقة بنكية';
 
       const itemsText = items
-        .map((i, idx) => `${idx + 1}. ${i.product.nameAr || i.product.name} (الكمية: ${i.quantity}) - ${i.product.price * i.quantity} ج`)
+        .map(
+          (i, idx) =>
+            `  ${idx + 1}. *${i.product.nameAr || i.product.name}*\n` +
+            `     الكمية: ${i.quantity} × ${i.product.price} ج = *${i.product.price * i.quantity} جنيه*`
+        )
         .join('\n');
 
       const fullAddressParts = [
-        detailedAddress,
+        `المنطقة: ${currentZone.name}`,
+        `الشارع/العنوان: ${detailedAddress}`,
         buildingNumber ? `عمارة/فيلا: ${buildingNumber}` : '',
         floorNumber ? `الدور: ${floorNumber}` : '',
         apartmentNumber ? `شقة: ${apartmentNumber}` : '',
@@ -127,23 +145,40 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         .filter(Boolean)
         .join(' - ');
 
+      const distanceInfoText = currentZone.distanceKm
+        ? ` (مسافة تقريبية: ${currentZone.distanceKm} كم | ${currentZone.distanceTier || 'توصيل محلي'})`
+        : '';
+
+      const deliveryFeeFormatted =
+        deliveryFee === 0
+          ? 'مجاني بالكامل 🎉 (طلبك 1000 جنيه أو أكثر)'
+          : `${deliveryFee} جنيه (${currentZone.distanceTier || 'حسب المسافة'})`;
+
       const messageContent =
-        `*🛍️ طلب جديد من متجر m&l*\n` +
-        `━━━━━━━━━━━━━━━━━\n` +
-        `*رقم الطلب:* #${orderId}\n` +
-        `*👤 اسم العميل:* ${customerName}\n` +
-        `*📱 رقم الموبايل:* ${phone}${alternatePhone ? ` (رقم آخر: ${alternatePhone})` : ''}\n` +
-        `*📍 عنوان التوصيل:* ${fullAddressParts}\n` +
-        `━━━━━━━━━━━━━━━━━\n` +
-        `*📦 المنتجات المطلوبة:*\n${itemsText}\n` +
-        `━━━━━━━━━━━━━━━━━\n` +
-        `*المجموع:* ${subtotal} جنيه\n` +
-        (discountAmount > 0 ? `*الخصم:* -${discountAmount} جنيه\n` : '') +
-        `*الشحن:* ${deliveryFee === 0 ? 'مجاني 🎉' : `${deliveryFee} جنيه`}\n` +
-        `*💵 الإجمالي النهائي:* ${grandTotal} جنيه\n` +
-        `*💳 طريقة الدفع:* ${paymentName}\n` +
-        (notes ? `*📝 ملاحظات:* ${notes}\n` : '') +
-        `━━━━━━━━━━━━━━━━━`;
+        `🌸 *طلب جديد من متجر m&l للعناية والجمال* 🌸\n` +
+        `═══════════════════════\n` +
+        `🧾 *رقم الأوردر:* #${orderId}\n` +
+        `═══════════════════════\n` +
+        `👤 *بيانات العميل:*\n` +
+        `• *الاسم:* ${customerName}\n` +
+        `• *رقم الهاتف:* ${phone}\n` +
+        (alternatePhone ? `• *رقم بديل:* ${alternatePhone}\n` : '') +
+        `• *منطقة التوصيل:* ${currentZone.name}${distanceInfoText}\n` +
+        `• *العنوان بالتفصيل:* ${fullAddressParts}\n` +
+        `═══════════════════════\n` +
+        `📦 *المنتجات المطلوبة:*\n` +
+        `${itemsText}\n` +
+        `═══════════════════════\n` +
+        `💰 *الحساب والتكلفة:*\n` +
+        `• *قيمة المنتجات:* ${subtotal} جنيه\n` +
+        (discountAmount > 0 ? `• *الخصم:* -${discountAmount} جنيه (${appliedCoupon})\n` : '') +
+        `• *رسوم التوصيل (حسب المسافة):* ${deliveryFeeFormatted}\n` +
+        `👉 *الإجمالي النهائي المطلوب دفعه:* *${grandTotal} جنيه*\n` +
+        `• *طريقة الدفع:* ${paymentName}\n` +
+        (notes ? `• *ملاحظات العميل:* ${notes}\n` : '') +
+        `═══════════════════════\n` +
+        `🚚 *موعد التسليم المتوقع:* خلال ٢٤ ساعة من وقت الطلب\n` +
+        `شكراً لاختيارك متجر m&l 💕`;
 
       const waUrl = `https://wa.me/${cleanWhatsAppNumber}?text=${encodeURIComponent(messageContent)}`;
       window.open(waUrl, '_blank');
@@ -162,7 +197,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <div>
               <h2 className="font-extrabold text-base sm:text-lg">إتمام الطلب وإرساله للواتساب</h2>
               <p className="text-xs text-pink-100">
-                أدخلي بيانات التوصيل وسيتم تحويل الأوردر برسالة واتساب مباشرة
+                حساب التوصيل حسب المسافة (نظام طلبات) | شحن مجاني فوق 1000 جنيه
               </p>
             </div>
           </div>
@@ -183,6 +218,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
           )}
 
+          {/* Free Shipping Alert or Progress Banner */}
+          {isFreeDelivery ? (
+            <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-emerald-900 text-xs font-bold shadow-xs">
+              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>🎉 مبروك! حصلت على توصيل مجاني بالكامل لأن طلبك 1000 جنيه أو أكثر!</span>
+            </div>
+          ) : (
+            <div className="p-3 rounded-2xl bg-pink-50 border border-pink-200 flex items-center justify-between gap-2 text-pink-900 text-xs">
+              <div className="flex items-center gap-2">
+                <Truck className="w-4 h-4 text-pink-600 shrink-0" />
+                <span>
+                  أضيفي منتجات بقيمة <strong className="font-bold text-pink-700">{remainingForFreeDelivery} جنيه</strong> للحصول على <strong>توصيل مجاني 100%</strong>!
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Section 1: Customer Info */}
           <div className="space-y-3">
             <h3 className="font-extrabold text-xs text-stone-900 flex items-center gap-1.5 border-b border-pink-100 pb-1.5">
@@ -199,7 +251,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   type="text"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="اكتبي اسمك هنا"
+                  placeholder="اكتبي اسمك بالكامل هنا"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none"
                 />
               </div>
@@ -226,28 +278,63 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 type="tel"
                 value={alternatePhone}
                 onChange={(e) => setAlternatePhone(e.target.value)}
-                placeholder="رقم آخر إن وجد"
+                placeholder="رقم آخر إن وجد لتأكيد الاستلام"
                 className="w-full px-3.5 py-2 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none font-mono text-left"
               />
             </div>
           </div>
 
-          {/* Section 2: Address */}
+          {/* Section 2: Address & Zone / Distance Selection */}
           <div className="space-y-3">
             <h3 className="font-extrabold text-xs text-stone-900 flex items-center gap-1.5 border-b border-pink-100 pb-1.5">
               <MapPin className="w-4 h-4 text-pink-600" />
-              عنوان التوصيل بالتفصيل:
+              منطقة التوصيل وحساب المسافة:
             </h3>
+
+            {/* Zone Selector (Talabat Style Distance Tiers) */}
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                اختاري منطقتك في (٦ أكتوبر / الشيخ زايد / حدائق أكتوبر) <span className="text-rose-500">*</span>
+              </label>
+              <select
+                value={selectedZoneId}
+                onChange={(e) => setSelectedZoneId(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-pink-50/50 border border-pink-200 text-xs font-bold text-stone-800 focus:ring-2 focus:ring-pink-500 focus:outline-none cursor-pointer"
+              >
+                {OCTOBER_ZAYED_ZONES.map((zone) => (
+                  <option key={zone.id} value={zone.id}>
+                    {zone.name} — {zone.distanceTier} ({zone.distanceKm} كم) — {isFreeDelivery ? 'الشحن مجاني 🎉' : `${zone.deliveryFee} ج`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Distance and Delivery Info Badge */}
+            <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 text-stone-700">
+                <Navigation className="w-4 h-4 text-pink-600" />
+                <span>
+                  المسافة المقدرة: <strong>{currentZone.distanceKm} كم</strong> ({currentZone.distanceTier})
+                </span>
+              </div>
+              <div className="font-black text-pink-700">
+                {isFreeDelivery ? (
+                  <span className="text-emerald-600 font-extrabold">الشحن مجاناً 🎉</span>
+                ) : (
+                  <span>رسوم التوصيل: {deliveryFee} جنيه</span>
+                )}
+              </div>
+            </div>
 
             <div>
               <label className="block text-xs font-bold text-stone-700 mb-1">
-                المدينة / المنطقة / اسم الشارع <span className="text-rose-500">*</span>
+                اسم الشارع والحي بالتفصيل <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 value={detailedAddress}
                 onChange={(e) => setDetailedAddress(e.target.value)}
-                placeholder="مثال: الحي، اسم الشارع، أو اسم الكمبوند في أكتوبر أو زايد..."
+                placeholder="مثال: شارع الجامعة، المجاورة الثانية، بجوار كمبوند..."
                 className="w-full px-3.5 py-2.5 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none"
               />
             </div>
@@ -295,7 +382,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 type="text"
                 value={landmark}
                 onChange={(e) => setLandmark(e.target.value)}
-                placeholder="بجوار مدرسة، مول، مسجد..."
+                placeholder="بجوار مدرسة، مول، مسجد، صيدلية..."
                 className="w-full px-3.5 py-2 rounded-xl bg-pink-50/30 border border-pink-200 text-xs focus:ring-2 focus:ring-pink-500 focus:outline-none"
               />
             </div>
@@ -349,20 +436,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         {/* Footer */}
         <div className="p-4 bg-pink-50/50 border-t border-pink-100 flex items-center justify-between gap-4">
           <div>
-            <div className="text-xs text-stone-500">الإجمالي النهائي:</div>
-            <div className="text-lg font-black text-pink-700">{grandTotal} جنيه</div>
+            <div className="text-[11px] text-stone-500">
+              قيمة الطلب: {subtotal} ج + التوصيل: {deliveryFee === 0 ? 'مجاني' : `${deliveryFee}ج`}
+            </div>
+            <div className="text-base sm:text-lg font-black text-pink-700">
+              الإجمالي: {grandTotal} جنيه
+            </div>
           </div>
 
           <button
             type="button"
             onClick={handleSubmitOrder}
-            className="px-6 py-3 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-pink-500/25 flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
+            className="px-5 sm:px-6 py-3 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-pink-500/25 flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
           >
             <MessageCircle className="w-4 h-4" />
-            <span>تأكيد الطلب وإرسال عبر واتساب 📲</span>
+            <span>تأكيد الطلب عبر واتساب 📲</span>
           </button>
         </div>
       </div>
     </div>
   );
 };
+

@@ -1413,19 +1413,85 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     <span>إعدادات المتجر والشحن والعروض</span>
                   </h3>
 
-                  <div className="space-y-3 text-xs">
-                    <div>
-                      <label className="font-bold text-stone-700 block mb-1">
-                        شريط الإعلانات الترويجي أعلى الموقع:
-                      </label>
-                      <input
-                        type="text"
+                  <div className="space-y-4 text-xs">
+                    {/* Welcome & Seasonal Announcement Banner Editor */}
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-200 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="font-extrabold text-stone-900 flex items-center gap-1.5 text-xs">
+                          <Sparkles className="w-4 h-4 text-pink-600" />
+                          <span>نص 'رسالة الترحيب' وشريط الإعلانات الترويجي (للمواسم والأعياد):</span>
+                        </label>
+                        <span className="text-[10px] text-pink-700 bg-pink-100 px-2 py-0.5 rounded-full font-bold">
+                          يظهر فوراً في أعلى صفحة المتجر
+                        </span>
+                      </div>
+
+                      <textarea
+                        rows={2}
                         value={localSettings.announcementText}
                         onChange={(e) =>
                           setLocalSettings({ ...localSettings, announcementText: e.target.value })
                         }
-                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-semibold focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                        placeholder="اكتب رسالة الترحيب أو العرض الموسمي هنا..."
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-pink-300 text-xs font-semibold focus:ring-2 focus:ring-pink-500 focus:outline-none resize-none text-stone-900"
                       />
+
+                      {/* Seasonal & Holiday Templates */}
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-bold text-stone-600 block">
+                          ⚡ نماذج جاهزة للمواسم والأعياد (اضغط للتطبيق السريع):
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            {
+                              label: '🌙 شهر رمضان المبارك',
+                              text: '🌙 رمضان كريم! عروض وخصومات مميزة على جميع منتجات العناية بالبشرة والشعر | توصيل مجاني للطلبات فوق 1000 جنيه',
+                            },
+                            {
+                              label: '🎉 عيد الفطر المبارك',
+                              text: '🎉 عروض وتخفيضات عيد الفطر السعيد! تألقي بأفضل إطلالة مع بكجات العناية الفاخرة | شحن سريع لكافة أحياء ٦ أكتوبر والشيخ زايد',
+                            },
+                            {
+                              label: '🐑 عيد الأضحى المبارك',
+                              text: '🐑 كل عام وأنتم بخير بمناسبة عيد الأضحى المبارك! هدايا وخصومات حصرية على طلباتك فوق 1000 جنيه',
+                            },
+                            {
+                              label: '☀️ عروض وتخفيضات الصيف',
+                              text: '☀️ عروض الصيف المنعشة! حماية فائقة للبشرة مع واقيات الشمس ومرطبات الجسم | توصيل سريع خلال ٢٤ ساعة',
+                            },
+                            {
+                              label: '👶 أسبوع الأم والطفل',
+                              text: '👶 أسبوع العناية بالأم والطفل! خصومات خاصة وبكجات توفيرية لكافة مستلزمات حديثي الولادة والأطفال',
+                            },
+                            {
+                              label: '🚚 توصيل ٢٤ ساعة القياسي',
+                              text: '🚚 توصيل سريع خلال ٢٤ ساعة في ٦ أكتوبر، الشيخ زايد، وحدائق أكتوبر | شحن مجاني للطلبات فوق 1000 جنيه',
+                            },
+                          ].map((tpl, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() =>
+                                setLocalSettings({
+                                  ...localSettings,
+                                  announcementText: tpl.text,
+                                })
+                              }
+                              className="px-2.5 py-1 rounded-xl bg-white hover:bg-pink-100 text-stone-800 hover:text-pink-900 text-[10px] font-bold border border-pink-200 transition-colors cursor-pointer shadow-2xs"
+                            >
+                              {tpl.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Live Preview of Top Banner */}
+                      <div className="mt-2 p-2.5 rounded-xl bg-gradient-to-r from-[#3b0d21] via-[#5c1334] to-[#3b0d21] text-pink-100 text-[11px] font-medium flex items-center gap-2 border border-pink-900/60 shadow-inner">
+                        <Truck className="w-3.5 h-3.5 text-pink-300 shrink-0" />
+                        <span className="truncate">
+                          <strong>معاينة مباشرة:</strong> {localSettings.announcementText || 'نص الرسالة...'}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
