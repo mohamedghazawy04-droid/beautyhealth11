@@ -45,14 +45,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         />
 
         {/* Badges Overlay */}
-        <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 flex flex-col gap-0.5 sm:gap-1 items-end z-10">
+        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex flex-col gap-1 items-end z-10">
           {discountPercent > 0 && (
-            <span className="bg-gradient-to-r from-pink-600 to-rose-500 text-white text-[9px] sm:text-[11px] font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-full shadow-2xs">
+            <span
+              id={`discount-badge-${product.id}`}
+              className="bg-gradient-to-r from-rose-600 to-pink-600 text-white text-[10px] sm:text-[11px] font-black px-1.5 sm:px-2 py-0.5 rounded-md shadow-sm border border-white/20 tracking-tight whitespace-nowrap"
+            >
               خصم {discountPercent}%
             </span>
           )}
           {product.badges && product.badges.length > 0 && (
-            <span className="bg-rose-900/90 text-pink-100 text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-full shadow-2xs">
+            <span className="bg-rose-950/85 text-pink-100 text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md shadow-2xs">
               {product.badges[0]}
             </span>
           )}

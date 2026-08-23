@@ -135,6 +135,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   // Inline Product Quick Edit
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState<number>(0);
+  const [editOriginalPrice, setEditOriginalPrice] = useState<number | ''>('');
   const [editStock, setEditStock] = useState<number>(0);
   const [editCategory, setEditCategory] = useState<MainCategory>('hair');
   const [editSubCategory, setEditSubCategory] = useState<SubCategory>('all');
@@ -146,6 +147,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     categoriesList[0]?.id || 'hair'
   );
   const [newProductSubCategory, setNewProductSubCategory] = useState<string>('all');
+  const [newProductOriginalPrice, setNewProductOriginalPrice] = useState<number | ''>('');
   const [newProductPrice, setNewProductPrice] = useState<number>(250);
   const [newProductStock, setNewProductStock] = useState<number>(50);
   const [newProductVolume, setNewProductVolume] = useState('200 مل');
@@ -316,6 +318,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     const uniqueId =
       'prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
 
+    const parsedOriginalPrice =
+      newProductOriginalPrice !== '' && Number(newProductOriginalPrice) > Number(newProductPrice)
+        ? Number(newProductOriginalPrice)
+        : undefined;
+
     const newProd: Product = {
       id: uniqueId,
       name: newProductNameAr,
@@ -324,6 +331,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       category: newProductCategory as MainCategory,
       subCategory: (newProductSubCategory || 'all') as SubCategory,
       price: Number(newProductPrice),
+      originalPrice: parsedOriginalPrice,
       rating: 5.0,
       reviewsCount: 1,
       inStock: newProductStock > 0,
@@ -338,7 +346,9 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       ingredients: ['مكونات طبية مصرح بها'],
       howToUse: 'يستخدم حسب إرشادات الصيدلي أو العبوة.',
       tags: [newProductBrand, newProductCategory],
-      badges: ['جديد في المخزن', 'توصيل فوري', 'إشراف صيدلي'],
+      badges: parsedOriginalPrice
+        ? ['عرض خاص', 'توصيل فوري', 'إشراف صيدلي']
+        : ['جديد في المخزن', 'توصيل فوري', 'إشراف صيدلي'],
       isOctoberZayedFastDelivery: true,
     };
 
@@ -348,6 +358,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     // Reset Form completely
     setNewProductNameAr('');
     setNewProductBrand('');
+    setNewProductOriginalPrice('');
     setNewProductPrice(250);
     setNewProductStock(50);
     setNewProductVolume('200 مل');
@@ -1401,33 +1412,60 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
                               {/* Price and Stock */}
                               {isEditing ? (
-                                <div className="flex items-center gap-2 pt-1">
+                                <div className="grid grid-cols-3 gap-2 pt-1 bg-stone-50 p-2 rounded-xl border border-stone-200">
                                   <div className="space-y-0.5">
-                                    <label className="text-[10px] text-stone-500 block">السعر:</label>
+                                    <label className="text-[10px] font-bold text-stone-600 block">قبل الخصم:</label>
+                                    <input
+                                      type="number"
+                                      placeholder="الأصلي"
+                                      value={editOriginalPrice}
+                                      onChange={(e) =>
+                                        setEditOriginalPrice(
+                                          e.target.value === '' ? '' : Number(e.target.value)
+                                        )
+                                      }
+                                      className="w-full px-2 py-1 bg-white border border-stone-300 rounded text-xs font-mono font-bold"
+                                    />
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <label className="text-[10px] font-bold text-pink-700 block">بعد الخصم *:</label>
                                     <input
                                       type="number"
                                       value={editPrice}
                                       onChange={(e) => setEditPrice(Number(e.target.value))}
-                                      className="w-20 px-2 py-1 bg-stone-50 border border-stone-300 rounded text-xs font-mono font-bold"
+                                      className="w-full px-2 py-1 bg-white border border-stone-300 rounded text-xs font-mono font-bold text-pink-700"
                                     />
                                   </div>
                                   <div className="space-y-0.5">
-                                    <label className="text-[10px] text-stone-500 block">المخزون:</label>
+                                    <label className="text-[10px] font-bold text-stone-600 block">المخزون:</label>
                                     <input
                                       type="number"
                                       value={editStock}
                                       onChange={(e) => setEditStock(Number(e.target.value))}
-                                      className="w-16 px-2 py-1 bg-stone-50 border border-stone-300 rounded text-xs font-mono font-bold"
+                                      className="w-full px-2 py-1 bg-white border border-stone-300 rounded text-xs font-mono font-bold"
                                     />
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-3 pt-0.5">
-                                  <span className="font-black text-xs text-emerald-800 font-mono">
-                                    {prod.price} جنيه
-                                  </span>
+                                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                                  <div className="flex items-baseline gap-1">
+                                    <span className="text-[10px] text-stone-500 font-bold">السعر:</span>
+                                    <span className="font-black text-xs text-pink-700 font-mono">
+                                      {prod.price} ج
+                                    </span>
+                                    {prod.originalPrice && prod.originalPrice > prod.price && (
+                                      <span className="text-[10px] text-stone-400 line-through font-mono">
+                                        {prod.originalPrice} ج
+                                      </span>
+                                    )}
+                                  </div>
+                                  {prod.originalPrice && prod.originalPrice > prod.price && (
+                                    <span className="bg-gradient-to-r from-rose-600 to-pink-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded shadow-2xs">
+                                      خصم {Math.round(((prod.originalPrice - prod.price) / prod.originalPrice) * 100)}%
+                                    </span>
+                                  )}
                                   <span
-                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                    className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
                                       prod.inStock && (prod.stockCount ?? 0) > 0
                                         ? 'bg-emerald-100 text-emerald-900'
                                         : 'bg-rose-100 text-rose-900'
@@ -1435,7 +1473,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                   >
                                     {prod.inStock && (prod.stockCount ?? 0) > 0
                                       ? `متوفر (${prod.stockCount})`
-                                      : 'نفد من المخزن'}
+                                      : 'نفد'}
                                   </span>
                                 </div>
                               )}
@@ -1450,8 +1488,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                   type="button"
                                   onClick={() => {
                                     if (onUpdateProduct) {
+                                      const parsedOriginal =
+                                        editOriginalPrice !== '' &&
+                                        Number(editOriginalPrice) > Number(editPrice)
+                                          ? Number(editOriginalPrice)
+                                          : undefined;
                                       onUpdateProduct(prod.id, {
                                         price: editPrice,
+                                        originalPrice: parsedOriginal,
                                         stockCount: editStock,
                                         inStock: editStock > 0,
                                       });
@@ -1500,6 +1544,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                     onClick={() => {
                                       setEditingProductId(prod.id);
                                       setEditPrice(prod.price);
+                                      setEditOriginalPrice(prod.originalPrice || '');
                                       setEditStock(prod.stockCount ?? 50);
                                     }}
                                     className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors cursor-pointer"
@@ -1535,185 +1580,262 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             )}
 
             {/* TAB 4: ADD NEW PRODUCT */}
-            {activeTab === 'newProduct' && (
-              <form
-                onSubmit={handleCreateProduct}
-                className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4"
-              >
-                <div className="flex items-center justify-between border-b border-stone-200 pb-2">
-                  <h3 className="font-extrabold text-sm text-stone-900">
-                    إضافة صنف جديد للمتجر:
-                  </h3>
-                  <span className="text-[11px] text-stone-500">
-                    سيتم إتاحته فوراً للشراء في المتجر وتحت إشراف صيدلي
-                  </span>
-                </div>
+            {activeTab === 'newProduct' && (() => {
+              const calculatedNewDiscount =
+                newProductOriginalPrice !== '' &&
+                Number(newProductOriginalPrice) > Number(newProductPrice)
+                  ? Math.round(
+                      ((Number(newProductOriginalPrice) - Number(newProductPrice)) /
+                        Number(newProductOriginalPrice)) *
+                        100
+                    )
+                  : 0;
+              const calculatedSavings =
+                newProductOriginalPrice !== '' &&
+                Number(newProductOriginalPrice) > Number(newProductPrice)
+                  ? Math.round(Number(newProductOriginalPrice) - Number(newProductPrice))
+                  : 0;
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      اسم المنتج بالعربية *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newProductNameAr}
-                      onChange={(e) => setNewProductNameAr(e.target.value)}
-                      placeholder="مثال: كريم مرطب للبشرة الحساسة"
-                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
-                    />
+              return (
+                <form
+                  onSubmit={handleCreateProduct}
+                  className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4"
+                >
+                  <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+                    <h3 className="font-extrabold text-sm text-stone-900">
+                      إضافة صنف جديد للمتجر:
+                    </h3>
+                    <span className="text-[11px] text-stone-500">
+                      تحديد السعر قبل وبعد الخصم مع شارة نسبة الخصم الفورية 🏷️
+                    </span>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      الماركة (Brand) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newProductBrand}
-                      onChange={(e) => setNewProductBrand(e.target.value)}
-                      placeholder="مثال: Penduline أو Bioderma..."
-                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      القسم الرئيسي التابع له *
-                    </label>
-                    <select
-                      value={newProductCategory}
-                      onChange={(e) => setNewProductCategory(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs font-bold"
-                    >
-                      {categoriesList.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      السعر (جنيه) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={newProductPrice}
-                      onChange={(e) => setNewProductPrice(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      الكمية المتوفرة بالمخزن *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={newProductStock}
-                      onChange={(e) => setNewProductStock(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      الحجم أو العبوة
-                    </label>
-                    <input
-                      type="text"
-                      value={newProductVolume}
-                      onChange={(e) => setNewProductVolume(e.target.value)}
-                      placeholder="مثال: 250 مل أو 100 جم"
-                      className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Image Upload section */}
-                  <div className="sm:col-span-2 space-y-2">
-                    <label className="block text-xs font-bold text-stone-700">
-                      صورة المنتج (تحميل من الموبايل أو رابط) *
-                    </label>
-
-                    <div className="flex flex-col sm:flex-row gap-3 items-center">
-                      <label className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 border-2 border-dashed border-pink-300 text-pink-700 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shrink-0">
-                        <Camera className="w-4 h-4 text-pink-600" />
-                        <span>📸 التقاط أو اختيار صورة من الموبايل</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              try {
-                                const compressedUrl = await compressProductImage(file);
-                                setNewProductImage(compressedUrl);
-                              } catch (err) {
-                                console.error('Image compression failed:', err);
-                              }
-                            }
-                          }}
-                        />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        اسم المنتج بالعربية *
                       </label>
-
-                      <div className="w-full flex-1">
-                        <input
-                          type="text"
-                          value={newProductImage}
-                          onChange={(e) => setNewProductImage(e.target.value)}
-                          placeholder="أو الصق رابط صورة مباشرة..."
-                          className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none text-left font-mono"
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={newProductNameAr}
+                        onChange={(e) => setNewProductNameAr(e.target.value)}
+                        placeholder="مثال: كريم مرطب للبشرة الحساسة"
+                        className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
+                      />
                     </div>
 
-                    {newProductImage && (
-                      <div className="flex items-center gap-3 p-2.5 bg-pink-50/60 rounded-xl border border-pink-200">
-                        <img
-                          src={newProductImage}
-                          alt="معاينة الصورة"
-                          className="w-12 h-12 object-cover rounded-lg border border-stone-200"
-                        />
-                        <span className="text-xs text-pink-900 font-semibold">
-                          معاينة صورة الصنف المحددة
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        الماركة (Brand) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newProductBrand}
+                        onChange={(e) => setNewProductBrand(e.target.value)}
+                        placeholder="مثال: Penduline أو Bioderma..."
+                        className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        القسم الرئيسي التابع له *
+                      </label>
+                      <select
+                        value={newProductCategory}
+                        onChange={(e) => setNewProductCategory(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs font-bold"
+                      >
+                        {categoriesList.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        الحجم أو العبوة
+                      </label>
+                      <input
+                        type="text"
+                        value={newProductVolume}
+                        onChange={(e) => setNewProductVolume(e.target.value)}
+                        placeholder="مثال: 250 مل أو 100 جم"
+                        className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Pricing Section: Price Before and After Discount */}
+                    <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-extrabold text-stone-700">
+                          السعر قبل الخصم (السعر الأصلي)
+                        </label>
+                        <span className="text-[10px] text-stone-500 bg-white px-2 py-0.5 rounded border border-stone-200 font-bold">
+                          اختياري
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="مثال: 350 (اتركيه فارغاً إذا لم يوجد خصم)"
+                        value={newProductOriginalPrice}
+                        onChange={(e) =>
+                          setNewProductOriginalPrice(
+                            e.target.value === '' ? '' : Number(e.target.value)
+                          )
+                        }
+                        className="w-full px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none font-mono font-bold"
+                      />
+                    </div>
+
+                    <div className="p-3 bg-pink-50/80 rounded-2xl border-2 border-pink-300 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-extrabold text-pink-950">
+                          السعر بعد الخصم / سعر البيع الفعلي (جنيه) *
+                        </label>
+                        <span className="text-[10px] text-pink-700 bg-pink-100 px-2 py-0.5 rounded font-extrabold">
+                          سعر البيع
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        value={newProductPrice}
+                        onChange={(e) => setNewProductPrice(Number(e.target.value))}
+                        className="w-full px-3 py-2 rounded-xl bg-white border border-pink-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none font-mono font-black text-pink-700 text-sm"
+                      />
+                    </div>
+
+                    {/* Live Discount Calculation Banner */}
+                    {calculatedNewDiscount > 0 && (
+                      <div className="sm:col-span-2 p-3 rounded-xl bg-gradient-to-r from-rose-50 via-pink-50 to-rose-50 border border-rose-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-gradient-to-r from-rose-600 to-pink-600 text-white text-[11px] font-black px-2.5 py-0.5 rounded-md shadow-2xs">
+                            خصم {calculatedNewDiscount}%
+                          </span>
+                          <span className="font-extrabold text-rose-950">
+                            قيمة التوفير للعميل: {calculatedSavings} ج.م ✨
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-stone-500 font-medium">
+                          ستظهر شارة الخصم تلقائياً بحجم صغير وواضح على صورة المنتج
                         </span>
                       </div>
                     )}
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        الكمية المتوفرة بالمخزن *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        value={newProductStock}
+                        onChange={(e) => setNewProductStock(Number(e.target.value))}
+                        className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none font-mono"
+                      />
+                    </div>
+
+                    {/* Image Upload section */}
+                    <div className="sm:col-span-2 space-y-2">
+                      <label className="block text-xs font-bold text-stone-700">
+                        صورة المنتج (تحميل من الموبايل أو رابط) *
+                      </label>
+
+                      <div className="flex flex-col sm:flex-row gap-3 items-center">
+                        <label className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 border-2 border-dashed border-pink-300 text-pink-700 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shrink-0">
+                          <Camera className="w-4 h-4 text-pink-600" />
+                          <span>📸 التقاط أو اختيار صورة من الموبايل</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  const compressedUrl = await compressProductImage(file);
+                                  setNewProductImage(compressedUrl);
+                                } catch (err) {
+                                  console.error('Image compression failed:', err);
+                                }
+                              }
+                            }}
+                          />
+                        </label>
+
+                        <div className="w-full flex-1">
+                          <input
+                            type="text"
+                            value={newProductImage}
+                            onChange={(e) => setNewProductImage(e.target.value)}
+                            placeholder="أو الصق رابط صورة مباشرة..."
+                            className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none text-left font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      {newProductImage && (
+                        <div className="flex items-center gap-3 p-2.5 bg-pink-50/60 rounded-xl border border-pink-200">
+                          <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-stone-200 shrink-0">
+                            <img
+                              src={newProductImage}
+                              alt="معاينة الصورة"
+                              className="w-full h-full object-cover"
+                            />
+                            {calculatedNewDiscount > 0 && (
+                              <span className="absolute top-1 right-1 bg-gradient-to-r from-rose-600 to-pink-600 text-white text-[9px] font-black px-1 py-0.2 rounded shadow-2xs">
+                                خصم {calculatedNewDiscount}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-0.5">
+                            <span className="text-xs text-pink-900 font-extrabold block">
+                              معاينة صورة الصنف المحددة
+                            </span>
+                            <span className="text-[10px] text-stone-500 block">
+                              {calculatedNewDiscount > 0
+                                ? `تظهر عليها شارة "خصم ${calculatedNewDiscount}%" بالركن العلوي`
+                                : 'بدون شارة خصم'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        وصف الصنف وطريقة الاستخدام
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={newProductDesc}
+                        onChange={(e) => setNewProductDesc(e.target.value)}
+                        placeholder="اكتبي فوائد الصنف والمكونات وطريقة الاستخدام..."
+                        className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
+                      />
+                    </div>
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      وصف الصنف وطريقة الاستخدام
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={newProductDesc}
-                      onChange={(e) => setNewProductDesc(e.target.value)}
-                      placeholder="اكتبي فوائد الصنف والمكونات وطريقة الاستخدام..."
-                      className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
-                    />
+                  <div className="pt-2 flex gap-2">
+                    <button
+                      type="submit"
+                      className="py-3 px-6 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>إضافة ونشر المنتج للمتجر فوراً</span>
+                    </button>
                   </div>
-                </div>
-
-                <div className="pt-2 flex gap-2">
-                  <button
-                    type="submit"
-                    className="py-3 px-6 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>إضافة ونشر المنتج للمتجر فوراً</span>
-                  </button>
-                </div>
-              </form>
-            )}
+                </form>
+              );
+            })()}
 
             {/* TAB 5: SETTINGS */}
             {activeTab === 'settings' && (

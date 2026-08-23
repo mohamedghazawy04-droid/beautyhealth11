@@ -29,6 +29,7 @@ export interface ProductReview {
   comment: string;
   images?: string[];
   image?: string;
+  createdAt?: string;
 }
 
 export interface Product {
