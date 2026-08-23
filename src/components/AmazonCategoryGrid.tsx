@@ -73,26 +73,26 @@ export const AmazonCategoryGrid: React.FC<AmazonCategoryGridProps> = ({
   return (
     <section className="mx-3 sm:mx-6 lg:mx-8 mb-8 text-right">
       {/* Amazon-Style Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-2 border-b border-stone-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-2 border-b-2 border-stone-200">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-6 rounded-full bg-pink-600 inline-block" />
-            <h2 className="text-base sm:text-lg md:text-xl font-black text-stone-900">
+            <span className="w-3 h-7 rounded-full bg-gradient-to-b from-pink-600 to-rose-600 inline-block shadow-sm" />
+            <h2 className="text-base sm:text-lg md:text-xl font-black text-slate-900">
               تسوقي حسب الأقسام (Shop by Department)
             </h2>
-            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full">
-              <Stethoscope className="w-3 h-3 text-emerald-600" />
+            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-300 px-2.5 py-0.5 rounded-full shadow-2xs">
+              <Stethoscope className="w-3.5 h-3.5 text-emerald-700" />
               إشراف صيدلي معتمد
             </span>
           </div>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-xs text-slate-600 font-semibold mt-1">
             تصنيفات منظمة على طريقة أمازون لتسهيل تصفح منتجاتكِ المفضلة
           </p>
         </div>
 
         <button
           onClick={onOpenCategoriesModal}
-          className="text-xs sm:text-sm font-bold text-pink-700 hover:text-pink-900 flex items-center gap-1 hover:underline cursor-pointer self-start sm:self-auto"
+          className="text-xs sm:text-sm font-black text-pink-700 hover:text-pink-900 flex items-center gap-1 hover:underline cursor-pointer self-start sm:self-auto bg-pink-50 hover:bg-pink-100 px-3 py-1.5 rounded-xl border border-pink-200 transition-colors"
         >
           <span>تصفح كافة الأقسام والتصنيفات</span>
           <ChevronLeft className="w-4 h-4" />
@@ -108,30 +108,30 @@ export const AmazonCategoryGrid: React.FC<AmazonCategoryGridProps> = ({
           return (
             <div
               key={dept.id}
-              className="bg-white rounded-2xl border border-stone-200 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden p-4 group"
+              className="bg-white rounded-2xl border-2 border-stone-200/90 hover:border-pink-300 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden p-4 group"
             >
               <div>
                 {/* Card Title & Badge */}
-                <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex items-start justify-between gap-2 mb-3 pb-2 border-b border-stone-100">
                   <div>
-                    <h3 className="font-extrabold text-stone-900 text-sm sm:text-base group-hover:text-pink-700 transition-colors">
+                    <h3 className="font-black text-slate-900 text-sm sm:text-base group-hover:text-pink-700 transition-colors">
                       {dept.title}
                     </h3>
                     {dept.englishTitle && (
-                      <span className="text-[10px] text-stone-400 font-mono">
+                      <span className="text-[10px] text-slate-500 font-mono font-bold">
                         {dept.englishTitle}
                       </span>
                     )}
                   </div>
                   {dept.badge && (
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200 shrink-0">
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-pink-100 text-pink-900 border border-pink-300 shrink-0">
                       {dept.badge}
                     </span>
                   )}
                 </div>
 
                 {/* 2x2 Mini Product Grid (Amazon Signature Quad Card) */}
-                <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="grid grid-cols-2 gap-2.5 mb-4">
                   {displaySubs.map((sub, idx) => (
                     <button
                       key={idx}
@@ -142,9 +142,9 @@ export const AmazonCategoryGrid: React.FC<AmazonCategoryGridProps> = ({
                           sub.id as SubCategory
                         )
                       }
-                      className="text-right group/item cursor-pointer flex flex-col"
+                      className="text-right group/item cursor-pointer flex flex-col p-1.5 rounded-xl hover:bg-pink-50/50 transition-colors"
                     >
-                      <div className="w-full aspect-square rounded-xl bg-stone-100 overflow-hidden mb-1.5 border border-stone-100 relative">
+                      <div className="w-full aspect-square rounded-xl bg-stone-100 overflow-hidden mb-1.5 border border-stone-200 relative shadow-2xs">
                         <img
                           src={getSubcategoryImage(dept.id, sub.id)}
                           alt={sub.label}
@@ -152,7 +152,7 @@ export const AmazonCategoryGrid: React.FC<AmazonCategoryGridProps> = ({
                           loading="lazy"
                         />
                       </div>
-                      <span className="text-[11px] font-bold text-stone-700 group-hover/item:text-pink-600 line-clamp-2 leading-tight">
+                      <span className="text-[11px] font-extrabold text-slate-800 group-hover/item:text-pink-700 line-clamp-2 leading-tight">
                         {sub.label}
                       </span>
                     </button>
@@ -164,10 +164,10 @@ export const AmazonCategoryGrid: React.FC<AmazonCategoryGridProps> = ({
               <button
                 type="button"
                 onClick={() => handleDepartmentClick(dept.id as MainCategory, 'all')}
-                className="text-xs font-black text-pink-700 hover:text-pink-900 hover:underline flex items-center gap-1 pt-2 border-t border-stone-100 cursor-pointer"
+                className="text-xs font-black text-pink-700 hover:text-pink-900 hover:underline flex items-center justify-between pt-2.5 border-t border-stone-100 cursor-pointer"
               >
                 <span>تصفح كل {dept.title}</span>
-                <ArrowLeft className="w-3.5 h-3.5" />
+                <ArrowLeft className="w-4 h-4 text-pink-600" />
               </button>
             </div>
           );

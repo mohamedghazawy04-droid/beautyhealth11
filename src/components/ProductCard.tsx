@@ -33,9 +33,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     : 0;
 
   return (
-    <div className="bg-white rounded-xl sm:rounded-2xl border border-pink-100/90 hover:border-pink-300 shadow-2xs hover:shadow-lg hover:shadow-pink-500/10 transition-all duration-200 flex flex-col justify-between overflow-hidden group">
+    <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-stone-200/90 hover:border-pink-400 shadow-sm hover:shadow-xl hover:shadow-pink-500/10 transition-all duration-200 flex flex-col justify-between overflow-hidden group">
       {/* Top Image Container */}
-      <div className="relative aspect-square w-full bg-pink-50/40 overflow-hidden">
+      <div className="relative aspect-square w-full bg-stone-50 overflow-hidden">
         <img
           src={product.image}
           alt={product.nameAr}
@@ -49,13 +49,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {discountPercent > 0 && (
             <span
               id={`discount-badge-${product.id}`}
-              className="bg-gradient-to-r from-rose-600 to-pink-600 text-white text-[10px] sm:text-[11px] font-black px-1.5 sm:px-2 py-0.5 rounded-md shadow-sm border border-white/20 tracking-tight whitespace-nowrap"
+              className="bg-gradient-to-r from-rose-600 to-pink-600 text-white text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-md shadow-md border border-white/30 tracking-tight whitespace-nowrap"
             >
               خصم {discountPercent}%
             </span>
           )}
           {product.badges && product.badges.length > 0 && (
-            <span className="bg-rose-950/85 text-pink-100 text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md shadow-2xs">
+            <span className="bg-slate-900/90 text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm border border-slate-700">
               {product.badges[0]}
             </span>
           )}
@@ -67,22 +67,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             e.stopPropagation();
             onToggleWishlist(product);
           }}
-          className={`absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all z-10 cursor-pointer shadow-xs ${
+          className={`absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all z-10 cursor-pointer shadow-md ${
             isWishlisted
-              ? 'bg-pink-50 text-pink-600 ring-1 ring-pink-300'
-              : 'bg-white/85 backdrop-blur-xs text-stone-500 hover:text-pink-600 hover:bg-white'
+              ? 'bg-rose-50 text-rose-600 ring-2 ring-rose-300'
+              : 'bg-white/95 text-slate-600 hover:text-rose-600 hover:bg-white border border-stone-200'
           }`}
           title={isWishlisted ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
         >
-          <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isWishlisted ? 'fill-pink-500 text-pink-500' : ''}`} />
+          <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}`} />
         </button>
 
         {/* Quick View Button on Hover */}
         <button
           onClick={() => onQuickView(product)}
-          className="absolute inset-x-2.5 bottom-2 sm:inset-x-4 sm:bottom-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/95 backdrop-blur-md text-stone-900 font-bold text-[10px] sm:text-xs flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-pink-50 hover:text-pink-700 cursor-pointer"
+          className="absolute inset-x-2.5 bottom-2 sm:inset-x-4 sm:bottom-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-slate-900/90 hover:bg-slate-900 text-white font-bold text-[10px] sm:text-xs flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg cursor-pointer"
         >
-          <Eye className="w-3.5 h-3.5 text-pink-600" />
+          <Eye className="w-3.5 h-3.5 text-pink-300" />
           معاينة وتفاصيل
         </button>
       </div>
@@ -92,10 +92,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="space-y-1">
           {/* Brand & Volume */}
           <div className="flex items-center justify-between text-[9px] sm:text-[11px]">
-            <span className="font-extrabold text-pink-700 uppercase tracking-wider bg-pink-50 px-1.5 py-0.5 rounded border border-pink-200/60 truncate max-w-[80px] sm:max-w-none">
+            <span className="font-black text-pink-800 uppercase tracking-wider bg-pink-100/80 px-2 py-0.5 rounded-md border border-pink-300 truncate max-w-[80px] sm:max-w-none">
               {product.brand}
             </span>
-            <span className="bg-stone-50 px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-medium text-stone-600 truncate border border-stone-100">
+            <span className="bg-stone-100 px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold text-slate-700 truncate border border-stone-200">
               {product.volume}
             </span>
           </div>
@@ -103,33 +103,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Title */}
           <h3
             onClick={() => onQuickView(product)}
-            className="font-bold text-stone-900 text-xs sm:text-sm leading-snug line-clamp-2 hover:text-pink-600 cursor-pointer transition-colors pt-0.5"
+            className="font-extrabold text-slate-900 text-xs sm:text-sm leading-snug line-clamp-2 hover:text-pink-600 cursor-pointer transition-colors pt-0.5"
             title={product.nameAr}
           >
             {product.nameAr}
           </h3>
 
           {/* Rating */}
-          <div className="flex items-center gap-1 text-[10px] sm:text-xs">
-            <div className="flex items-center gap-0.5 bg-amber-50/80 px-1.5 py-0.5 rounded border border-amber-200/80 text-amber-900 font-extrabold text-[10px]">
-              <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs">
+            <div className="flex items-center gap-0.5 bg-amber-100 px-1.5 py-0.5 rounded-md border border-amber-300 text-amber-950 font-black text-[10px]">
+              <Star className="w-3 h-3 fill-amber-500 text-amber-600 shrink-0" />
               <span>{typeof product.rating === 'number' ? product.rating.toFixed(1) : product.rating}</span>
             </div>
-            <span className="text-stone-400 text-[10px]">({product.reviewsCount})</span>
+            <span className="text-slate-500 font-bold text-[10px]">({product.reviewsCount})</span>
           </div>
         </div>
 
         {/* Price & Action */}
-        <div className="pt-1.5 border-t border-pink-100/70 flex items-center justify-between gap-1 sm:gap-2">
+        <div className="pt-2 border-t border-stone-200 flex items-center justify-between gap-1 sm:gap-2">
           <div>
             <div className="flex items-baseline gap-0.5 sm:gap-1">
-              <span className="text-xs sm:text-base font-black text-pink-700">
+              <span className="text-sm sm:text-base font-black text-rose-700">
                 {product.price}
               </span>
-              <span className="text-[9px] sm:text-xs text-stone-500 font-bold">ج.م</span>
+              <span className="text-[10px] sm:text-xs text-slate-700 font-black">ج.م</span>
             </div>
             {product.originalPrice && (
-              <span className="text-[9px] sm:text-xs text-stone-400 line-through block -mt-0.5">
+              <span className="text-[10px] sm:text-xs text-slate-400 font-bold line-through block -mt-0.5">
                 {product.originalPrice} ج
               </span>
             )}
@@ -138,20 +138,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Add To Cart */}
           <button
             onClick={() => onAddToCart(product)}
-            className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-2xs shrink-0 ${
+            className={`px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0 ${
               cartQuantity > 0
-                ? 'bg-rose-900 text-white hover:bg-rose-950'
-                : 'bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white shadow-xs shadow-pink-500/20'
+                ? 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-emerald-900/20'
+                : 'bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white shadow-pink-600/30'
             }`}
           >
             {cartQuantity > 0 ? (
               <>
-                <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-pink-300" />
+                <Check className="w-3.5 h-3.5 text-emerald-200" />
                 <span>({cartQuantity})</span>
               </>
             ) : (
               <>
-                <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <Plus className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">أضيفي للسلة</span>
                 <span className="sm:hidden">أضف</span>
               </>

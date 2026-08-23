@@ -106,26 +106,26 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       </div>
 
       {/* Desktop / Tablet Full Hero: Luxurious Feminine Velvet & Rose Gold Aesthetics */}
-      <div className="hidden sm:block relative overflow-hidden bg-gradient-to-br from-[#2f0b1b] via-[#4d132e] to-[#1e0712] text-white rounded-3xl my-4 mx-4 sm:mx-6 lg:mx-8 shadow-xl border border-pink-500/20">
+      <div className="hidden sm:block relative overflow-hidden bg-gradient-to-br from-[#2a0818] via-[#48102b] to-[#1a0510] text-white rounded-3xl my-4 mx-4 sm:mx-6 lg:mx-8 shadow-2xl border-2 border-pink-500/30">
         {/* Soft Glowing Orbs */}
-        <div className="absolute -right-20 -top-20 w-80 h-80 bg-pink-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -right-20 -top-20 w-80 h-80 bg-pink-500/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-rose-500/30 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative max-w-7xl mx-auto px-6 py-8 sm:py-10 lg:px-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
             {/* Left / Main Text info */}
             <div className="lg:col-span-7 space-y-4">
               {/* Top Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-pink-500/20 border border-pink-400/40 text-pink-200 text-xs font-bold shadow-inner">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-pink-500/30 border border-pink-400/50 text-pink-200 text-xs font-black shadow-inner">
                 <Sparkles className="w-3.5 h-3.5 text-pink-300 animate-pulse" />
-                متجر المرأة العصرية: جمال، عناية، واهتمام فائق بطفلك
+                متجر المرأة العصرية: جمال، عناية، واهتمام فائق بطفلك 🌸
               </div>
 
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-snug">
-                أرقى منتجات <span className="text-pink-300">العناية بالبشرة والشعر</span> ومستلزمات <span className="text-rose-200">الطفل والرضيع</span>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-snug text-white drop-shadow-sm">
+                أرقى منتجات <span className="text-pink-300 font-extrabold underline decoration-pink-500/50 underline-offset-4">العناية بالبشرة والشعر</span> ومستلزمات <span className="text-rose-200 font-extrabold">الطفل والرضيع</span>
               </h1>
 
-              <p className="text-pink-100/90 text-xs sm:text-sm leading-relaxed max-w-xl">
+              <p className="text-pink-100 text-xs sm:text-sm font-semibold leading-relaxed max-w-xl drop-shadow-xs">
                 مجموعات أصلية وموثوقة 100% تم اختيارها بعناية لتمنحك الإشراقة والراحة. اطلبي عبر المتجر لتصلك المنتجات فوراً مع خدمة التوصيل السريع للمنزل.
               </p>
 
@@ -135,7 +135,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                   href="https://www.mediafire.com/file/96n9dd1yvi1upyg/app-release.apk/file"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 hover:from-pink-400 hover:to-rose-400 text-white font-black text-xs sm:text-sm transition-all shadow-md shadow-pink-500/30 cursor-pointer border border-pink-300/40"
+                  className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 hover:from-pink-400 hover:to-rose-400 text-white font-black text-xs sm:text-sm transition-all shadow-lg shadow-pink-600/40 cursor-pointer border border-pink-200/50 transform hover:-translate-y-0.5 active:translate-y-0"
                 >
                   <Download className="w-4 h-4 text-white animate-bounce" />
                   <span>تحميل تطبيق الأندرويد (APK) 📲</span>
@@ -144,7 +144,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                 {onOpenInstallApp && (
                   <button
                     onClick={onOpenInstallApp}
-                    className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 border border-pink-300/30 text-white font-bold text-xs sm:text-sm transition-all cursor-pointer"
+                    className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/15 hover:bg-white/25 border border-pink-300/40 text-white font-bold text-xs sm:text-sm transition-all cursor-pointer backdrop-blur-md"
                   >
                     <Smartphone className="w-4 h-4 text-pink-200" />
                     <span>تثبيت كـ PWA</span>
@@ -155,29 +155,29 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                   href={`https://wa.me/${cleanWhatsApp}?text=مرحباً، أود الاستفسار عن منتجات المتجر`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-pink-300/30 text-pink-100 font-bold text-xs sm:text-sm transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 border border-emerald-400/50 text-white font-black text-xs sm:text-sm transition-all cursor-pointer shadow-md shadow-emerald-950/20"
                 >
-                  <MessageCircle className="w-4 h-4 text-pink-300" />
-                  <span>محادثة واتساب</span>
+                  <MessageCircle className="w-4 h-4 text-emerald-200" />
+                  <span>محادثة واتساب الصيدلي</span>
                 </a>
               </div>
             </div>
 
-            {/* Right Highlights Cards in Pink Shades */}
-            <div className="lg:col-span-5 grid grid-cols-2 gap-2.5 sm:gap-3">
+            {/* Right Highlights Cards in Rich Glassmorphism */}
+            <div className="lg:col-span-5 grid grid-cols-2 gap-3">
               {/* Card 1: Baby Care */}
               <div
                 onClick={() => onSelectCategory('baby')}
-                className="p-3.5 rounded-2xl bg-gradient-to-br from-pink-500/20 to-pink-900/30 border border-pink-400/30 hover:border-pink-300 transition-all cursor-pointer group"
+                className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-pink-300/30 hover:border-pink-300 transition-all cursor-pointer group backdrop-blur-md shadow-md"
               >
-                <div className="text-2xl mb-1">👶</div>
-                <h2 className="font-extrabold text-white text-sm group-hover:text-pink-300 transition-colors">
+                <div className="text-3xl mb-1.5 drop-shadow-xs">👶</div>
+                <h2 className="font-black text-white text-sm group-hover:text-pink-300 transition-colors">
                   عناية الطفل
                 </h2>
-                <p className="text-[11px] text-pink-100/80 mt-0.5 line-clamp-2">
+                <p className="text-[11px] text-pink-100 font-medium mt-1 line-clamp-2">
                   شامبوهات ناعمة، كريمات حفاض، وعناية حديثي الولادة.
                 </p>
-                <span className="inline-block mt-2 text-[10px] text-pink-300 font-bold group-hover:underline">
+                <span className="inline-block mt-2.5 text-[11px] text-pink-300 font-black group-hover:underline">
                   تسوقي للأطفال ←
                 </span>
               </div>
@@ -185,16 +185,16 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               {/* Card 2: Hair Care */}
               <div
                 onClick={() => onSelectCategory('hair')}
-                className="p-3.5 rounded-2xl bg-gradient-to-br from-rose-500/20 to-rose-900/30 border border-rose-400/30 hover:border-rose-300 transition-all cursor-pointer group"
+                className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-rose-300/30 hover:border-rose-300 transition-all cursor-pointer group backdrop-blur-md shadow-md"
               >
-                <div className="text-2xl mb-1">💇‍♀️</div>
-                <h2 className="font-extrabold text-white text-sm group-hover:text-rose-300 transition-colors">
+                <div className="text-3xl mb-1.5 drop-shadow-xs">💇‍♀️</div>
+                <h2 className="font-black text-white text-sm group-hover:text-rose-300 transition-colors">
                   عناية الشعر
                 </h2>
-                <p className="text-[11px] text-pink-100/80 mt-0.5 line-clamp-2">
+                <p className="text-[11px] text-pink-100 font-medium mt-1 line-clamp-2">
                   سيرومات تطويل وترميم، معالجات التقصف وكيرلي صحي.
                 </p>
-                <span className="inline-block mt-2 text-[10px] text-rose-300 font-bold group-hover:underline">
+                <span className="inline-block mt-2.5 text-[11px] text-rose-300 font-black group-hover:underline">
                   تسوقي للشعر ←
                 </span>
               </div>
@@ -202,16 +202,16 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               {/* Card 3: Body & Skin Care */}
               <div
                 onClick={() => onSelectCategory('body')}
-                className="p-3.5 rounded-2xl bg-gradient-to-br from-fuchsia-500/20 to-pink-900/30 border border-fuchsia-400/30 hover:border-fuchsia-300 transition-all cursor-pointer group"
+                className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-fuchsia-300/30 hover:border-fuchsia-300 transition-all cursor-pointer group backdrop-blur-md shadow-md"
               >
-                <div className="text-2xl mb-1">✨</div>
-                <h2 className="font-extrabold text-white text-sm group-hover:text-fuchsia-300 transition-colors">
+                <div className="text-3xl mb-1.5 drop-shadow-xs">✨</div>
+                <h2 className="font-black text-white text-sm group-hover:text-fuchsia-300 transition-colors">
                   البشرة والجسم
                 </h2>
-                <p className="text-[11px] text-pink-100/80 mt-0.5 line-clamp-2">
+                <p className="text-[11px] text-pink-100 font-medium mt-1 line-clamp-2">
                   مرطبات مخملية، واقي شمس، ومقشرات لتوحيد اللون.
                 </p>
-                <span className="inline-block mt-2 text-[10px] text-fuchsia-300 font-bold group-hover:underline">
+                <span className="inline-block mt-2.5 text-[11px] text-fuchsia-300 font-black group-hover:underline">
                   تسوقي للبشرة ←
                 </span>
               </div>
@@ -219,16 +219,16 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               {/* Card 4: Bundles */}
               <div
                 onClick={() => onSelectCategory('bundles')}
-                className="p-3.5 rounded-2xl bg-gradient-to-br from-pink-600/30 to-rose-900/40 border border-pink-400/40 hover:border-pink-300 transition-all cursor-pointer group"
+                className="p-4 rounded-2xl bg-gradient-to-br from-pink-500/30 to-rose-600/30 hover:from-pink-500/40 hover:to-rose-600/40 border border-pink-300/40 hover:border-pink-200 transition-all cursor-pointer group backdrop-blur-md shadow-md"
               >
-                <div className="text-2xl mb-1">🎁</div>
-                <h2 className="font-extrabold text-white text-sm group-hover:text-pink-200 transition-colors">
+                <div className="text-3xl mb-1.5 drop-shadow-xs">🎁</div>
+                <h2 className="font-black text-white text-sm group-hover:text-pink-200 transition-colors">
                   بكجات التوفير
                 </h2>
-                <p className="text-[11px] text-pink-100/80 mt-0.5 line-clamp-2">
+                <p className="text-[11px] text-pink-100 font-medium mt-1 line-clamp-2">
                   مجموعات متكاملة وهدايا مواليد راقية بأفضل الأسعار.
                 </p>
-                <span className="inline-block mt-2 text-[10px] text-pink-200 font-bold group-hover:underline">
+                <span className="inline-block mt-2.5 text-[11px] text-pink-200 font-black group-hover:underline">
                   تصفحي البكجات ←
                 </span>
               </div>
