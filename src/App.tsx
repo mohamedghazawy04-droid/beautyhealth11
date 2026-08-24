@@ -32,6 +32,7 @@ import {
   StoreSettings,
   CategoryConfig,
   PrescriptionRequest,
+  AppNotification,
 } from './types';
 import { PRODUCTS_DATA } from './data/products';
 import { OCTOBER_ZAYED_ZONES } from './data/zones';
@@ -53,6 +54,8 @@ import { CategoriesModal } from './components/CategoriesModal';
 import { PrescriptionModal } from './components/PrescriptionModal';
 import { FeaturedDealsCarousel } from './components/FeaturedDealsCarousel';
 import { AmazonCategoryGrid } from './components/AmazonCategoryGrid';
+import { NotificationsModal } from './components/NotificationsModal';
+import { playNotificationSound, sendBrowserNotification } from './utils/notificationSound';
 import { db } from './firebase';
 import {
   collection,
@@ -261,7 +264,40 @@ export default function App() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isInstallAppOpen, setIsInstallAppOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+
+  // Browser & In-App Notifications State
+  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission === 'granted';
+    }
+    return false;
+  });
+
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
+    const saved = localStorage.getItem('carehub_notifications');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [
+      {
+        id: 'notif-welcome',
+        title: 'أهلاً بك في متجر m&l للعناية والجمال 🌸',
+        body: 'توصيل فوري خلال ٢٤ ساعة لكافة أحياء ٦ أكتوبر والشيخ زايد مع إشراف صيدلي معتمد.',
+        timestamp: new Date().toISOString(),
+        type: 'system',
+        read: false,
+      },
+    ];
+  });
+
+  const [newProductBanner, setNewProductBanner] = useState<Product | null>(null);
 
   // Review Modal State
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -271,6 +307,10 @@ export default function App() {
   const [reviewModalUserArea, setReviewModalUserArea] = useState<string | undefined>(undefined);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Track initial product loading to only trigger alerts on actual NEW additions
+  const initialProductsLoadedRef = React.useRef(false);
+  const previousProductIdsRef = React.useRef<Set<string>>(new Set());
 
   // Real-time synchronization with Firestore
   useEffect(() => {
@@ -286,6 +326,52 @@ export default function App() {
               id: docSnap.id,
             });
           });
+
+          // Check for newly added products if this is not the initial bootstrap load
+          if (initialProductsLoadedRef.current && previousProductIdsRef.current.size > 0) {
+            const newProducts = prodsList.filter(
+              (p) => !previousProductIdsRef.current.has(p.id)
+            );
+
+            if (newProducts.length > 0) {
+              newProducts.forEach((newProd) => {
+                // 1. Play soft sound
+                playNotificationSound();
+
+                // 2. Dispatch native browser notification if allowed
+                sendBrowserNotification(`✨ منتج جديد متاح: ${newProd.nameAr}`, {
+                  body: `ماركة ${newProd.brand} بسعر ${newProd.price} ج • متوفر الآن للتوصيل الفوري`,
+                  icon: newProd.image,
+                });
+
+                // 3. Add to In-App Notification Center
+                const newNotif: AppNotification = {
+                  id: 'notif-prod-' + newProd.id + '-' + Date.now(),
+                  title: `✨ منتج جديد: ${newProd.nameAr}`,
+                  body: `أضافت الإدارة منتجاً جديداً من ${newProd.brand} بسعر ${newProd.price} جنيه مصري. متاح للتوصيل في أكتوبر وزايد!`,
+                  timestamp: new Date().toISOString(),
+                  type: 'new_product',
+                  read: false,
+                  productId: newProd.id,
+                  image: newProd.image,
+                  productPrice: newProd.price,
+                };
+
+                setNotifications((prev) => [newNotif, ...prev.slice(0, 49)]);
+
+                // 4. Show top floating banner
+                setNewProductBanner(newProd);
+                setTimeout(() => {
+                  setNewProductBanner((curr) => (curr?.id === newProd.id ? null : curr));
+                }, 6000);
+              });
+            }
+          }
+
+          // Update tracking refs
+          previousProductIdsRef.current = new Set(prodsList.map((p) => p.id));
+          initialProductsLoadedRef.current = true;
+
           setProducts(prodsList);
           localStorage.setItem('carehub_products', JSON.stringify(prodsList));
         } else {
@@ -297,6 +383,7 @@ export default function App() {
             });
             batch.commit().catch((err) => console.error('Auto seed Firestore error:', err));
           }
+          initialProductsLoadedRef.current = true;
         }
       },
       (error) => {
@@ -351,6 +438,11 @@ export default function App() {
       unsubSettings();
     };
   }, []);
+
+  // Sync notifications to Local Storage
+  useEffect(() => {
+    localStorage.setItem('carehub_notifications', JSON.stringify(notifications));
+  }, [notifications]);
 
   // Sync to Local Storage
   useEffect(() => {
@@ -541,6 +633,33 @@ export default function App() {
     showToast(`تم حذف الطلب #${orderId}`);
   };
 
+  const handleRefreshOrders = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'orders'));
+      if (!snap.empty) {
+        const ordersList: Order[] = [];
+        snap.forEach((docSnap) => {
+          const data = docSnap.data() as Order;
+          ordersList.push({
+            ...data,
+            id: docSnap.id,
+          });
+        });
+        ordersList.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setOrders(ordersList);
+        localStorage.setItem('carehub_orders', JSON.stringify(ordersList));
+        showToast('✓ تم تحديث ومزامنة حالة الطلبات بنجاح');
+      } else {
+        showToast('لا توجد طلبات مسجلة حالياً');
+      }
+    } catch (err) {
+      console.error('Error refreshing orders:', err);
+      showToast('تم تحديث قائمة الطلبات');
+    }
+  };
+
   // Product Admin Operations
   const handleAddNewProduct = async (newProduct: Product) => {
     setProducts((prev) => [newProduct, ...prev]);
@@ -549,7 +668,33 @@ export default function App() {
     } catch (e) {
       console.error('Failed to add product to Firestore:', e);
     }
-    showToast(`✓ تم إضافة المنتج "${newProduct.nameAr}" للمتجر بنجاح`);
+
+    // Trigger Notifications immediately for the admin and connected clients
+    playNotificationSound();
+    sendBrowserNotification(`✨ منتج جديد: ${newProduct.nameAr}`, {
+      body: `ماركة ${newProduct.brand} بسعر ${newProduct.price} ج • متوفر الآن للتوصيل الفوري`,
+      icon: newProduct.image,
+    });
+
+    const newNotif: AppNotification = {
+      id: 'notif-prod-' + newProduct.id + '-' + Date.now(),
+      title: `✨ تم إضافة منتج جديد: ${newProduct.nameAr}`,
+      body: `منتج جديد متوفر الآن في متجر m&l! ماركة ${newProduct.brand} بسعر ${newProduct.price} ج.م.`,
+      timestamp: new Date().toISOString(),
+      type: 'new_product',
+      read: false,
+      productId: newProduct.id,
+      image: newProduct.image,
+      productPrice: newProduct.price,
+    };
+
+    setNotifications((prev) => [newNotif, ...prev]);
+    setNewProductBanner(newProduct);
+    setTimeout(() => {
+      setNewProductBanner((curr) => (curr?.id === newProduct.id ? null : curr));
+    }, 6000);
+
+    showToast(`✓ تم إضافة المنتج "${newProduct.nameAr}" وإرسال التنبيهات بنجاح`);
   };
 
   const handleUpdateProduct = async (productId: string, updates: Partial<Product>) => {
@@ -781,6 +926,48 @@ export default function App() {
         </div>
       )}
 
+      {/* Floating New Product Alert Banner */}
+      {newProductBanner && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md bg-stone-900/95 text-white p-3 rounded-2xl shadow-2xl border border-pink-500/50 backdrop-blur-md flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-2.5">
+            <img
+              src={newProductBanner.image}
+              alt={newProductBanner.nameAr}
+              className="w-12 h-12 rounded-xl object-contain bg-white p-1 shrink-0"
+              referrerPolicy="no-referrer"
+            />
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="px-1.5 py-0.5 rounded-full bg-pink-500 text-[10px] font-black text-white">
+                  جديد متاح الآن ✨
+                </span>
+                <span className="text-[11px] text-stone-300 font-bold">{newProductBanner.brand}</span>
+              </div>
+              <div className="text-xs font-black line-clamp-1 mt-0.5 text-pink-100">{newProductBanner.nameAr}</div>
+              <div className="text-[11px] font-extrabold text-pink-400">{newProductBanner.price} جنيه مصري</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => {
+                setDetailProduct(newProductBanner);
+                setNewProductBanner(null);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs cursor-pointer shadow-xs transition-colors"
+            >
+              عرض المنتج
+            </button>
+            <button
+              onClick={() => setNewProductBanner(null)}
+              className="p-1 text-stone-400 hover:text-white cursor-pointer"
+              title="إغلاق"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <Navbar
         selectedZone={selectedZone}
@@ -805,6 +992,9 @@ export default function App() {
         storeSettings={storeSettings}
         products={products}
         onSelectProduct={(p) => setDetailProduct(p)}
+        unreadNotificationsCount={notifications.filter((n) => !n.read).length}
+        onOpenNotifications={() => setIsNotificationsOpen(true)}
+        ordersCount={orders.length}
       />
 
       {/* Main Content Area */}
@@ -1120,6 +1310,7 @@ export default function App() {
         isOpen={isOrderTrackingOpen}
         onClose={() => setIsOrderTrackingOpen(false)}
         orders={orders}
+        onRefreshOrders={handleRefreshOrders}
         onOpenReviewModal={(prod, orderId, name, area) =>
           handleOpenReviewModal(prod, orderId, name, area)
         }
@@ -1133,6 +1324,33 @@ export default function App() {
           showToast('🛒 تمت إضافة المنتجات لسلة التسوق');
         }}
         onCancelOrder={(orderId) => handleUpdateOrderStatus(orderId, 'cancelled')}
+      />
+
+      {/* Real-time Notifications Modal */}
+      <NotificationsModal
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+        notifications={notifications}
+        onMarkAsRead={(id) =>
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+          )
+        }
+        onMarkAllAsRead={() =>
+          setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+        }
+        onClearNotifications={() => setNotifications([])}
+        onSelectProduct={(productId) => {
+          const p = products.find((prod) => prod.id === productId);
+          if (p) {
+            setDetailProduct(p);
+          }
+          setIsNotificationsOpen(false);
+        }}
+        browserNotificationsEnabled={browserNotificationsEnabled}
+        onToggleBrowserNotifications={(enabled) =>
+          setBrowserNotificationsEnabled(enabled)
+        }
       />
 
       <WishlistModal

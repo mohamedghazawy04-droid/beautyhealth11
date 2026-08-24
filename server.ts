@@ -225,7 +225,6 @@ app.post('/api/admin/smart-analysis', async (req: Request, res: Response) => {
   }
 });
 
-
 // Vite middleware & Static Serving
 async function start() {
   if (process.env.NODE_ENV !== 'production') {

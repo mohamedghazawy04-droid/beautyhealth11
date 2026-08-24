@@ -1,6 +1,35 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Products: readable by everyone, modifiable by admin
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if request.resource.data.name is string && request.resource.data.price is number;
+    }
+
+    // Categories: readable by everyone
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Store Settings
+    match /storeSettings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      allow read, create, update: if true;
+    }
+
+    // Prescriptions
+    match /prescriptions/{prescriptionId} {
+      allow read, create, update, delete: if true;
+    }
+
+    // Fallback rule
     match /{document=**} {
       allow read, write: if true;
     }

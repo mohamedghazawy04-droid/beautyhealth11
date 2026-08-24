@@ -177,3 +177,16 @@ export interface SmartBusinessReport {
   generatedAt: string;
 }
 
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  timestamp: string;
+  type: 'new_product' | 'order_status' | 'promotion' | 'system';
+  read: boolean;
+  productId?: string;
+  orderId?: string;
+  image?: string;
+  productPrice?: number;
+}
+

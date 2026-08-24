@@ -17,7 +17,9 @@ import {
   ArrowUpLeft,
   Stethoscope,
   FileText,
-  ShieldCheck
+  ShieldCheck,
+  Bell,
+  Package
 } from 'lucide-react';
 import { StoreSettings, Product, CategoryConfig } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/categories';
@@ -42,6 +44,9 @@ interface NavbarProps {
   onOpenZoneModal?: () => void;
   products?: Product[];
   onSelectProduct?: (product: Product) => void;
+  unreadNotificationsCount?: number;
+  onOpenNotifications?: () => void;
+  ordersCount?: number;
 }
 
 const POPULAR_SEARCHES = [
@@ -73,6 +78,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   storeSettings,
   products = [],
   onSelectProduct,
+  unreadNotificationsCount = 0,
+  onOpenNotifications,
+  ordersCount = 0,
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [isDesktopFocused, setIsDesktopFocused] = useState(false);
@@ -388,6 +396,44 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span>تطبيق</span>
               </button>
             )}
+
+            {/* Notifications Button */}
+            {onOpenNotifications && (
+              <button
+                type="button"
+                onClick={onOpenNotifications}
+                className="p-2 rounded-xl bg-pink-50/80 hover:bg-pink-100 text-pink-700 relative transition-all cursor-pointer border border-pink-200/70"
+                title="مركز الإشعارات والتنبيهات"
+              >
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+                {unreadNotificationsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-4.5 sm:h-4.5 bg-rose-600 text-white rounded-full text-[10px] font-black flex items-center justify-center animate-pulse shadow-xs">
+                    {unreadNotificationsCount}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* Orders Tracking Desktop Button (Amazon-Style Returns & Orders) */}
+            <button
+              type="button"
+              onClick={onOpenOrderTracking}
+              className="hidden md:flex items-center gap-2 py-1.5 px-3 rounded-xl bg-pink-50/80 hover:bg-pink-100 text-stone-900 border border-pink-200/80 transition-all cursor-pointer shadow-2xs group"
+              title="طلباتك وتتبع الشحنات"
+            >
+              <div className="relative">
+                <Package className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-pink-700 group-hover:scale-105 transition-transform" />
+                {ordersCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 w-3.5 h-3.5 bg-pink-600 text-white rounded-full text-[9px] font-black flex items-center justify-center shadow-xs">
+                    {ordersCount}
+                  </span>
+                )}
+              </div>
+              <div className="text-right">
+                <span className="block text-[9px] text-stone-500 font-bold leading-none">مشترياتك</span>
+                <span className="text-xs font-black text-pink-950 leading-tight">طلباتك</span>
+              </div>
+            </button>
 
             {/* Wishlist Button */}
             <button

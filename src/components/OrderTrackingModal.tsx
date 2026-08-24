@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   X,
   Package,
@@ -23,7 +23,8 @@ import {
   Ban,
   ArrowRight,
   Filter,
-  Check
+  Check,
+  Smartphone
 } from 'lucide-react';
 import { Order, Product, CartItem } from '../types';
 
@@ -40,6 +41,7 @@ interface OrderTrackingModalProps {
   onMarkDelivered?: (orderId: string) => void;
   onReorder?: (items: CartItem[]) => void;
   onCancelOrder?: (orderId: string) => void;
+  onRefreshOrders?: () => void;
 }
 
 type TabType = 'all' | 'in_progress' | 'delivered' | 'cancelled';
@@ -53,6 +55,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
   onMarkDelivered,
   onReorder,
   onCancelOrder,
+  onRefreshOrders,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,6 +64,27 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [trackingDetailsOrder, setTrackingDetailsOrder] = useState<Order | null>(null);
   const [cancelPromptId, setCancelPromptId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Auto load saved phone number if exists
+  useEffect(() => {
+    if (isOpen && !searchQuery) {
+      const savedPhone = localStorage.getItem('carehub_customer_phone');
+      if (savedPhone) {
+        // We can pre-fill or give a quick filter chip
+      }
+    }
+  }, [isOpen]);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    if (onRefreshOrders) {
+      onRefreshOrders();
+    }
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 600);
+  };
 
   if (!isOpen) return null;
 
@@ -196,22 +220,35 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
               <div className="flex items-center gap-2">
                 <h2 className="font-extrabold text-base sm:text-lg">طلباتك (Your Orders)</h2>
                 <span className="px-2 py-0.5 rounded-full bg-stone-800 text-pink-300 text-[11px] font-bold border border-stone-700">
-                  {orders.length} طلب
+                  {orders.length} طلب مسجل
                 </span>
               </div>
               <p className="text-xs text-stone-300">
-                تتبع الشحنات، إعادة الطلب بنقرة واحدة، وعرض الفواتير بأسلوب أمازون
+                تتبع الشحنات لحظياً، إعادة الطلب بنقرة واحدة، وعرض الفواتير بأسلوب أمازون
               </p>
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-            title="إغلاق"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              className={`p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-pink-300 hover:text-white flex items-center gap-1 text-xs font-bold transition-colors cursor-pointer border border-stone-700 ${
+                isRefreshing ? 'opacity-70' : ''
+              }`}
+              title="تحديث قائمة الطلبات"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">تحديث</span>
+            </button>
+
+            <button
+              onClick={onClose}
+              className="w-9 h-9 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              title="إغلاق"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Amazon-Style Sub-Navigation Tabs */}

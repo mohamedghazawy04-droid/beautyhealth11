@@ -112,6 +112,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     };
 
     setTimeout(() => {
+      try {
+        localStorage.setItem('carehub_customer_phone', phone);
+        const existingIds = JSON.parse(localStorage.getItem('carehub_my_order_ids') || '[]');
+        if (!existingIds.includes(orderId)) {
+          existingIds.unshift(orderId);
+          localStorage.setItem('carehub_my_order_ids', JSON.stringify(existingIds));
+        }
+      } catch (e) {
+        console.error('LocalStorage order save error:', e);
+      }
+
       onOrderCompleted(newOrder);
       onClearCart();
       setIsSubmitting(false);
