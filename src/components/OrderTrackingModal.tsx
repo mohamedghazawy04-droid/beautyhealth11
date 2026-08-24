@@ -86,8 +86,6 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
     }, 600);
   };
 
-  if (!isOpen) return null;
-
   // Filter orders based on active tab, search, and time filter
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -134,6 +132,8 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
       return true;
     });
   }, [orders, activeTab, searchQuery, timeFilter]);
+
+  if (!isOpen) return null;
 
   // Status badge config
   const getStatusBadge = (status: Order['status']) => {

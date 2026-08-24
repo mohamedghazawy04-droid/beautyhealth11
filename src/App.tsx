@@ -1331,15 +1331,10 @@ export default function App() {
         isOpen={isNotificationsOpen}
         onClose={() => setIsNotificationsOpen(false)}
         notifications={notifications}
-        onMarkAsRead={(id) =>
-          setNotifications((prev) =>
-            prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-          )
-        }
         onMarkAllAsRead={() =>
           setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
         }
-        onClearNotifications={() => setNotifications([])}
+        onClearAll={() => setNotifications([])}
         onSelectProduct={(productId) => {
           const p = products.find((prod) => prod.id === productId);
           if (p) {
@@ -1347,6 +1342,7 @@ export default function App() {
           }
           setIsNotificationsOpen(false);
         }}
+        onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
         browserNotificationsEnabled={browserNotificationsEnabled}
         onToggleBrowserNotifications={(enabled) =>
           setBrowserNotificationsEnabled(enabled)

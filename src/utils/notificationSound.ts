@@ -51,22 +51,43 @@ export async function requestBrowserNotificationPermission(): Promise<boolean> {
   return false;
 }
 
-// Send browser native notification
-export function sendBrowserNotification(title: string, options?: NotificationOptions) {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'granted') {
+// Send browser native notification (directly in OS / Mobile Notification Bar)
+export async function sendBrowserNotification(title: string, options?: NotificationOptions) {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+
+  const defaultOptions: NotificationOptions & { vibrate?: number[] } = {
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    vibrate: [200, 100, 200],
+    tag: 'carehub-product-' + Date.now(),
+    requireInteraction: false,
+    ...options,
+  };
+
+  // 1. If Service Worker is active (Installed PWA or supported browser), use showNotification for true OS Notification Bar
+  if ('serviceWorker' in navigator) {
     try {
-      const notif = new Notification(title, {
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        ...options,
-      });
-      notif.onclick = () => {
-        window.focus();
-        notif.close();
-      };
+      const reg = await navigator.serviceWorker.ready;
+      if (reg && reg.showNotification) {
+        await reg.showNotification(title, defaultOptions as NotificationOptions);
+        return;
+      }
     } catch (e) {
-      console.warn('Native notification failed:', e);
+      console.warn('ServiceWorker showNotification fallback:', e);
     }
   }
+
+  // 2. Fallback to standard Window Notification API
+  try {
+    const notif = new Notification(title, defaultOptions as NotificationOptions);
+    notif.onclick = () => {
+      window.focus();
+      notif.close();
+    };
+  } catch (e) {
+    console.warn('Native notification failed:', e);
+  }
 }
+
+
