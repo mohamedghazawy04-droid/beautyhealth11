@@ -71,6 +71,15 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 
+const isDefaultDummyProduct = (id: string) => {
+  return (
+    id.startsWith('prod-baby-') ||
+    id.startsWith('prod-hair-') ||
+    id.startsWith('prod-body-') ||
+    id.startsWith('prod-bundle-')
+  );
+};
+
 export default function App() {
   // 1. Core State with Local Storage + Cloud Firestore Persistence
   const [products, setProducts] = useState<Product[]>(() => {
@@ -78,14 +87,14 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((p: Product) => !isDefaultDummyProduct(p.id));
         }
       } catch (e) {
         console.error(e);
       }
     }
-    return PRODUCTS_DATA;
+    return [];
   });
 
   const [categoriesList, setCategoriesList] = useState<CategoryConfig[]>(() => {
@@ -176,10 +185,7 @@ export default function App() {
         floorNumber: '3',
         apartmentNumber: '6',
         landmark: 'بجوار مجمع المحاكم',
-        items: [
-          { product: PRODUCTS_DATA[0], quantity: 1 },
-          { product: PRODUCTS_DATA[2], quantity: 1 },
-        ],
+        items: [],
         subtotal: 635,
         deliveryFee: 0,
         discount: 0,
@@ -203,10 +209,7 @@ export default function App() {
         floorNumber: 'الأرضي',
         apartmentNumber: '1',
         landmark: 'بجوار ذا ستريب مول',
-        items: [
-          { product: PRODUCTS_DATA[0], quantity: 1 },
-          { product: PRODUCTS_DATA[1], quantity: 1 },
-        ],
+        items: [],
         subtotal: 715,
         deliveryFee: 0,
         discount: 71,
@@ -376,13 +379,29 @@ export default function App() {
       (snapshot) => {
         if (!snapshot.empty) {
           const prodsList: Product[] = [];
+          const defaultDocsToDelete: string[] = [];
+
           snapshot.forEach((docSnap) => {
             const data = docSnap.data() as Product;
-            prodsList.push({
-              ...data,
-              id: docSnap.id,
-            });
+            const docId = docSnap.id;
+            if (isDefaultDummyProduct(docId)) {
+              defaultDocsToDelete.push(docId);
+            } else {
+              prodsList.push({
+                ...data,
+                id: docId,
+              });
+            }
           });
+
+          // Clean up any default dummy products from Firestore permanently
+          if (defaultDocsToDelete.length > 0) {
+            const batch = writeBatch(db);
+            defaultDocsToDelete.forEach((id) => {
+              batch.delete(doc(db, 'products', id));
+            });
+            batch.commit().catch((err) => console.error('Auto purge dummy products error:', err));
+          }
 
           // Check for newly added products if this is not the initial bootstrap load
           if (initialProductsLoadedRef.current && previousProductIdsRef.current.size > 0) {
@@ -432,16 +451,8 @@ export default function App() {
           setProducts(prodsList);
           localStorage.setItem('carehub_products', JSON.stringify(prodsList));
         } else {
-          if (PRODUCTS_DATA.length > 0) {
-            setProducts(PRODUCTS_DATA);
-            localStorage.setItem('carehub_products', JSON.stringify(PRODUCTS_DATA));
-            const batch = writeBatch(db);
-            PRODUCTS_DATA.forEach((prod) => {
-              const docRef = doc(db, 'products', prod.id);
-              batch.set(docRef, prod);
-            });
-            batch.commit().catch((err) => console.error('Auto seed Firestore error:', err));
-          }
+          setProducts([]);
+          localStorage.setItem('carehub_products', JSON.stringify([]));
           initialProductsLoadedRef.current = true;
         }
       },
@@ -806,22 +817,6 @@ export default function App() {
       console.error('Failed to clear products from Firestore:', e);
     }
     showToast('✓ تم إفراغ جميع منتجات المتجر وحفظ السجل');
-  };
-
-  const handleSeedDefaultProducts = async () => {
-    setProducts(PRODUCTS_DATA);
-    localStorage.setItem('carehub_products', JSON.stringify(PRODUCTS_DATA));
-    try {
-      const batch = writeBatch(db);
-      PRODUCTS_DATA.forEach((prod) => {
-        const docRef = doc(db, 'products', prod.id);
-        batch.set(docRef, prod);
-      });
-      await batch.commit();
-    } catch (e) {
-      console.error('Failed to seed default products to Firestore:', e);
-    }
-    showToast('✓ تمت استعادة ونشر باقة المنتجات الاصلية سحابياً');
   };
 
   const handleUpdateStoreSettings = async (newSettings: StoreSettings) => {
@@ -1607,7 +1602,6 @@ export default function App() {
         onUpdateProduct={handleUpdateProduct}
         onDeleteProduct={handleDeleteProduct}
         onClearAllProducts={handleClearAllProducts}
-        onSeedDefaultProducts={handleSeedDefaultProducts}
         storeSettings={storeSettings}
         onUpdateStoreSettings={handleUpdateStoreSettings}
         categoriesList={categoriesList}

@@ -67,7 +67,6 @@ interface AdminPortalModalProps {
   onUpdateProduct?: (productId: string, updates: Partial<Product>) => void;
   onDeleteProduct?: (productId: string) => void;
   onClearAllProducts?: () => void;
-  onSeedDefaultProducts?: () => void;
   storeSettings?: StoreSettings;
   onUpdateStoreSettings?: (newSettings: StoreSettings) => void;
   categoriesList?: CategoryConfig[];
@@ -97,7 +96,6 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   onUpdateProduct,
   onDeleteProduct,
   onClearAllProducts,
-  onSeedDefaultProducts,
   storeSettings,
   onUpdateStoreSettings,
   categoriesList = DEFAULT_CATEGORIES,
@@ -1422,26 +1420,6 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       ))}
                     </select>
 
-                    {onSeedDefaultProducts && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              'هل تريد استعادة ونشر جميع منتجات الكتالوج المعتمدة (العناية بالأطفال، الشعر، البشرة، والبكجات)؟'
-                            )
-                          ) {
-                            onSeedDefaultProducts();
-                          }
-                        }}
-                        className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
-                        title="استعادة ونشر باقة المنتجات المعتمدة"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>استعادة الكتالوج الكامل</span>
-                      </button>
-                    )}
-
                     <button
                       type="button"
                       onClick={() => setActiveTab('newProduct')}
@@ -1464,20 +1442,18 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                         المتجر فارغ من المنتجات حالياً
                       </h4>
                       <p className="text-xs text-stone-500">
-                        يمكنك إضافة منتجات جديدة أو استعادة الكتالوج المعتمد بالكامل بضغطة واحدة!
+                        يمكنك إضافة منتجاتك الخاصة الآن من تبويب "إضافة صنف"
                       </p>
-                      {onSeedDefaultProducts && (
-                        <div className="pt-2">
-                          <button
-                            type="button"
-                            onClick={() => onSeedDefaultProducts()}
-                            className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-bold text-xs inline-flex items-center gap-2 shadow-md cursor-pointer"
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                            <span>استعادة ونشر جميع منتجات الكتالوج فوراً</span>
-                          </button>
-                        </div>
-                      )}
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('newProduct')}
+                          className="px-4 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-xl font-bold text-xs inline-flex items-center gap-2 shadow-md cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>إضافة منتج جديد</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : filteredProducts.length === 0 ? (
