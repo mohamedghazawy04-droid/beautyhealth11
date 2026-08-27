@@ -19,7 +19,8 @@ import {
   FileText,
   ShieldCheck,
   Bell,
-  Package
+  Package,
+  HardDrive
 } from 'lucide-react';
 import { StoreSettings, Product, CategoryConfig } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/categories';
@@ -47,6 +48,9 @@ interface NavbarProps {
   unreadNotificationsCount?: number;
   onOpenNotifications?: () => void;
   ordersCount?: number;
+  onOpenGoogleDrive?: () => void;
+  onOpenCustomerSupport?: () => void;
+  unreadCustomerSupportCount?: number;
 }
 
 const POPULAR_SEARCHES = [
@@ -81,6 +85,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   unreadNotificationsCount = 0,
   onOpenNotifications,
   ordersCount = 0,
+  onOpenGoogleDrive,
+  onOpenCustomerSupport,
+  unreadCustomerSupportCount = 0,
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [isDesktopFocused, setIsDesktopFocused] = useState(false);
@@ -219,6 +226,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               <MessageCircle className="w-3 h-3" />
               <span>واتساب الصيدلي</span>
             </a>
+
+            {onOpenGoogleDrive && (
+              <button
+                type="button"
+                onClick={onOpenGoogleDrive}
+                className="hidden md:flex px-2 py-0.5 rounded-md bg-amber-900/60 hover:bg-amber-800 text-amber-200 hover:text-white text-[10px] sm:text-[11px] font-bold cursor-pointer items-center gap-1 border border-amber-600/50 transition-colors"
+                title="النسخ الاحتياطي السحابي عبر Google Drive"
+              >
+                <HardDrive className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300" />
+                <span>Drive السحابي</span>
+              </button>
+            )}
 
             <button
               onClick={onOpenAdmin}
@@ -414,6 +433,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
+            {/* Customer In-App Support Chat Button */}
+            {onOpenCustomerSupport && (
+              <button
+                type="button"
+                onClick={onOpenCustomerSupport}
+                className="p-2 rounded-xl bg-pink-50/80 hover:bg-pink-100 text-pink-700 relative transition-all cursor-pointer border border-pink-200/70"
+                title="محادثة الدعم والاستفسارات"
+              >
+                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                {unreadCustomerSupportCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-4.5 sm:h-4.5 bg-emerald-600 text-white rounded-full text-[10px] font-black flex items-center justify-center animate-bounce shadow-xs">
+                    {unreadCustomerSupportCount}
+                  </span>
+                )}
+              </button>
+            )}
+
             {/* Orders Tracking Desktop Button (Amazon-Style Returns & Orders) */}
             <button
               type="button"
@@ -540,7 +576,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
 
         {/* Amazon-Style Subnav Bar (All Departments + Dynamic Category Links) */}
-        <nav className="flex items-center gap-1.5 sm:gap-2 pt-2 overflow-x-auto pb-0.5 scrollbar-none text-xs font-semibold border-t border-pink-50/70 mt-1">
+        <nav className="flex items-center gap-1.5 sm:gap-2 pt-2 overflow-x-auto pb-0.5 scrollbar-none text-xs font-semibold border-t border-pink-50/70 mt-1 overscroll-x-contain max-w-full">
           {onOpenCategories && (
             <button
               onClick={onOpenCategories}

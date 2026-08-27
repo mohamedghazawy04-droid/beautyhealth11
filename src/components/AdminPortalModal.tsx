@@ -37,7 +37,10 @@ import {
   MessageCircle,
   Stethoscope,
   ChevronDown,
-  Tag
+  Tag,
+  HardDrive,
+  Cloud,
+  UploadCloud
 } from 'lucide-react';
 import {
   Order,
@@ -48,6 +51,7 @@ import {
   SmartBusinessReport,
   CategoryConfig,
   PrescriptionRequest,
+  SupportTicket,
 } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/categories';
 
@@ -74,6 +78,11 @@ interface AdminPortalModalProps {
     status: PrescriptionRequest['status']
   ) => void;
   onDeletePrescription?: (prescriptionId: string) => void;
+  onOpenGoogleDrive?: () => void;
+  supportTickets?: SupportTicket[];
+  onAdminReplySupport?: (ticketId: string, replyText: string) => void;
+  onUpdateTicketStatus?: (ticketId: string, status: SupportTicket['status']) => void;
+  onDeleteTicket?: (ticketId: string) => void;
 }
 
 export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
@@ -96,6 +105,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   prescriptions = [],
   onUpdatePrescriptionStatus,
   onDeletePrescription,
+  onOpenGoogleDrive,
+  supportTickets = [],
+  onAdminReplySupport,
+  onUpdateTicketStatus,
+  onDeleteTicket,
 }) => {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -114,8 +128,13 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
   // Tabs
   const [activeTab, setActiveTab] = useState<
-    'insights' | 'orders' | 'prescriptions' | 'categories' | 'products' | 'newProduct' | 'settings'
+    'insights' | 'orders' | 'prescriptions' | 'categories' | 'products' | 'newProduct' | 'support' | 'settings'
   >('insights');
+
+  // Support messages admin state
+  const [selectedAdminTicketId, setSelectedAdminTicketId] = useState<string | null>(null);
+  const [adminReplyInput, setAdminReplyInput] = useState('');
+  const [supportFilter, setSupportFilter] = useState<'all' | 'unread' | 'open' | 'answered'>('all');
 
   // Orders Filters & Search
   const [cityFilter, setCityFilter] = useState<'all' | 'october' | 'zayed'>('all');
@@ -641,6 +660,17 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
+                {onOpenGoogleDrive && (
+                  <button
+                    type="button"
+                    onClick={onOpenGoogleDrive}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="النسخ الاحتياطي السحابي عبر Google Drive"
+                  >
+                    <HardDrive className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Google Drive</span>
+                  </button>
+                )}
                 <button
                   onClick={handleLogout}
                   title="تسجيل الخروج وقفل اللوحة"
@@ -730,6 +760,23 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               >
                 <Plus className="w-4 h-4" />
                 <span>إضافة صنف</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('support')}
+                className={`py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                  activeTab === 'support'
+                    ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-xs font-extrabold'
+                    : 'text-pink-900 bg-pink-50 hover:bg-pink-100 border border-pink-200'
+                }`}
+              >
+                <MessageCircle className="w-4 h-4 text-pink-500" />
+                <span>استفسارات العملاء ({supportTickets.length})</span>
+                {supportTickets.filter((t) => t.unreadByAdmin).length > 0 && (
+                  <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black animate-pulse">
+                    {supportTickets.filter((t) => t.unreadByAdmin).length}
+                  </span>
+                )}
               </button>
 
               <button
@@ -955,6 +1002,21 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                             <span className="font-bold text-stone-900">العنوان: </span>
                             <span>{ord.zoneName} - {ord.detailedAddress}</span>
                           </div>
+                        </div>
+
+                        {/* Delivery Timing Badge */}
+                        <div className="mt-1 flex items-center gap-2 text-xs">
+                          {ord.deliveryTimingType === 'scheduled' ? (
+                            <span className="bg-pink-50 text-pink-900 border border-pink-200 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5">
+                              <span>📅 موعد توصيل مجدول:</span>
+                              <span className="text-pink-700 underline font-mono">{ord.scheduledDate}</span>
+                              <span className="text-stone-500">({ord.scheduledTimeSlot})</span>
+                            </span>
+                          ) : (
+                            <span className="bg-stone-100 text-stone-700 border border-stone-200 px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1">
+                              <span>🚚 توصيل خلال ٢٤ ساعة (الافتراضي)</span>
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))
@@ -1953,6 +2015,332 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     </div>
                   )}
                 </form>
+
+                {/* Google Drive Workspace Integration Card */}
+                {onOpenGoogleDrive && (
+                  <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2 border-b border-amber-200/80 pb-2">
+                      <h3 className="font-extrabold text-sm text-amber-950 flex items-center gap-2">
+                        <HardDrive className="w-4 h-4 text-amber-700" />
+                        <span>Google Drive & التخزين السحابي (Workspace)</span>
+                      </h3>
+                      <span className="text-[11px] bg-amber-200/70 text-amber-900 px-2.5 py-0.5 rounded-full font-bold">
+                        تكامل رسمي
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-stone-600 leading-relaxed">
+                      احفظ نسخاً احتياطية مشفرة لمنتجات المتجر وسجل الطلبات في مجلدك السحابي على Google Drive واستعرض الملفات في أي وقت.
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={onOpenGoogleDrive}
+                      className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
+                    >
+                      <HardDrive className="w-4 h-4" />
+                      <span>فتح لوحة Google Drive والنسخ الاحتياطي</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: CUSTOMER INQUIRIES & SUPPORT CHAT */}
+            {activeTab === 'support' && (
+              <div className="flex-1 overflow-hidden flex flex-col md:flex-row h-full bg-white">
+                {/* Conversations Sidebar List */}
+                <div className="w-full md:w-80 border-b md:border-b-0 md:border-l border-stone-200 bg-stone-50/70 flex flex-col shrink-0 h-64 md:h-full overflow-hidden">
+                  {/* Filter Header */}
+                  <div className="p-3 border-b border-stone-200 space-y-2 bg-white shrink-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                        <MessageCircle className="w-4 h-4 text-pink-600" />
+                        <span>محادثات واستفسارات العملاء</span>
+                      </span>
+                      <span className="text-[11px] bg-pink-100 text-pink-800 font-bold px-2 py-0.5 rounded-full">
+                        {supportTickets.length} استفسار
+                      </span>
+                    </div>
+
+                    <div className="flex gap-1 overflow-x-auto scrollbar-none text-[11px]">
+                      {[
+                        { id: 'all', label: 'الكل' },
+                        { id: 'unread', label: 'غير مقروءة' },
+                        { id: 'open', label: 'قيد المتابعة' },
+                        { id: 'answered', label: 'تم الرد' },
+                      ].map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setSupportFilter(f.id as any)}
+                          className={`px-2.5 py-1 rounded-lg font-bold whitespace-nowrap transition-colors ${
+                            supportFilter === f.id
+                              ? 'bg-pink-600 text-white shadow-2xs'
+                              : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tickets List */}
+                  <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+                    {supportTickets
+                      .filter((t) => {
+                        if (supportFilter === 'unread') return t.unreadByAdmin;
+                        if (supportFilter === 'open') return t.status === 'open';
+                        if (supportFilter === 'answered') return t.status === 'answered';
+                        return true;
+                      })
+                      .map((t) => {
+                        const lastMsg = t.messages[t.messages.length - 1];
+                        const isSelected = selectedAdminTicketId === t.id;
+                        return (
+                          <div
+                            key={t.id}
+                            onClick={() => setSelectedAdminTicketId(t.id)}
+                            className={`p-3 rounded-2xl cursor-pointer transition-all border text-right relative ${
+                              isSelected
+                                ? 'bg-white border-pink-500 shadow-xs ring-1 ring-pink-500/30'
+                                : 'bg-white/80 hover:bg-white border-stone-200 hover:border-stone-300'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-1.5 font-bold text-xs text-stone-900">
+                                <span>{t.customerName || 'عميل'}</span>
+                                {t.unreadByAdmin && (
+                                  <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                                )}
+                              </div>
+                              <span className="text-[10px] text-stone-400">
+                                {new Date(t.lastUpdatedAt).toLocaleDateString('ar-EG', {
+                                  month: 'numeric',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 text-[11px] text-stone-600 mb-1">
+                              <span className="bg-stone-100 px-1.5 py-0.5 rounded text-[10px] font-semibold text-stone-700">
+                                {t.topic === 'order_inquiry'
+                                  ? '📦 طلب'
+                                  : t.topic === 'delivery_time'
+                                  ? '🚚 توصيل'
+                                  : t.topic === 'product_question'
+                                  ? '💄 منتج'
+                                  : '💬 عام'}
+                              </span>
+                              {t.relatedOrderId && (
+                                <span className="text-[10px] text-pink-700 font-mono font-bold">
+                                  #{t.relatedOrderId}
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="text-[11px] text-stone-500 truncate">
+                              {lastMsg ? lastMsg.text : 'بدون رسائل'}
+                            </p>
+                          </div>
+                        );
+                      })}
+
+                    {supportTickets.length === 0 && (
+                      <div className="text-center py-10 text-stone-400 text-xs">
+                        لا توجد استفسارات حالياً من العملاء
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Active Chat Conversation Panel */}
+                <div className="flex-1 flex flex-col h-full bg-stone-50/30 overflow-hidden">
+                  {selectedAdminTicketId &&
+                  supportTickets.find((t) => t.id === selectedAdminTicketId) ? (
+                    (() => {
+                      const curTicket = supportTickets.find((t) => t.id === selectedAdminTicketId)!;
+                      const relatedOrderObj = curTicket.relatedOrderId
+                        ? orders.find((o) => o.id === curTicket.relatedOrderId)
+                        : null;
+
+                      const handleAdminSubmitReply = (e?: React.FormEvent) => {
+                        if (e) e.preventDefault();
+                        if (!adminReplyInput.trim() || !onAdminReplySupport) return;
+                        onAdminReplySupport(curTicket.id, adminReplyInput.trim());
+                        setAdminReplyInput('');
+                      };
+
+                      return (
+                        <div className="flex-1 flex flex-col h-full overflow-hidden">
+                          {/* Thread Header */}
+                          <div className="p-3.5 bg-white border-b border-stone-200 flex items-center justify-between shrink-0 flex-wrap gap-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-extrabold text-sm text-stone-900">
+                                  محادثة العميل: {curTicket.customerName}
+                                </h3>
+                                {curTicket.relatedOrderId && (
+                                  <span className="bg-pink-50 text-pink-700 border border-pink-200 px-2 py-0.5 rounded-lg text-xs font-mono font-bold">
+                                    طلب #{curTicket.relatedOrderId}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-stone-500 mt-0.5">
+                                بدء المحادثة:{' '}
+                                {new Date(curTicket.createdAt).toLocaleDateString('ar-EG', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                              </p>
+                            </div>
+
+                            {/* Status Control */}
+                            <div className="flex items-center gap-2">
+                              {onUpdateTicketStatus && (
+                                <select
+                                  value={curTicket.status}
+                                  onChange={(e) =>
+                                    onUpdateTicketStatus(curTicket.id, e.target.value as any)
+                                  }
+                                  className="text-xs px-2.5 py-1.5 rounded-xl border border-stone-200 font-bold bg-white text-stone-700 focus:outline-none"
+                                >
+                                  <option value="open">قيد المتابعة ⏳</option>
+                                  <option value="answered">تم الرد ✅</option>
+                                  <option value="closed">إغلاق المحادثة 🔒</option>
+                                </select>
+                              )}
+                              {onDeleteTicket && (
+                                <button
+                                  type="button"
+                                  onClick={() => onDeleteTicket(curTicket.id)}
+                                  className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  title="حذف المحادثة"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Related Order Banner if linked */}
+                          {relatedOrderObj && (
+                            <div className="p-3 bg-pink-50/70 border-b border-pink-100 flex items-center justify-between text-xs text-pink-950 shrink-0">
+                              <div className="flex items-center gap-2">
+                                <Package className="w-4 h-4 text-pink-600" />
+                                <span>
+                                  <strong>تفاصيل الطلب المرتبط:</strong> {relatedOrderObj.zoneName} -{' '}
+                                  {relatedOrderObj.total} ج ({relatedOrderObj.items.length} أصناف)
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab('orders');
+                                  setOrderSearchQuery(relatedOrderObj.id);
+                                }}
+                                className="text-pink-700 font-bold hover:underline text-[11px]"
+                              >
+                                عرض في جدول الطلبات ←
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Chat Messages Body */}
+                          <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                            {curTicket.messages.map((m) => {
+                              const isAdmin = m.sender === 'admin';
+                              return (
+                                <div
+                                  key={m.id}
+                                  className={`flex flex-col ${
+                                    isAdmin ? 'items-end' : 'items-start'
+                                  }`}
+                                >
+                                  <div className="text-[10px] text-stone-400 mb-1 px-1 flex items-center gap-1">
+                                    <span>{isAdmin ? 'رد الإدارة' : curTicket.customerName}</span>
+                                    <span>•</span>
+                                    <span>
+                                      {new Date(m.timestamp).toLocaleTimeString('ar-EG', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })}
+                                    </span>
+                                  </div>
+                                  <div
+                                    className={`p-3 rounded-2xl text-xs max-w-[85%] leading-relaxed ${
+                                      isAdmin
+                                        ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-br-none shadow-xs'
+                                        : 'bg-white text-stone-800 border border-stone-200 rounded-bl-none shadow-xs'
+                                    }`}
+                                  >
+                                    <p className="whitespace-pre-wrap">{m.text}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Quick Admin Reply Presets */}
+                          <div className="px-3 py-1.5 bg-white border-t border-stone-200 flex items-center gap-1.5 overflow-x-auto scrollbar-none text-[11px] shrink-0">
+                            <span className="text-stone-400 shrink-0 font-bold">ردود جاهزة:</span>
+                            {[
+                              'أهلاً بك! طلبك قيد التجهيز الآن وسيتواصل معك المندوب قريباً.',
+                              'نعم المنتج متوفر لدينا أصلي ومضمون 100%.',
+                              'تم تعديل موعد التوصيل بناءً على طلبكم.',
+                              'تم مراجعة الروشة وتجهيز الأصناف المتاحة.',
+                            ].map((preset, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setAdminReplyInput(preset)}
+                                className="px-2.5 py-1 rounded-full bg-stone-50 border border-stone-200 hover:border-pink-300 hover:bg-pink-50 hover:text-pink-700 whitespace-nowrap text-stone-700 transition-colors"
+                              >
+                                {preset}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Reply Form */}
+                          <form
+                            onSubmit={handleAdminSubmitReply}
+                            className="p-3 bg-white border-t border-stone-200 flex items-center gap-2 shrink-0"
+                          >
+                            <input
+                              type="text"
+                              value={adminReplyInput}
+                              onChange={(e) => setAdminReplyInput(e.target.value)}
+                              placeholder="اكتب رد إدارة المتجر للعميل..."
+                              className="flex-1 px-3 py-2 text-xs rounded-xl bg-stone-50 border border-stone-200 focus:bg-white focus:border-pink-500 focus:outline-none"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!adminReplyInput.trim()}
+                              className="bg-pink-600 hover:bg-pink-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                              <span>إرسال الرد</span>
+                            </button>
+                          </form>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-stone-400 space-y-2">
+                      <MessageCircle className="w-12 h-12 text-stone-300 stroke-[1.5]" />
+                      <p className="text-xs font-bold text-stone-600">
+                        اختر محادثة من القائمة لعرض تفاصيلها والرد على العميل
+                      </p>
+                      <p className="text-[11px] text-stone-400 max-w-sm">
+                        جميع الاستفسارات مشفرة وتتم مباشرة عبر التطبيق دون الحاجة لمشاركة أرقام هواتف خاصة
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </>

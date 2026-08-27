@@ -42,6 +42,7 @@ interface OrderTrackingModalProps {
   onReorder?: (items: CartItem[]) => void;
   onCancelOrder?: (orderId: string) => void;
   onRefreshOrders?: () => void;
+  onOpenCustomerSupport?: (orderId: string) => void;
 }
 
 type TabType = 'all' | 'in_progress' | 'delivered' | 'cancelled';
@@ -56,6 +57,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
   onReorder,
   onCancelOrder,
   onRefreshOrders,
+  onOpenCustomerSupport,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -593,17 +595,31 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
 
                         {/* Customer Support & Order Actions */}
                         <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-                          <a
-                            href={`https://wa.me/201093629587?text=${encodeURIComponent(
-                              `مرحباً، أود المساعدة بخصوص طلبي من متجر m&l رقم #${order.id}`
-                            )}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <MessageCircle className="w-4 h-4 text-emerald-600" />
-                            <span>مساعدة بشأن هذا الطلب (واتساب)</span>
-                          </a>
+                          {onOpenCustomerSupport ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose();
+                                onOpenCustomerSupport(order.id);
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-800 border border-pink-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                              <MessageCircle className="w-4 h-4 text-pink-600" />
+                              <span>استفسار أو مساعدة بشأن هذا الطلب (محادثة داخلية)</span>
+                            </button>
+                          ) : (
+                            <a
+                              href={`https://wa.me/201093629587?text=${encodeURIComponent(
+                                `مرحباً، أود المساعدة بخصوص طلبي من متجر m&l رقم #${order.id}`
+                              )}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                              <MessageCircle className="w-4 h-4 text-emerald-600" />
+                              <span>مساعدة بشأن هذا الطلب</span>
+                            </a>
+                          )}
 
                           {/* Cancel Order Action if still in new or preparing state */}
                           {!isDelivered && !isCancelled && onCancelOrder && (

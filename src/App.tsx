@@ -33,6 +33,8 @@ import {
   CategoryConfig,
   PrescriptionRequest,
   AppNotification,
+  SupportTicket,
+  SupportMessage,
 } from './types';
 import { PRODUCTS_DATA } from './data/products';
 import { OCTOBER_ZAYED_ZONES } from './data/zones';
@@ -55,6 +57,8 @@ import { PrescriptionModal } from './components/PrescriptionModal';
 import { FeaturedDealsCarousel } from './components/FeaturedDealsCarousel';
 import { AmazonCategoryGrid } from './components/AmazonCategoryGrid';
 import { NotificationsModal } from './components/NotificationsModal';
+import { GoogleDriveModal } from './components/GoogleDriveModal';
+import { CustomerSupportModal } from './components/CustomerSupportModal';
 import { playNotificationSound, sendBrowserNotification } from './utils/notificationSound';
 import { db } from './firebase';
 import {
@@ -263,9 +267,62 @@ export default function App() {
   const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isGoogleDriveOpen, setIsGoogleDriveOpen] = useState(false);
   const [isInstallAppOpen, setIsInstallAppOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+
+  // In-App Customer Support & Tickets State
+  const [customerSessionId] = useState<string>(() => {
+    let sid = localStorage.getItem('carehub_customer_session_id');
+    if (!sid) {
+      sid = 'cust_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+      localStorage.setItem('carehub_customer_session_id', sid);
+    }
+    return sid;
+  });
+
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(() => {
+    const saved = localStorage.getItem('carehub_support_tickets');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [
+      {
+        id: 'ticket-welcome',
+        customerSessionId: 'default',
+        customerName: 'فريق دعم العملاء',
+        topic: 'general',
+        status: 'answered',
+        createdAt: new Date(Date.now() - 7200000).toISOString(),
+        lastUpdatedAt: new Date().toISOString(),
+        unreadByCustomer: false,
+        unreadByAdmin: false,
+        messages: [
+          {
+            id: 'msg-w1',
+            sender: 'admin',
+            text: 'مرحباً بك في مركز الاستفسارات المباشر لمتجر m&l! يمكنك هنا توجيه أي سؤال للإدارة بخصوص طلبك، مواعيد التوصيل، أو تفاصيل المنتجات وسيقوم فريقنا بالرد عليك مباشرة داخل التطبيق دون الحاجة لتبادل أرقام خارجية 🌸',
+            timestamp: new Date(Date.now() - 7200000).toISOString(),
+            read: true,
+          },
+        ],
+      },
+    ];
+  });
+
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [supportInitialOrderId, setSupportInitialOrderId] = useState<string | undefined>(undefined);
+
+  // Sync Support Tickets to LocalStorage
+  useEffect(() => {
+    localStorage.setItem('carehub_support_tickets', JSON.stringify(supportTickets));
+  }, [supportTickets]);
 
   // Browser & In-App Notifications State
   const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState<boolean>(() => {
@@ -914,10 +971,150 @@ export default function App() {
       });
   }, [products, activeCategory, activeSubCategory, selectedBrand, searchQuery, sortBy]);
 
+  // Support Handlers
+  const handleCreateSupportTicket = (
+    topic: SupportTicket['topic'],
+    messageText: string,
+    customerName: string,
+    customerPhone?: string,
+    relatedOrderId?: string
+  ) => {
+    const newMsg: SupportMessage = {
+      id: 'msg_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+      sender: 'customer',
+      text: messageText,
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+
+    const newTicket: SupportTicket = {
+      id: 'ticket_' + Date.now().toString(36),
+      customerSessionId,
+      customerName: customerName || 'عميل المتجر',
+      customerPhone,
+      topic,
+      relatedOrderId,
+      status: 'open',
+      createdAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+      unreadByCustomer: false,
+      unreadByAdmin: true,
+      messages: [newMsg],
+    };
+
+    setSupportTickets((prev) => [newTicket, ...prev]);
+
+    // Push in-app notification for user
+    const newNotif: AppNotification = {
+      id: 'notif-' + Date.now(),
+      title: 'تم إرسال استفسارك بنجاح 💬',
+      body: `تم استلام استفسارك رقم #${newTicket.id.slice(-5)} وسيتم الرد من إدارة المتجر في أقرب وقت.`,
+      timestamp: new Date().toISOString(),
+      type: 'support_message',
+      read: false,
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+    showToast('💬 تم إرسال استفسارك إلى إدارة المتجر بنجاح');
+  };
+
+  const handleSendSupportMessage = (ticketId: string, text: string) => {
+    const newMsg: SupportMessage = {
+      id: 'msg_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+      sender: 'customer',
+      text,
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+
+    setSupportTickets((prev) =>
+      prev.map((t) => {
+        if (t.id === ticketId) {
+          return {
+            ...t,
+            messages: [...t.messages, newMsg],
+            status: 'open',
+            lastUpdatedAt: new Date().toISOString(),
+            unreadByAdmin: true,
+            unreadByCustomer: false,
+          };
+        }
+        return t;
+      })
+    );
+  };
+
+  const handleAdminReplySupport = (ticketId: string, replyText: string) => {
+    const newMsg: SupportMessage = {
+      id: 'msg_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+      sender: 'admin',
+      text: replyText,
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+
+    setSupportTickets((prev) =>
+      prev.map((t) => {
+        if (t.id === ticketId) {
+          return {
+            ...t,
+            messages: [...t.messages, newMsg],
+            status: 'answered' as const,
+            lastUpdatedAt: new Date().toISOString(),
+            unreadByCustomer: true,
+            unreadByAdmin: false,
+          };
+        }
+        return t;
+      })
+    );
+
+    // If browser notifications enabled, notify customer
+    playNotificationSound();
+    sendBrowserNotification('رد جديد من إدارة متجر m&l 💬', {
+      body: replyText.length > 60 ? replyText.substring(0, 57) + '...' : replyText,
+    });
+
+    const newNotif: AppNotification = {
+      id: 'notif-' + Date.now(),
+      title: 'رد جديد من إدارة المتجر 💬',
+      body: replyText,
+      timestamp: new Date().toISOString(),
+      type: 'support_message',
+      read: false,
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+    showToast('✅ تم إرسال رد الإدارة للعميل بنجاح');
+  };
+
+  const handleMarkSupportTicketReadByCustomer = (ticketId: string) => {
+    setSupportTickets((prev) =>
+      prev.map((t) => (t.id === ticketId ? { ...t, unreadByCustomer: false } : t))
+    );
+  };
+
+  const handleUpdateTicketStatus = (ticketId: string, status: SupportTicket['status']) => {
+    setSupportTickets((prev) =>
+      prev.map((t) => (t.id === ticketId ? { ...t, status } : t))
+    );
+    showToast(`تم تحديث حالة المحادثة`);
+  };
+
+  const handleDeleteTicket = (ticketId: string) => {
+    setSupportTickets((prev) => prev.filter((t) => t.id !== ticketId));
+    showToast('تم حذف المحادثة');
+  };
+
+  // Calculate unread count for current customer
+  const unreadCustomerMessagesCount = useMemo(() => {
+    return supportTickets
+      .filter((t) => t.customerSessionId === customerSessionId || t.customerSessionId === 'default')
+      .reduce((acc, t) => acc + (t.unreadByCustomer ? 1 : 0), 0);
+  }, [supportTickets, customerSessionId]);
+
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col selection:bg-pink-600 selection:text-white pb-20 md:pb-0">
+    <div className="min-h-screen bg-stone-50 flex flex-col selection:bg-pink-600 selection:text-white pb-20 md:pb-0 w-full max-w-full overflow-x-hidden relative">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-stone-900 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-2xl border border-pink-500/30 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-5">
@@ -978,6 +1175,7 @@ export default function App() {
         onOpenWishlist={() => setIsWishlistOpen(true)}
         onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
         onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenGoogleDrive={() => setIsGoogleDriveOpen(true)}
         onOpenInstallApp={() => setIsInstallAppOpen(true)}
         onOpenCategories={() => setIsCategoriesModalOpen(true)}
         onOpenPrescription={() => setIsPrescriptionModalOpen(true)}
@@ -995,6 +1193,8 @@ export default function App() {
         unreadNotificationsCount={notifications.filter((n) => !n.read).length}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
         ordersCount={orders.length}
+        onOpenCustomerSupport={() => setIsSupportModalOpen(true)}
+        unreadCustomerSupportCount={unreadCustomerMessagesCount}
       />
 
       {/* Main Content Area */}
@@ -1133,7 +1333,7 @@ export default function App() {
           </div>
 
           {/* Dynamic Subcategory Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs font-bold overscroll-x-contain max-w-full">
             {currentCategoryConfig?.subcategories && currentCategoryConfig.subcategories.length > 0 ? (
               currentCategoryConfig.subcategories.map((sub) => (
                 <button
@@ -1218,21 +1418,22 @@ export default function App() {
             <span>• متجر العناية ومستلزمات الطفل - إشراف صيدلي معتمد 🥼</span>
           </div>
 
-          <div className="flex items-center gap-4 text-[11px] font-bold">
+          <div className="flex items-center gap-4 text-[11px] font-bold flex-wrap justify-center">
+            <button
+              onClick={() => setIsSupportModalOpen(true)}
+              className="text-pink-400 hover:text-pink-300 transition-colors cursor-pointer flex items-center gap-1"
+            >
+              💬 محادثة ودعم العملاء
+              {unreadCustomerMessagesCount > 0 && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              )}
+            </button>
             <button
               onClick={() => setIsPrescriptionModalOpen(true)}
               className="text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
             >
               📄 طلب روشتة صيدلية
             </button>
-            <a
-              href="https://wa.me/201093629587?text=مرحباً، أود الاستفسار وطلب أوردر من متجر m%26l"
-              target="_blank"
-              rel="noreferrer"
-              className="text-emerald-400 hover:text-emerald-300 transition-colors"
-            >
-              💬 واتساب الطلب
-            </a>
             <button
               onClick={() => setIsOrderTrackingOpen(true)}
               className="hover:text-pink-400 transition-colors cursor-pointer"
@@ -1254,6 +1455,24 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* In-App Customer Support Floating Action Button */}
+      <button
+        type="button"
+        onClick={() => setIsSupportModalOpen(true)}
+        className="fixed bottom-20 md:bottom-6 left-4 md:left-6 z-35 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white p-3 sm:px-4 sm:py-3 rounded-full shadow-lg shadow-pink-900/20 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 border-2 border-white cursor-pointer"
+        title="استفسار وتواصل مع إدارة المتجر"
+      >
+        <div className="relative">
+          <MessageCircle className="w-5 h-5" />
+          {unreadCustomerMessagesCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 text-stone-900 text-[9px] font-black rounded-full flex items-center justify-center animate-bounce">
+              {unreadCustomerMessagesCount}
+            </span>
+          )}
+        </div>
+        <span className="text-xs font-bold hidden sm:inline">استفسارات المتجر</span>
+      </button>
 
       {/* Modals & Drawers */}
       <ZoneSelectorModal
@@ -1304,6 +1523,10 @@ export default function App() {
         onOrderCompleted={handleOrderCompleted}
         onClearCart={handleClearCart}
         storeSettings={storeSettings}
+        onOpenCustomerSupport={(orderId) => {
+          setSupportInitialOrderId(orderId);
+          setIsSupportModalOpen(true);
+        }}
       />
 
       <OrderTrackingModal
@@ -1324,6 +1547,10 @@ export default function App() {
           showToast('🛒 تمت إضافة المنتجات لسلة التسوق');
         }}
         onCancelOrder={(orderId) => handleUpdateOrderStatus(orderId, 'cancelled')}
+        onOpenCustomerSupport={(orderId) => {
+          setSupportInitialOrderId(orderId);
+          setIsSupportModalOpen(true);
+        }}
       />
 
       {/* Real-time Notifications Modal */}
@@ -1377,6 +1604,34 @@ export default function App() {
         prescriptions={prescriptions}
         onUpdatePrescriptionStatus={handleUpdatePrescriptionStatus}
         onDeletePrescription={handleDeletePrescription}
+        onOpenGoogleDrive={() => setIsGoogleDriveOpen(true)}
+        supportTickets={supportTickets}
+        onAdminReplySupport={handleAdminReplySupport}
+        onUpdateTicketStatus={handleUpdateTicketStatus}
+        onDeleteTicket={handleDeleteTicket}
+      />
+
+      {/* Google Drive Cloud Backup & File Manager Modal */}
+      <GoogleDriveModal
+        isOpen={isGoogleDriveOpen}
+        onClose={() => setIsGoogleDriveOpen(false)}
+        products={products}
+        orders={orders}
+      />
+
+      {/* In-App Customer Support & Inquiries Chat Modal */}
+      <CustomerSupportModal
+        isOpen={isSupportModalOpen}
+        onClose={() => {
+          setIsSupportModalOpen(false);
+          setSupportInitialOrderId(undefined);
+        }}
+        tickets={supportTickets}
+        customerSessionId={customerSessionId}
+        onCreateTicket={handleCreateSupportTicket}
+        onSendMessage={handleSendSupportMessage}
+        onMarkAsRead={handleMarkSupportTicketReadByCustomer}
+        initialOrderId={supportInitialOrderId}
       />
 
       <ReviewSubmissionModal

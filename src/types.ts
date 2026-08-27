@@ -64,6 +64,7 @@ export interface DeliveryZone {
   city?: 'october' | 'zayed' | string;
   districtNameAr?: string;
   deliveryFee?: number;
+  fee?: number;
   estimatedDeliveryTime?: string;
   freeDeliveryThreshold?: number;
   popularLandmarks?: string[];
@@ -103,6 +104,9 @@ export interface Order {
   status: 'new' | 'preparing' | 'with_courier' | 'delivered' | 'cancelled';
   createdAt: string;
   estimatedDelivery?: string;
+  deliveryTimingType?: 'standard_24h' | 'scheduled';
+  scheduledDate?: string;
+  scheduledTimeSlot?: string;
   instaPayReceipt?: string;
   courierName?: string;
   courierPhone?: string;
@@ -182,11 +186,35 @@ export interface AppNotification {
   title: string;
   body: string;
   timestamp: string;
-  type: 'new_product' | 'order_status' | 'promotion' | 'system';
+  type: 'new_product' | 'order_status' | 'promotion' | 'system' | 'support_message';
   read: boolean;
   productId?: string;
   orderId?: string;
   image?: string;
   productPrice?: number;
+}
+
+export interface SupportMessage {
+  id: string;
+  sender: 'customer' | 'admin';
+  text: string;
+  timestamp: string;
+  orderId?: string;
+  read?: boolean;
+}
+
+export interface SupportTicket {
+  id: string;
+  customerSessionId: string;
+  customerName: string;
+  customerPhone?: string;
+  topic: 'order_inquiry' | 'product_question' | 'delivery_time' | 'prescription_help' | 'general';
+  relatedOrderId?: string;
+  status: 'open' | 'answered' | 'closed';
+  messages: SupportMessage[];
+  createdAt: string;
+  lastUpdatedAt: string;
+  unreadByAdmin: boolean;
+  unreadByCustomer: boolean;
 }
 

@@ -135,7 +135,7 @@ export const FeaturedDealsCarousel: React.FC<FeaturedDealsCarouselProps> = ({
         <div
           ref={scrollContainerRef}
           onScroll={checkScroll}
-          className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory scroll-smooth relative z-10"
+          className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory scroll-smooth relative z-10 overscroll-x-contain max-w-full touch-pan-x"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {dealProducts.map((product) => {
