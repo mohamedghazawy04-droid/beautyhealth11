@@ -1422,6 +1422,26 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       ))}
                     </select>
 
+                    {onSeedDefaultProducts && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            confirm(
+                              'هل تريد استعادة ونشر جميع منتجات الكتالوج المعتمدة (العناية بالأطفال، الشعر، البشرة، والبكجات)؟'
+                            )
+                          ) {
+                            onSeedDefaultProducts();
+                          }
+                        }}
+                        className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                        title="استعادة ونشر باقة المنتجات المعتمدة"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>استعادة الكتالوج الكامل</span>
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => setActiveTab('newProduct')}
@@ -1439,13 +1459,25 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     <div className="w-16 h-16 rounded-2xl bg-pink-100 text-pink-700 flex items-center justify-center mx-auto shadow-sm">
                       <Layers className="w-8 h-8" />
                     </div>
-                    <div className="max-w-md mx-auto space-y-1">
+                    <div className="max-w-md mx-auto space-y-2">
                       <h4 className="font-black text-base text-stone-900">
                         المتجر فارغ من المنتجات حالياً
                       </h4>
                       <p className="text-xs text-stone-500">
-                        يمكنك إضافة منتجات جديدة فوراً ونشرها لجميع الزوار!
+                        يمكنك إضافة منتجات جديدة أو استعادة الكتالوج المعتمد بالكامل بضغطة واحدة!
                       </p>
+                      {onSeedDefaultProducts && (
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={() => onSeedDefaultProducts()}
+                            className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-bold text-xs inline-flex items-center gap-2 shadow-md cursor-pointer"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                            <span>استعادة ونشر جميع منتجات الكتالوج فوراً</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : filteredProducts.length === 0 ? (

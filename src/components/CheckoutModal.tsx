@@ -201,6 +201,51 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   // If order was successfully completed, show dedicated in-app confirmation view!
   if (completedOrder) {
+    const storeWhatsApp = storeSettings?.contactWhatsApp || '201093629587';
+    const cleanWhatsApp = storeWhatsApp.replace(/\D/g, '');
+    
+    const itemsSummary = completedOrder.items
+      .map(
+        (it, idx) =>
+          `${idx + 1}. *${it.product.nameAr || it.product.name}*\n   الكمية: ${it.quantity} | السعر: ${it.product.price * it.quantity} ج`
+      )
+      .join('\n');
+
+    const managerAlertMessage = encodeURIComponent(
+      `🚨 *إخطار بطلب جديد تم تسجيله على السيستم* 📦\n` +
+      `━━━━━━━━━━━━━━━━━\n` +
+      `🔢 *رقم الأوردر:* #${completedOrder.id}\n` +
+      `👤 *اسم العميل:* ${completedOrder.customerName}\n` +
+      `📱 *رقم الهاتف:* ${completedOrder.phone}\n` +
+      (completedOrder.alternatePhone ? `📱 *هاتف بديل:* ${completedOrder.alternatePhone}\n` : '') +
+      `📍 *المنطقة:* ${completedOrder.city || ''} - ${completedOrder.zoneName || ''}\n` +
+      `🏢 *العنوان بالتفصيل:* ${completedOrder.detailedAddress}\n` +
+      (completedOrder.buildingNumber || completedOrder.floorNumber || completedOrder.apartmentNumber
+        ? `🚪 *بيانات المبنى:* عمارة ${completedOrder.buildingNumber || '-'} / دور ${completedOrder.floorNumber || '-'} / شقة ${completedOrder.apartmentNumber || '-'}\n`
+        : '') +
+      (completedOrder.landmark ? `🏷️ *علامة مميزة:* ${completedOrder.landmark}\n` : '') +
+      `🚚 *موعد التوصيل:* ${completedOrder.estimatedDelivery || 'خلال ٢٤ ساعة'}\n` +
+      `💳 *طريقة الدفع:* ${
+        completedOrder.paymentMethod === 'cod'
+          ? '💵 كاش عند الاستلام'
+          : completedOrder.paymentMethod === 'instapay'
+          ? '📱 إنستاباي InstaPay'
+          : '💳 محفظة إلكترونية'
+      }\n` +
+      `━━━━━━━━━━━━━━━━━\n` +
+      `🛒 *الأصناف المطلوبة:*\n${itemsSummary}\n` +
+      `━━━━━━━━━━━━━━━━━\n` +
+      `💵 *المجموع الفرعي:* ${completedOrder.subtotal} جنيه\n` +
+      (completedOrder.discount ? `🎟️ *الخصم (${completedOrder.appliedCoupon}):* -${completedOrder.discount} جنيه\n` : '') +
+      `🚚 *الشحن:* ${completedOrder.deliveryFee === 0 ? 'مجاني 🎉' : `${completedOrder.deliveryFee} جنيه`}\n` +
+      `💰 *الإجمالي النهائي المطلوب:* *${completedOrder.total} جنيه*\n` +
+      (completedOrder.notes ? `📝 *ملاحظات للطلب:* ${completedOrder.notes}\n` : '') +
+      `━━━━━━━━━━━━━━━━━\n` +
+      `✅ *تم حفظ الطلب بنجاح في قاعدة بيانات المتجر*`
+    );
+
+    const managerWhatsAppUrl = `https://wa.me/${cleanWhatsApp}?text=${managerAlertMessage}`;
+
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs text-right">
         <div className="bg-white rounded-3xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-pink-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -215,9 +260,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <div className="w-14 h-14 rounded-full bg-white/20 border border-white/40 flex items-center justify-center mb-3 shadow-inner">
               <CheckCircle2 className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-black">تم تأكيد وتسجيل طلبك بنجاح! 🎉</h2>
+            <h2 className="text-xl sm:text-2xl font-black">تم تسجيل وتأكيد طلبك بنجاح! 🎉</h2>
             <p className="text-xs sm:text-sm text-emerald-100 mt-1 max-w-md">
-              تم إرسال تفاصيل طلبك مباشرة إلى سيستم إدارة المتجر لبدء التجهيز والتوصيل
+              تم إدراج بياناتك وعنوانك في سيستم المتجر الداخلي لبدء التجهيز والتوصيل
             </p>
           </div>
 
@@ -226,7 +271,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             {/* Order ID & Status Badge */}
             <div className="bg-stone-50 border border-stone-200/90 rounded-2xl p-4 flex items-center justify-between flex-wrap gap-2">
               <div>
-                <span className="text-[11px] text-stone-500 font-bold block">رقم الأوردر الخاص بك:</span>
+                <span className="text-[11px] text-stone-500 font-bold block">رقم الأوردر المسجل:</span>
                 <span className="text-base sm:text-lg font-mono font-black text-pink-700">
                   #{completedOrder.id}
                 </span>
@@ -260,6 +305,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <span className="text-stone-900 font-black">{completedOrder.estimatedDelivery}</span>
               </div>
               <div className="flex items-center justify-between text-stone-600 pt-1">
+                <span>اسم المستلم:</span>
+                <span className="font-semibold text-stone-900">{completedOrder.customerName} ({completedOrder.phone})</span>
+              </div>
+              <div className="flex items-center justify-between text-stone-600">
                 <span>عنوان التوصيل:</span>
                 <span className="font-semibold text-stone-900">
                   {completedOrder.zoneName} - {completedOrder.detailedAddress}
@@ -270,7 +319,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <span className="font-semibold text-stone-900">
                   {completedOrder.paymentMethod === 'cod'
                     ? '💵 كاش عند الاستلام'
-                    : '📱 إنستاباي InstaPay'}
+                    : completedOrder.paymentMethod === 'instapay'
+                    ? '📱 إنستاباي InstaPay'
+                    : '💳 محفظة إلكترونية'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-stone-600">
@@ -279,19 +330,30 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             </div>
 
-            {/* Privacy & In-App Security Note */}
-            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-start gap-2.5">
-              <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <strong className="block font-bold">نظام متكامل وآمن ١٠٠٪</strong>
-                <p className="text-[11px] text-emerald-800 mt-0.5">
-                  تم تسجيل الأوردر تلقائياً في قاعدة بيانات المتجر بدون الحاجة لمراسلات خارجية. يمكنك تتبع تقدم الطلب أو الاستفسار مباشرة مع الإدارة من داخل التطبيق.
-                </p>
+            {/* Manager WhatsApp Alert Trigger Button */}
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
+              <div className="flex items-start gap-2.5">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block font-bold text-xs text-emerald-950">إشعار فوري لمدير المتجر على واتساب</strong>
+                  <p className="text-[11px] text-emerald-800 mt-0.5">
+                    الطلب مسجل بالنظام، ويمكنك أيضاً إرسال نسخة تفصيلية للمدير مباشرة لضمان أسرع استجابة وتأكيد فوري.
+                  </p>
+                </div>
               </div>
+              <a
+                href={managerWhatsAppUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer no-underline text-center"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>إرسال إشعار الأوردر لمدير المتجر عبر واتساب 📲</span>
+              </a>
             </div>
 
             {/* Quick Action Navigation Buttons */}
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2 pt-1">
               {onOpenOrderTracking && (
                 <button
                   type="button"
@@ -302,7 +364,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   className="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-pink-500/20 transition-all cursor-pointer"
                 >
                   <Truck className="w-4 h-4" />
-                  <span>تتبع حالة الأوردر ومكانه الآن 🚚</span>
+                  <span>تتبع حالة الأوردر ومكانه لايف 🚚</span>
                 </button>
               )}
 
@@ -316,7 +378,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   className="w-full bg-white hover:bg-pink-50 border border-pink-200 text-pink-700 font-bold py-2.5 px-4 rounded-2xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Headphones className="w-4 h-4 text-pink-600" />
-                  <span>استفسار وتواصل مع خدمة العملاء والإدارة 💬</span>
+                  <span>استفسار وتواصل مع قسم خدمة العملاء 💬</span>
                 </button>
               )}
 
@@ -666,7 +728,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           {/* Section 4: Payment Method */}
           <div className="space-y-3">
             <label className="block text-xs font-bold text-stone-700">طريقة الدفع المفضلة:</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setPaymentMethod('cod')}
@@ -689,6 +751,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 }`}
               >
                 <span className="text-xs">📱 إنستاباي InstaPay</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('vodafone_cash')}
+                className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${
+                  paymentMethod === 'vodafone_cash'
+                    ? 'border-pink-600 bg-pink-50/70 text-pink-900 font-extrabold ring-1 ring-pink-500'
+                    : 'border-stone-200 bg-white text-stone-700 hover:bg-pink-50/30'
+                }`}
+              >
+                <span className="text-xs">💳 محفظة إلكترونية</span>
               </button>
             </div>
           </div>

@@ -263,59 +263,32 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
             </div>
 
-            {/* WhatsApp Checkout Direct Link / Button */}
-            {(() => {
-              const whatsappNumber = (storeSettings?.contactWhatsApp || '201093629587').replace(/\D/g, '');
-              const itemsListText = items
-                .map(
-                  (i, idx) =>
-                    `${idx + 1}. *${i.product.nameAr || i.product.name}*\n   الكمية: ${i.quantity} | السعر: ${i.product.price * i.quantity} جنيه`
-                )
-                .join('\n');
+            {/* Amazon / Talabat Style Checkout Primary CTA */}
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onProceedToCheckout();
+                }}
+                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-pink-600 via-rose-600 to-pink-700 hover:from-pink-700 hover:to-rose-800 active:scale-[0.99] text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-500/25 transition-all cursor-pointer text-center"
+              >
+                <span>متابعة إتمام الطلب وتحديد العنوان 🛍️</span>
+                <ArrowLeft className="w-4 h-4" />
+              </button>
 
-              const cartMessage =
-                `*🛍️ طلب جديد من متجر m&l*\n` +
-                `━━━━━━━━━━━━━━━━━\n` +
-                `*📦 محتويات السلة:*\n${itemsListText}\n` +
-                `━━━━━━━━━━━━━━━━━\n` +
-                `*المجموع الفرعي:* ${subtotal} جنيه\n` +
-                (discountAmount > 0 ? `*الخصم (${appliedCoupon}):* -${discountAmount} جنيه\n` : '') +
-                `*الشحن:* ${effectiveDeliveryFee === 0 ? 'مجاني 🎉' : `${effectiveDeliveryFee} جنيه`}\n` +
-                `*💵 الإجمالي النهائي:* ${grandTotal} جنيه\n` +
-                `━━━━━━━━━━━━━━━━━\n` +
-                `📍 أرجو تأكيد الطلب وإرسال تفاصيل التوصيل.`;
-
-              const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(cartMessage)}`;
-
-              return (
-                <div className="space-y-2">
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => {
-                      onClose();
-                    }}
-                    className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 active:scale-[0.99] text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 transition-all cursor-pointer text-center no-underline"
-                  >
-                    <MessageCircle className="w-5 h-5 animate-pulse" />
-                    <span>إرسال السلة عبر واتساب فوراً 📲</span>
-                  </a>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onProceedToCheckout();
-                    }}
-                    className="w-full py-2 px-3 rounded-xl bg-pink-100/70 hover:bg-pink-200 text-pink-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <span>كتابة العنوان وتفاصيل الشحن أولاً</span>
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              );
-            })()}
+              <div className="flex items-center justify-center gap-3 text-[10px] text-stone-500 pt-1 font-medium">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  <span>دفع عند الاستلام متاح</span>
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <Truck className="w-3 h-3 text-pink-600" />
+                  <span>توصيل ٦ أكتوبر والشيخ زايد</span>
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>

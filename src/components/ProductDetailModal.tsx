@@ -21,6 +21,8 @@ interface ProductDetailModalProps {
   isWishlisted: boolean;
   onToggleWishlist: (product: Product) => void;
   onOpenReviewModal?: (product: Product) => void;
+  onOpenCustomerSupport?: (productName?: string) => void;
+  selectedZone?: any;
   storeSettings?: StoreSettings;
 }
 
@@ -31,6 +33,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   isWishlisted,
   onToggleWishlist,
   onOpenReviewModal,
+  onOpenCustomerSupport,
+  selectedZone,
   storeSettings,
 }) => {
   const [quantity, setQuantity] = useState(1);
@@ -45,8 +49,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const storeWhatsApp = storeSettings?.contactWhatsApp || '201093629587';
   const cleanWhatsApp = storeWhatsApp.replace(/\D/g, '');
 
-  const whatsappMessage = encodeURIComponent(
-    `مرحباً، أود طلب هذا المنتج مباشرة من متجر m&l:\n- المنتج: ${product.nameAr || product.name}\n- السعر: ${product.price} جنيه\n- الكمية: ${quantity}`
+  const inquiryWhatsAppMessage = encodeURIComponent(
+    `*💬 استفسار عن منتج من متجر m&l*\n` +
+    `━━━━━━━━━━━━━━━━━\n` +
+    `📌 *المنتج:* ${product.nameAr || product.name}\n` +
+    `🏷️ *البراند:* ${product.brand || '-'}\n` +
+    `💵 *السعر:* ${product.price} جنيه\n` +
+    `━━━━━━━━━━━━━━━━━\n` +
+    `أود الاستفسار عن تفاصيل وطريقة استخدام وتوافر هذا المنتج.`
   );
 
   return (
@@ -344,28 +354,42 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-4 border-t border-pink-100">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-4 border-t border-pink-100">
                 <button
                   type="button"
                   onClick={() => {
                     onAddToCart(product, quantity);
                     onClose();
                   }}
-                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 transition-all cursor-pointer active:scale-[0.98]"
+                  className="flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 transition-all cursor-pointer active:scale-[0.98]"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  <span>إضافة للسلة ({product.price * quantity} ج)</span>
+                  <span>إضافة للسلة وتأكيد الطلب ({product.price * quantity} ج)</span>
                 </button>
 
-                <a
-                  href={`https://wa.me/${cleanWhatsApp}?text=${whatsappMessage}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer no-underline"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span className="hidden sm:inline">طلب واتساب سريع</span>
-                </a>
+                {onOpenCustomerSupport ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenCustomerSupport(product.nameAr || product.name);
+                    }}
+                    className="py-3 px-4 rounded-2xl bg-pink-50 hover:bg-pink-100 text-pink-900 border border-pink-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 text-pink-600" />
+                    <span>استفسار عن المنتج 💬</span>
+                  </button>
+                ) : (
+                  <a
+                    href={`https://wa.me/${cleanWhatsApp}?text=${inquiryWhatsAppMessage}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer no-underline"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>إرسال استفسار للمدير 📲</span>
+                  </a>
+                )}
               </div>
             </div>
           </div>

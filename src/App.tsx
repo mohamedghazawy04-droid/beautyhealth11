@@ -433,6 +433,8 @@ export default function App() {
           localStorage.setItem('carehub_products', JSON.stringify(prodsList));
         } else {
           if (PRODUCTS_DATA.length > 0) {
+            setProducts(PRODUCTS_DATA);
+            localStorage.setItem('carehub_products', JSON.stringify(PRODUCTS_DATA));
             const batch = writeBatch(db);
             PRODUCTS_DATA.forEach((prod) => {
               const docRef = doc(db, 'products', prod.id);
@@ -1492,7 +1494,12 @@ export default function App() {
         isWishlisted={detailProduct ? wishlist.some((w) => w.id === detailProduct.id) : false}
         onToggleWishlist={handleToggleWishlist}
         selectedZone={selectedZone}
+        storeSettings={storeSettings}
         onOpenReviewModal={(prod) => handleOpenReviewModal(prod)}
+        onOpenCustomerSupport={(prodName) => {
+          setSupportInitialOrderId(undefined);
+          setIsSupportModalOpen(true);
+        }}
       />
 
       <CartDrawer
@@ -1523,6 +1530,10 @@ export default function App() {
         onOrderCompleted={handleOrderCompleted}
         onClearCart={handleClearCart}
         storeSettings={storeSettings}
+        onOpenOrderTracking={(orderId) => {
+          setIsCheckoutOpen(false);
+          setIsOrderTrackingOpen(true);
+        }}
         onOpenCustomerSupport={(orderId) => {
           setSupportInitialOrderId(orderId);
           setIsSupportModalOpen(true);
