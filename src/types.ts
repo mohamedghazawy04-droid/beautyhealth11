@@ -143,6 +143,16 @@ export interface StoreSettings {
   fastDeliveryEnabled: boolean;
   storeName: string;
   contactWhatsApp: string;
+  // Automated Order Notification & Dispatch Settings
+  autoDispatchEnabled?: boolean;
+  telegramEnabled?: boolean;
+  telegramBotToken?: string;
+  telegramChatId?: string;
+  webhookEnabled?: boolean;
+  webhookUrl?: string;
+  emailNotificationEnabled?: boolean;
+  managerEmail?: string;
+  audioAlertEnabled?: boolean;
 }
 
 export interface SubCategoryItem {

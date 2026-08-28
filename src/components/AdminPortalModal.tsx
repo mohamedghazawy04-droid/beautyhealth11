@@ -40,7 +40,18 @@ import {
   Tag,
   HardDrive,
   Cloud,
-  UploadCloud
+  UploadCloud,
+  Download,
+  Upload,
+  Bell,
+  Volume2,
+  SendHorizonal,
+  Radio,
+  Globe,
+  Check,
+  ExternalLink,
+  Play,
+  Info
 } from 'lucide-react';
 import {
   Order,
@@ -54,6 +65,8 @@ import {
   SupportTicket,
 } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/categories';
+import { sendTestTelegramMessage, sendTestWebhookPing } from '../utils/orderNotifier';
+import { playOrderAlarmSound, requestBrowserNotificationPermission } from '../utils/notificationSound';
 
 interface AdminPortalModalProps {
   isOpen: boolean;
@@ -67,6 +80,7 @@ interface AdminPortalModalProps {
   onUpdateProduct?: (productId: string, updates: Partial<Product>) => void;
   onDeleteProduct?: (productId: string) => void;
   onClearAllProducts?: () => void;
+  onBulkImportProducts?: (products: Product[]) => void;
   storeSettings?: StoreSettings;
   onUpdateStoreSettings?: (newSettings: StoreSettings) => void;
   categoriesList?: CategoryConfig[];
@@ -96,6 +110,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   onUpdateProduct,
   onDeleteProduct,
   onClearAllProducts,
+  onBulkImportProducts,
   storeSettings,
   onUpdateStoreSettings,
   categoriesList = DEFAULT_CATEGORIES,
@@ -206,6 +221,75 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   const [aiReport, setAiReport] = useState<SmartBusinessReport | null>(null);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiError, setAiError] = useState('');
+
+  // Automated Order Notifications Testing State
+  const [testingTelegram, setTestingTelegram] = useState(false);
+  const [telegramTestResult, setTelegramTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [webhookTestResult, setWebhookTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [showTelegramHelp, setShowTelegramHelp] = useState(false);
+  const [browserPushPermission, setBrowserPushPermission] = useState<string>(() => {
+    return typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default';
+  });
+
+  const handleTestTelegram = async () => {
+    if (!localSettings.telegramBotToken?.trim() || !localSettings.telegramChatId?.trim()) {
+      setTelegramTestResult({
+        success: false,
+        message: 'يرجى إدخال كل من رمز البوت (Bot Token) ومعرف المحادثة (Chat ID) أولاً قبل الاختبار'
+      });
+      return;
+    }
+    setTestingTelegram(true);
+    setTelegramTestResult(null);
+    try {
+      const res = await sendTestTelegramMessage(
+        localSettings.telegramBotToken.trim(),
+        localSettings.telegramChatId.trim()
+      );
+      setTelegramTestResult(res);
+    } catch (err: any) {
+      setTelegramTestResult({
+        success: false,
+        message: 'فشل الاختبار: ' + (err?.message || 'خطأ غير معروف')
+      });
+    } finally {
+      setTestingTelegram(false);
+    }
+  };
+
+  const handleTestWebhook = async () => {
+    if (!localSettings.webhookUrl?.trim()) {
+      setWebhookTestResult({
+        success: false,
+        message: 'يرجى كتابة رابط الـ Webhook أولاً قبل الاختبار'
+      });
+      return;
+    }
+    setTestingWebhook(true);
+    setWebhookTestResult(null);
+    try {
+      const res = await sendTestWebhookPing(localSettings.webhookUrl.trim());
+      setWebhookTestResult(res);
+    } catch (err: any) {
+      setWebhookTestResult({
+        success: false,
+        message: 'فشل إرسال الويب هوك: ' + (err?.message || 'خطأ غير معروف')
+      });
+    } finally {
+      setTestingWebhook(false);
+    }
+  };
+
+  const handleRequestPush = async () => {
+    const granted = await requestBrowserNotificationPermission();
+    setBrowserPushPermission(granted ? 'granted' : 'denied');
+    if (granted) {
+      alert('✓ تم تفعيل إشعارات المتصفح والنظام بنجاح! ستصلك تنبيهات فورية عند ورود أي طلب جديد حتى أثناء تصفحك لصفحات أخرى.');
+    } else {
+      alert('لم يتم منح إذن الإشعارات، يرجى تفعيلها من إعدادات المتصفح أو القفل الموجود بجانب شريط العنوان.');
+    }
+  };
 
   // Handle Login
   const handleLogin = (e: React.FormEvent) => {
@@ -523,6 +607,51 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     if (onUpdateCategoriesList) {
       onUpdateCategoriesList(updated);
     }
+  };
+
+  // Export products to JSON file
+  const handleExportProductsJSON = () => {
+    if (products.length === 0) {
+      alert('لا توجد منتجات لتصديرها حالياً');
+      return;
+    }
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(products, null, 2));
+    const downloadAnchor = document.createElement('a');
+    const today = new Date().toISOString().split('T')[0];
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', `carehub_products_backup_${today}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  // Import products from JSON file
+  const handleImportProductsJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (onBulkImportProducts) {
+            onBulkImportProducts(parsed);
+          } else {
+            parsed.forEach((p) => onAddNewProduct(p));
+          }
+          alert(`✓ تم استيراد وحفظ ${parsed.length} منتج بنجاح في المتجر!`);
+        } else {
+          alert('الملف المحدد لا يحتوي على قائمة منتجات صالحة');
+        }
+      } catch (err) {
+        console.error('Failed to parse JSON file:', err);
+        alert('حدث خطأ أثناء قراءة ملف JSON. تأكد من صحة التنسيق.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   if (!isOpen) return null;
@@ -1420,14 +1549,40 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       ))}
                     </select>
 
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('newProduct')}
-                      className="px-3 py-2 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-xl font-extrabold text-xs flex items-center gap-1 cursor-pointer shadow-xs"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>إضافة صنف</span>
-                    </button>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={handleExportProductsJSON}
+                        className="px-2.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-2xs border border-stone-300"
+                        title="تصدير نسخة احتياطية من جميع المنتجات كملف JSON"
+                      >
+                        <Download className="w-3.5 h-3.5 text-stone-600" />
+                        <span className="hidden sm:inline">تصدير نسخة</span>
+                      </button>
+
+                      <label
+                        className="px-2.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-2xs border border-stone-300"
+                        title="استيراد منتجات من ملف JSON احتياطي"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-stone-600" />
+                        <span className="hidden sm:inline">استيراد</span>
+                        <input
+                          type="file"
+                          accept=".json"
+                          onChange={handleImportProductsJSON}
+                          className="hidden"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('newProduct')}
+                        className="px-3 py-2 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-xl font-extrabold text-xs flex items-center gap-1 cursor-pointer shadow-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>إضافة صنف</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1437,14 +1592,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     <div className="w-16 h-16 rounded-2xl bg-pink-100 text-pink-700 flex items-center justify-center mx-auto shadow-sm">
                       <Layers className="w-8 h-8" />
                     </div>
-                    <div className="max-w-md mx-auto space-y-2">
+                    <div className="max-w-md mx-auto space-y-3">
                       <h4 className="font-black text-base text-stone-900">
                         المتجر فارغ من المنتجات حالياً
                       </h4>
                       <p className="text-xs text-stone-500">
-                        يمكنك إضافة منتجاتك الخاصة الآن من تبويب "إضافة صنف"
+                        يمكنك إضافة منتجاتك الخاصة يدوياً، أو استيرادها فوراً من ملف JSON احتياطي.
                       </p>
-                      <div className="pt-2">
+                      <div className="pt-2 flex items-center justify-center gap-2 flex-wrap">
                         <button
                           type="button"
                           onClick={() => setActiveTab('newProduct')}
@@ -1453,6 +1608,16 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                           <Plus className="w-4 h-4" />
                           <span>إضافة منتج جديد</span>
                         </button>
+                        <label className="px-4 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-xl font-bold text-xs inline-flex items-center gap-2 cursor-pointer shadow-xs border border-stone-300">
+                          <Upload className="w-4 h-4 text-stone-700" />
+                          <span>استيراد من ملف JSON</span>
+                          <input
+                            type="file"
+                            accept=".json"
+                            onChange={handleImportProductsJSON}
+                            className="hidden"
+                          />
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -1944,12 +2109,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             {/* TAB 5: SETTINGS */}
             {activeTab === 'settings' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+                {/* Store General Settings Form */}
                 <form
                   onSubmit={handleSaveSettings}
                   className="p-5 rounded-2xl bg-stone-50 border border-stone-200 space-y-4"
                 >
-                  <h3 className="font-extrabold text-sm text-stone-900 border-b border-stone-200 pb-2">
-                    إعدادات المتجر العامة والتوصيل:
+                  <h3 className="font-extrabold text-sm text-stone-900 border-b border-stone-200 pb-2 flex items-center justify-between">
+                    <span>إعدادات المتجر العامة والتوصيل:</span>
+                    <span className="text-[11px] text-pink-700 font-bold">m&l Store Settings</span>
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -1988,6 +2155,284 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     <span>حفظ إعدادات المتجر</span>
                   </button>
                 </form>
+
+                {/* ========================================================================= */}
+                {/* AUTOMATED ORDER NOTIFICATIONS & SYSTEM INTEGRATIONS */}
+                {/* ========================================================================= */}
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-stone-900 via-rose-950 to-stone-900 text-white space-y-5 shadow-lg border border-pink-900/40">
+                  <div className="flex items-center justify-between flex-wrap gap-2 border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-pink-600/30 border border-pink-500/50 flex items-center justify-center text-pink-300">
+                        <Radio className="w-5 h-5 animate-pulse" />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-sm text-white flex items-center gap-2">
+                          <span>نظام الطلب الآلي والإشعارات الفورية للمدير ⚡</span>
+                          <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                            مفعل تلقائياً
+                          </span>
+                        </h3>
+                        <p className="text-[11px] text-stone-300">
+                          يقوم المتجر بإشعارك تلقائياً فور إتمام أي طلب من أي عميل بدون أي تدخل يدوي من العميل
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveSettings}
+                      className="px-3.5 py-1.5 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>حفظ إعدادات الإشعارات</span>
+                    </button>
+                  </div>
+
+                  {/* Channel 1: Telegram Bot (Recommended & Instant) */}
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <SendHorizonal className="w-4 h-4 text-sky-400" />
+                        <span className="font-bold text-xs text-white">
+                          إشعار Telegram الفوري (الأسهل والأسرع - مجاني 100%)
+                        </span>
+                      </div>
+
+                      <label className="flex items-center gap-2 cursor-pointer text-xs">
+                        <input
+                          type="checkbox"
+                          checked={localSettings.telegramEnabled ?? true}
+                          onChange={(e) =>
+                            setLocalSettings({ ...localSettings, telegramEnabled: e.target.checked })
+                          }
+                          className="w-4 h-4 rounded text-pink-600 focus:ring-pink-500 bg-stone-800 border-stone-600"
+                        />
+                        <span className="text-stone-300 font-bold text-[11px]">
+                          تفعيل إشعار تيليجرام
+                        </span>
+                      </label>
+                    </div>
+
+                    <p className="text-[11px] text-stone-300 leading-relaxed">
+                      عند تسجيل أي أوردر، يرسل المتجر رسالة فورية إلى هاتفك تحتوي على: رقم الطلب، بيانات العميل، الحي/المنطقة، العنوان التفصيلي، قائمة الأصناف، والإجمالي.
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="text-[11px] font-bold text-stone-300 block mb-1">
+                          رمز البوت (Telegram Bot Token):
+                        </label>
+                        <input
+                          type="text"
+                          value={localSettings.telegramBotToken || ''}
+                          onChange={(e) =>
+                            setLocalSettings({ ...localSettings, telegramBotToken: e.target.value })
+                          }
+                          placeholder="مثال: 7123456789:AAHk..."
+                          className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/20 text-xs font-mono text-white placeholder-stone-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-stone-300 block mb-1">
+                          معرف المحادثة أو القناة (Telegram Chat ID):
+                        </label>
+                        <input
+                          type="text"
+                          value={localSettings.telegramChatId || ''}
+                          onChange={(e) =>
+                            setLocalSettings({ ...localSettings, telegramChatId: e.target.value })
+                          }
+                          placeholder="مثال: 123456789 أو -100123456789"
+                          className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/20 text-xs font-mono text-white placeholder-stone-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Controls for Telegram */}
+                    <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleTestTelegram}
+                          disabled={testingTelegram}
+                          className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                        >
+                          <SendHorizonal className="w-3.5 h-3.5" />
+                          <span>{testingTelegram ? 'جاري الاختبار...' : '⚡ تجربة إرسال إشعار تيليجرام'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowTelegramHelp(!showTelegramHelp)}
+                          className="text-[11px] text-sky-300 hover:text-sky-200 underline font-bold cursor-pointer"
+                        >
+                          {showTelegramHelp ? 'إخفاء خطوات الإنشاء' : '💡 كيف أنشئ بوت وتعرف على الـ Chat ID؟'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Test Result Message */}
+                    {telegramTestResult && (
+                      <div
+                        className={`p-3 rounded-xl text-xs font-bold border flex items-center gap-2 ${
+                          telegramTestResult.success
+                            ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-200'
+                            : 'bg-rose-950/80 border-rose-500/50 text-rose-200'
+                        }`}
+                      >
+                        {telegramTestResult.success ? (
+                          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                        )}
+                        <span>{telegramTestResult.message}</span>
+                      </div>
+                    )}
+
+                    {/* Telegram Setup Guide Accordion */}
+                    {showTelegramHelp && (
+                      <div className="p-3.5 rounded-xl bg-black/50 border border-sky-500/30 text-stone-300 text-xs space-y-2 leading-relaxed">
+                        <div className="font-extrabold text-sky-300 flex items-center gap-1.5">
+                          <Info className="w-4 h-4" />
+                          <span>خطوات ربط بوت تيليجرام المجاني (خلال دقيقة واحدة):</span>
+                        </div>
+                        <ol className="list-decimal list-inside space-y-1 text-[11px]">
+                          <li>
+                            افتح تيليجرام وابحث عن <strong className="text-white">@BotFather</strong> وأرسل له أمر <code className="bg-white/10 px-1 rounded text-amber-300">/newbot</code>.
+                          </li>
+                          <li>
+                            اختر اسماً للبوت، وسيعطيك <strong className="text-white">HTTP API Token</strong> (انسخه وضعه في حقل Bot Token أعلاه).
+                          </li>
+                          <li>
+                            افتح المحادثة مع البوت الجديد الذي أنشأته واضغط <strong className="text-white">Start</strong> لتفعيله.
+                          </li>
+                          <li>
+                            لمعرفة الـ <strong className="text-white">Chat ID</strong> الخاص بك، ابحث في تيليجرام عن <strong className="text-white">@userinfobot</strong> وأرسل له أي رسالة، وانسخ رقم الـ Id وضعه في حقل Chat ID أعلاه.
+                          </li>
+                          <li>
+                            اضغط زر <strong className="text-sky-300">"⚡ تجربة إرسال إشعار تيليجرام"</strong> للتأكد من وصول الرسالة فوراً!
+                          </li>
+                        </ol>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Channel 2: Custom Webhook (Make.com / Zapier / WhatsApp Gateway) */}
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-amber-400" />
+                        <span className="font-bold text-xs text-white">
+                          رابط Webhook مخصص (لربط Make.com / Zapier / WhatsApp Cloud API / Sheets)
+                        </span>
+                      </div>
+
+                      <label className="flex items-center gap-2 cursor-pointer text-xs">
+                        <input
+                          type="checkbox"
+                          checked={localSettings.webhookEnabled ?? false}
+                          onChange={(e) =>
+                            setLocalSettings({ ...localSettings, webhookEnabled: e.target.checked })
+                          }
+                          className="w-4 h-4 rounded text-pink-600 focus:ring-pink-500 bg-stone-800 border-stone-600"
+                        />
+                        <span className="text-stone-300 font-bold text-[11px]">
+                          تفعيل إرسال الويب هوك
+                        </span>
+                      </label>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-stone-300 block">
+                        عنوان رابط الـ Webhook (POST endpoint):
+                      </label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="url"
+                          value={localSettings.webhookUrl || ''}
+                          onChange={(e) =>
+                            setLocalSettings({ ...localSettings, webhookUrl: e.target.value })
+                          }
+                          placeholder="https://hook.eu2.make.com/xxxx أو https://hooks.zapier.com/..."
+                          className="flex-1 px-3 py-2 rounded-xl bg-black/40 border border-white/20 text-xs font-mono text-white placeholder-stone-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleTestWebhook}
+                          disabled={testingWebhook}
+                          className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>{testingWebhook ? 'جاري الفحص...' : 'فحص Webhook'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {webhookTestResult && (
+                      <div
+                        className={`p-3 rounded-xl text-xs font-bold border flex items-center gap-2 ${
+                          webhookTestResult.success
+                            ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-200'
+                            : 'bg-rose-950/80 border-rose-500/50 text-rose-200'
+                        }`}
+                      >
+                        {webhookTestResult.success ? (
+                          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                        )}
+                        <span>{webhookTestResult.message}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Channel 3: Live Audio Chime & Browser Push Alerts */}
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-pink-500/20 border border-pink-500/40 flex items-center justify-center text-pink-300 shrink-0">
+                        <Volume2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-xs text-white">
+                          جرس الإنذار الحي وإشعارات المتصفح
+                        </h4>
+                        <p className="text-[11px] text-stone-300">
+                          صوت رنين فوري وتنبيه نافذة النظام عند وصول أي طلب جديد أثناء وجودك في اللوحة
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => playOrderAlarmSound()}
+                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title="سماع صوت الرنين"
+                      >
+                        <Volume2 className="w-3.5 h-3.5 text-pink-400" />
+                        <span>تجربة جرس الطلب</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleRequestPush}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                          browserPushPermission === 'granted'
+                            ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/40'
+                            : 'bg-pink-600 hover:bg-pink-700 text-white'
+                        }`}
+                      >
+                        <Bell className="w-3.5 h-3.5" />
+                        <span>
+                          {browserPushPermission === 'granted'
+                            ? '✓ إشعارات المتصفح مفعلة'
+                            : 'تفعيل إشعارات شريط النظام'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Password Change Security Box */}
                 <form

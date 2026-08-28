@@ -36,6 +36,39 @@ export function playNotificationSound() {
   }
 }
 
+// Distinct, attention-grabbing cash register & order chime for store manager
+export function playOrderAlarmSound() {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const notes = [
+      { freq: 523.25, time: 0, dur: 0.15, gain: 0.15 },    // C5
+      { freq: 659.25, time: 0.12, dur: 0.15, gain: 0.18 }, // E5
+      { freq: 783.99, time: 0.24, dur: 0.2, gain: 0.22 },  // G5
+      { freq: 1046.5, time: 0.38, dur: 0.45, gain: 0.28 }, // C6 (grand finish)
+    ];
+
+    notes.forEach(({ freq, time, dur, gain }) => {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + time);
+      gainNode.gain.setValueAtTime(gain, now + time);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
+
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      osc.start(now + time);
+      osc.stop(now + time + dur);
+    });
+  } catch (e) {
+    // ignore silently
+  }
+}
+
 // Request and check browser Web Push / Native Notification permission
 export async function requestBrowserNotificationPermission(): Promise<boolean> {
   if (!('Notification' in window)) {

@@ -225,6 +225,205 @@ app.post('/api/admin/smart-analysis', async (req: Request, res: Response) => {
   }
 });
 
+// Helper: Format Order for Telegram
+function formatTelegramOrderHTML(order: any): string {
+  const itemsText = Array.isArray(order.items)
+    ? order.items
+        .map(
+          (it: any, idx: number) =>
+            `  ${idx + 1}. <b>${it.product?.nameAr || it.product?.name || 'صنف'}</b> × ${it.quantity} = ${
+              (it.product?.price || 0) * (it.quantity || 1)
+            } ج`
+        )
+        .join('\n')
+    : '  (لا توجد أصناف)';
+
+  const paymentText =
+    order.paymentMethod === 'cod'
+      ? '💵 كاش عند الاستلام'
+      : order.paymentMethod === 'instapay'
+      ? '📱 إنستاباي InstaPay'
+      : order.paymentMethod === 'vodafone_cash'
+      ? '💳 فودافون كاش'
+      : '💳 بطاقة بنكية';
+
+  return `
+🚨 <b>طلب جديد في المتجر! #${order.id}</b>
+━━━━━━━━━━━━━━━━━
+👤 <b>العميل:</b> ${order.customerName || 'غير محدد'}
+📱 <b>الهاتف:</b> <a href="tel:${order.phone}">${order.phone}</a>
+${order.alternatePhone ? `📱 <b>هاتف بديل:</b> ${order.alternatePhone}\n` : ''}📍 <b>المنطقة:</b> ${order.city || ''} - ${order.zoneName || ''}
+🏢 <b>العنوان:</b> ${order.detailedAddress || ''}
+${
+  order.buildingNumber || order.floorNumber || order.apartmentNumber
+    ? `🚪 <b>المبنى:</b> عمارة ${order.buildingNumber || '-'} / دور ${order.floorNumber || '-'} / شقة ${order.apartmentNumber || '-'}\n`
+    : ''
+}${order.landmark ? `🏷️ <b>علامة مميزة:</b> ${order.landmark}\n` : ''}🚚 <b>موعد التوصيل:</b> ${order.estimatedDelivery || 'خلال ٢٤ ساعة'}
+💳 <b>طريقة الدفع:</b> ${paymentText}
+━━━━━━━━━━━━━━━━━
+🛒 <b>الأصناف المطلوبة:</b>
+${itemsText}
+━━━━━━━━━━━━━━━━━
+💵 <b>المجموع الفرعي:</b> ${order.subtotal || 0} ج
+${order.discount ? `🎟️ <b>الخصم (${order.appliedCoupon || ''}):</b> -${order.discount} ج\n` : ''}🚚 <b>الشحن:</b> ${order.deliveryFee === 0 ? 'مجاني 🎉' : `${order.deliveryFee} ج`}
+💰 <b>الإجمالي النهائي: <u>${order.total || 0} جنيه</u></b>
+${order.notes ? `📝 <b>ملاحظات العميل:</b> ${order.notes}\n` : ''}━━━━━━━━━━━━━━━━━
+⏰ <i>${new Date().toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' })}</i>
+`.trim();
+}
+
+// Automated Multi-Channel Order Notification Dispatch Endpoint
+app.post('/api/notify/order', async (req: Request, res: Response) => {
+  try {
+    const { order, storeSettings } = req.body;
+    if (!order) {
+      return res.status(400).json({ error: 'Order data is required' });
+    }
+
+    const results: { telegram?: { success: boolean; message?: string }; webhook?: { success: boolean; message?: string } } = {};
+
+    // 1. Telegram Dispatch
+    const telegramToken = storeSettings?.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
+    const telegramChatId = storeSettings?.telegramChatId || process.env.TELEGRAM_CHAT_ID;
+    const isTelegramEnabled = storeSettings?.telegramEnabled !== false && telegramToken && telegramChatId;
+
+    if (isTelegramEnabled) {
+      try {
+        const messageHtml = formatTelegramOrderHTML(order);
+        const cleanPhone = (order.phone || '').replace(/\D/g, '');
+        const internationalPhone = cleanPhone.startsWith('0') ? `2${cleanPhone}` : cleanPhone;
+
+        const inlineKeyboard = {
+          inline_keyboard: [
+            [
+              { text: '📞 اتصال بالعميل', url: `tel:${order.phone}` },
+              { text: '💬 فتح واتساب العميل', url: `https://wa.me/${internationalPhone}` }
+            ]
+          ]
+        };
+
+        const tgRes = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: telegramChatId,
+            text: messageHtml,
+            parse_mode: 'HTML',
+            reply_markup: inlineKeyboard,
+            disable_web_page_preview: true
+          }),
+        });
+
+        const tgData = (await tgRes.json()) as { ok: boolean; description?: string };
+        if (tgData.ok) {
+          results.telegram = { success: true, message: 'Telegram notification sent successfully' };
+        } else {
+          results.telegram = { success: false, message: tgData.description || 'Telegram API returned error' };
+        }
+      } catch (err: any) {
+        console.error('Telegram notification error:', err);
+        results.telegram = { success: false, message: err?.message || 'Network error' };
+      }
+    }
+
+    // 2. Custom Webhook / Zapier / Make / Wasapi Dispatch
+    const webhookUrl = storeSettings?.webhookUrl || process.env.ORDER_WEBHOOK_URL;
+    const isWebhookEnabled = storeSettings?.webhookEnabled !== false && webhookUrl;
+
+    if (isWebhookEnabled) {
+      try {
+        const hookRes = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'order_created',
+            timestamp: new Date().toISOString(),
+            order,
+          }),
+        });
+        results.webhook = { success: hookRes.ok, message: `Webhook responded with status ${hookRes.status}` };
+      } catch (err: any) {
+        console.error('Webhook notification error:', err);
+        results.webhook = { success: false, message: err?.message || 'Webhook failed' };
+      }
+    }
+
+    return res.json({
+      success: true,
+      notifiedChannels: results,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error('Order notification controller error:', error);
+    return res.status(500).json({ error: 'Failed to process notifications', details: error?.message });
+  }
+});
+
+// Test Telegram Bot Endpoint
+app.post('/api/notify/test-telegram', async (req: Request, res: Response) => {
+  try {
+    const { botToken, chatId } = req.body;
+    if (!botToken || !chatId) {
+      return res.status(400).json({ error: 'Bot Token and Chat ID are required' });
+    }
+
+    const testMsg = `
+🔔 <b>تجربة إشعارات متجر M&L بنجاح!</b>
+━━━━━━━━━━━━━━━━━
+✓ تم ربط بوت تيليجرام بنجاح مع المتجر.
+ستصلك الآن جميع الطلبات الجديدة لحظياً وتلقائياً دون أي تدخل من العميل.
+⏰ <i>${new Date().toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' })}</i>
+    `.trim();
+
+    const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: testMsg,
+        parse_mode: 'HTML',
+      }),
+    });
+
+    const data = (await tgRes.json()) as { ok: boolean; description?: string };
+    if (data.ok) {
+      return res.json({ success: true, message: 'تم إرسال الرسالة التجريبية بنجاح إلى حسابك على تيليجرام!' });
+    } else {
+      return res.status(400).json({ success: false, error: data.description || 'فشل إرسال الرسالة، تأكد من التوكن و Chat ID وبدء محادثة مع البوت أولاً' });
+    }
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'خطأ في الاتصال بسيرفر تيليجرام' });
+  }
+});
+
+// Test Custom Webhook Endpoint
+app.post('/api/notify/test-webhook', async (req: Request, res: Response) => {
+  try {
+    const { webhookUrl } = req.body;
+    if (!webhookUrl) {
+      return res.status(400).json({ error: 'Webhook URL is required' });
+    }
+
+    const hookRes = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: 'test_ping',
+        message: 'This is a test notification from M&L Store',
+        timestamp: new Date().toISOString(),
+      }),
+    });
+
+    if (hookRes.ok) {
+      return res.json({ success: true, message: `تم الاتصال بنجاح بالـ Webhook (كود الحالة ${hookRes.status})` });
+    } else {
+      return res.status(400).json({ success: false, error: `الويب هوك استجاب بكود خطأ ${hookRes.status}` });
+    }
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'تعذر الوصول إلى رابط Webhook' });
+  }
+});
+
 // Vite middleware & Static Serving
 async function start() {
   if (process.env.NODE_ENV !== 'production') {

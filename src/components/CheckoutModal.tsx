@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { CartItem, Order, PaymentMethod, StoreSettings, DeliveryZone } from '../types';
 import { OCTOBER_ZAYED_ZONES } from '../data/zones';
+import { dispatchAutomatedOrder } from '../utils/orderNotifier';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -192,6 +193,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         console.error('LocalStorage order save error:', err);
       }
 
+      // Automated dispatch to store manager (Telegram / Webhooks / Push alerts)
+      dispatchAutomatedOrder(newOrder, storeSettings).catch((err) => {
+        console.error('Checkout automated dispatch error:', err);
+      });
+
       onOrderCompleted(newOrder);
       onClearCart();
       setIsSubmitting(false);
@@ -330,26 +336,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             </div>
 
-            {/* Manager WhatsApp Alert Trigger Button */}
-            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
+            {/* Automated Dispatch Status Confirmation */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 space-y-2.5">
               <div className="flex items-start gap-2.5">
-                <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                  <Sparkles className="w-4 h-4" />
+                </div>
                 <div>
-                  <strong className="block font-bold text-xs text-emerald-950">إشعار فوري لمدير المتجر على واتساب</strong>
-                  <p className="text-[11px] text-emerald-800 mt-0.5">
-                    الطلب مسجل بالنظام، ويمكنك أيضاً إرسال نسخة تفصيلية للمدير مباشرة لضمان أسرع استجابة وتأكيد فوري.
+                  <strong className="block font-black text-xs sm:text-sm text-emerald-950">
+                    ⚡ تم إرسال إشعار فوري لمدير المتجر وفريق التجهيز آلياً
+                  </strong>
+                  <p className="text-[11px] sm:text-xs text-emerald-800 mt-1 leading-relaxed">
+                    تم تحويل تفاصيل طلبك وعنوانك إلى نظام إدارة المتجر بشكل تلقائي ومباشر. ستقوم إدارة المتجر ومندوب التوصيل بالتواصل معك لتأكيد موعد التسليم — <strong>لا يلزمك إرسال أي رسالة يدوية</strong>.
                   </p>
                 </div>
               </div>
-              <a
-                href={managerWhatsAppUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer no-underline text-center"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>إرسال إشعار الأوردر لمدير المتجر عبر واتساب 📲</span>
-              </a>
+
+              {/* Optional direct contact button if customer wants urgent direct WhatsApp */}
+              <div className="pt-1 border-t border-emerald-200/60 flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-[11px] text-emerald-700 font-medium">هل ترغب بالتحدث الفوري مع الإدارة؟</span>
+                <a
+                  href={managerWhatsAppUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-2xs transition-colors no-underline"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>مراسلة الإدارة واتساب (اختياري)</span>
+                </a>
+              </div>
             </div>
 
             {/* Quick Action Navigation Buttons */}

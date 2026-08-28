@@ -59,7 +59,8 @@ import { AmazonCategoryGrid } from './components/AmazonCategoryGrid';
 import { NotificationsModal } from './components/NotificationsModal';
 import { GoogleDriveModal } from './components/GoogleDriveModal';
 import { CustomerSupportModal } from './components/CustomerSupportModal';
-import { playNotificationSound, sendBrowserNotification } from './utils/notificationSound';
+import { playNotificationSound, playOrderAlarmSound, sendBrowserNotification } from './utils/notificationSound';
+import { dispatchAutomatedOrder } from './utils/orderNotifier';
 import { db } from './firebase';
 import {
   collection,
@@ -71,15 +72,6 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 
-const isDefaultDummyProduct = (id: string) => {
-  return (
-    id.startsWith('prod-baby-') ||
-    id.startsWith('prod-hair-') ||
-    id.startsWith('prod-body-') ||
-    id.startsWith('prod-bundle-')
-  );
-};
-
 export default function App() {
   // 1. Core State with Local Storage + Cloud Firestore Persistence
   const [products, setProducts] = useState<Product[]>(() => {
@@ -87,8 +79,8 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((p: Product) => !isDefaultDummyProduct(p.id));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
         }
       } catch (e) {
         console.error(e);
@@ -372,6 +364,10 @@ export default function App() {
   const initialProductsLoadedRef = React.useRef(false);
   const previousProductIdsRef = React.useRef<Set<string>>(new Set());
 
+  // Track initial orders loading to trigger audio alarm and push alerts on incoming orders
+  const initialOrdersLoadedRef = React.useRef(false);
+  const previousOrderIdsRef = React.useRef<Set<string>>(new Set());
+
   // Real-time synchronization with Firestore
   useEffect(() => {
     const unsubProducts = onSnapshot(
@@ -379,29 +375,15 @@ export default function App() {
       (snapshot) => {
         if (!snapshot.empty) {
           const prodsList: Product[] = [];
-          const defaultDocsToDelete: string[] = [];
 
           snapshot.forEach((docSnap) => {
             const data = docSnap.data() as Product;
             const docId = docSnap.id;
-            if (isDefaultDummyProduct(docId)) {
-              defaultDocsToDelete.push(docId);
-            } else {
-              prodsList.push({
-                ...data,
-                id: docId,
-              });
-            }
-          });
-
-          // Clean up any default dummy products from Firestore permanently
-          if (defaultDocsToDelete.length > 0) {
-            const batch = writeBatch(db);
-            defaultDocsToDelete.forEach((id) => {
-              batch.delete(doc(db, 'products', id));
+            prodsList.push({
+              ...data,
+              id: docId,
             });
-            batch.commit().catch((err) => console.error('Auto purge dummy products error:', err));
-          }
+          });
 
           // Check for newly added products if this is not the initial bootstrap load
           if (initialProductsLoadedRef.current && previousProductIdsRef.current.size > 0) {
@@ -451,8 +433,27 @@ export default function App() {
           setProducts(prodsList);
           localStorage.setItem('carehub_products', JSON.stringify(prodsList));
         } else {
-          setProducts([]);
-          localStorage.setItem('carehub_products', JSON.stringify([]));
+          // If Firestore collection is empty, check if we have local products from user uploads and auto-sync them to Firestore
+          const localSaved = localStorage.getItem('carehub_products');
+          if (localSaved) {
+            try {
+              const localProds = JSON.parse(localSaved);
+              if (Array.isArray(localProds) && localProds.length > 0) {
+                setProducts(localProds);
+                const batch = writeBatch(db);
+                localProds.forEach((prod) => {
+                  if (prod && prod.id) {
+                    batch.set(doc(db, 'products', prod.id), prod);
+                  }
+                });
+                batch.commit().catch((err) => console.error('Auto sync local products error:', err));
+                initialProductsLoadedRef.current = true;
+                return;
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }
           initialProductsLoadedRef.current = true;
         }
       },
@@ -476,8 +477,35 @@ export default function App() {
           ordersList.sort(
             (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
+
+          // Detect new incoming orders after initial snapshot
+          if (initialOrdersLoadedRef.current && previousOrderIdsRef.current.size > 0) {
+            const incomingOrders = ordersList.filter(
+              (o) => !previousOrderIdsRef.current.has(o.id)
+            );
+            if (incomingOrders.length > 0) {
+              incomingOrders.forEach((incomingOrder) => {
+                // Play audible alarm
+                playOrderAlarmSound();
+
+                // Dispatch native OS/browser notification
+                sendBrowserNotification(`🚨 طلب جديد وارد برقم #${incomingOrder.id}`, {
+                  body: `من العميل: ${incomingOrder.customerName} (${incomingOrder.phone}) | الإجمالي: ${incomingOrder.total} ج.م • ${incomingOrder.zoneName || incomingOrder.city}`,
+                });
+
+                // Show Toast
+                showToast(`🚨 وصول طلب جديد #${incomingOrder.id} - ${incomingOrder.customerName} (${incomingOrder.total} ج)`);
+              });
+            }
+          }
+
+          previousOrderIdsRef.current = new Set(ordersList.map((o) => o.id));
+          initialOrdersLoadedRef.current = true;
+
           setOrders(ordersList);
           localStorage.setItem('carehub_orders', JSON.stringify(ordersList));
+        } else {
+          initialOrdersLoadedRef.current = true;
         }
       },
       (error) => {
@@ -646,6 +674,12 @@ export default function App() {
     } catch (e) {
       console.error('Failed to save order to Firestore:', e);
     }
+
+    // Trigger automated order dispatch to Telegram & Webhook
+    dispatchAutomatedOrder(newOrder, storeSettings).catch((err) => {
+      console.error('Automated order dispatch error:', err);
+    });
+
     showToast(`🎉 تم تسجيل طلبك بنجاح برقم #${newOrder.id}`);
   };
 
@@ -817,6 +851,24 @@ export default function App() {
       console.error('Failed to clear products from Firestore:', e);
     }
     showToast('✓ تم إفراغ جميع منتجات المتجر وحفظ السجل');
+  };
+
+  const handleBulkImportProducts = async (importedProds: Product[]) => {
+    if (!importedProds || importedProds.length === 0) return;
+    setProducts(importedProds);
+    localStorage.setItem('carehub_products', JSON.stringify(importedProds));
+    try {
+      const batch = writeBatch(db);
+      importedProds.forEach((prod) => {
+        if (prod && prod.id) {
+          batch.set(doc(db, 'products', prod.id), prod);
+        }
+      });
+      await batch.commit();
+    } catch (e) {
+      console.error('Failed to sync imported products to Firestore:', e);
+    }
+    showToast(`✓ تم حفظ واستيراد ${importedProds.length} منتج بنجاح`);
   };
 
   const handleUpdateStoreSettings = async (newSettings: StoreSettings) => {
@@ -1602,6 +1654,7 @@ export default function App() {
         onUpdateProduct={handleUpdateProduct}
         onDeleteProduct={handleDeleteProduct}
         onClearAllProducts={handleClearAllProducts}
+        onBulkImportProducts={handleBulkImportProducts}
         storeSettings={storeSettings}
         onUpdateStoreSettings={handleUpdateStoreSettings}
         categoriesList={categoriesList}
