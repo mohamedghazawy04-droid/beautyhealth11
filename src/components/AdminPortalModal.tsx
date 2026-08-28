@@ -51,11 +51,13 @@ import {
   Check,
   ExternalLink,
   Play,
-  Info
+  Info,
+  Star,
 } from 'lucide-react';
 import {
   Order,
   Product,
+  ProductReview,
   MainCategory,
   SubCategory,
   StoreSettings,
@@ -96,6 +98,7 @@ interface AdminPortalModalProps {
   onAdminReplySupport?: (ticketId: string, replyText: string) => void;
   onUpdateTicketStatus?: (ticketId: string, status: SupportTicket['status']) => void;
   onDeleteTicket?: (ticketId: string) => void;
+  onDeleteReview?: (productId: string, reviewId: string) => void;
 }
 
 export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
@@ -123,6 +126,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   onAdminReplySupport,
   onUpdateTicketStatus,
   onDeleteTicket,
+  onDeleteReview,
 }) => {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -141,7 +145,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
   // Tabs
   const [activeTab, setActiveTab] = useState<
-    'insights' | 'orders' | 'prescriptions' | 'categories' | 'products' | 'newProduct' | 'support' | 'settings'
+    'insights' | 'orders' | 'reviews' | 'prescriptions' | 'categories' | 'products' | 'newProduct' | 'support' | 'settings'
   >('insights');
 
   // Support messages admin state
@@ -312,7 +316,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       setAuthError('');
       setPasswordInput('');
     } else {
-      setAuthError('كلمة المرور غير صحيحة. يرجى التأكد والمحاولة مرة أخرى (MOhager191995).');
+      setAuthError('كلمة المرور غير صحيحة. يرجى التأكد والمحاولة مرة أخرى.');
     }
   };
 
@@ -342,6 +346,32 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   const zayedOrdersCount = orders.filter((o) => o.city === 'zayed').length;
   const octoberOrdersCount = orders.filter((o) => o.city === 'october').length;
   const lowStockProducts = products.filter((p) => (p.stockCount ?? 0) <= 5);
+
+  // Shipments Breakdown for Manager
+  const totalShipments = orders.length;
+  const newShipmentsCount = orders.filter((o) => o.status === 'new').length;
+  const preparingShipmentsCount = orders.filter((o) => o.status === 'preparing').length;
+  const withCourierShipmentsCount = orders.filter((o) => o.status === 'with_courier').length;
+  const deliveredShipmentsCount = orders.filter((o) => o.status === 'delivered').length;
+  const cancelledShipmentsCount = orders.filter((o) => o.status === 'cancelled').length;
+
+  // Aggregate All Customer Reviews across All Products
+  const allCustomerReviews = React.useMemo(() => {
+    const list: Array<ProductReview & { productId: string; productNameAr: string; productBrand: string; productImage: string }> = [];
+    products.forEach((p) => {
+      const revs = p.reviews || (p as any).reviewsList || [];
+      revs.forEach((r: ProductReview) => {
+        list.push({
+          ...r,
+          productId: p.id,
+          productNameAr: p.nameAr,
+          productBrand: p.brand,
+          productImage: p.image,
+        });
+      });
+    });
+    return list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  }, [products]);
 
   // Filtered Orders
   const filteredOrders = orders.filter((o) => {
@@ -694,6 +724,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-300 text-sm font-mono focus:ring-2 focus:ring-pink-600 focus:outline-none pr-10 pl-10"
                     autoFocus
                     required
+                    autoComplete="current-password"
                   />
                   <KeyRound className="w-4 h-4 text-stone-400 absolute right-3.5 top-3.5" />
                   <button
@@ -707,21 +738,9 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               </div>
 
               {authError && (
-                <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>{authError}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPasswordInput('MOhager191995');
-                      setAuthError('');
-                    }}
-                    className="underline text-[11px] font-black text-rose-900 hover:text-rose-950 cursor-pointer shrink-0"
-                  >
-                    تعبئة تلقائية
-                  </button>
+                <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{authError}</span>
                 </div>
               )}
 
@@ -733,19 +752,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 <span>تسجيل الدخول والتحكم</span>
               </button>
 
-              <div className="pt-2 flex items-center justify-between text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    localStorage.setItem('carehub_admin_password', 'MOhager191995');
-                    setStoredPassword('MOhager191995');
-                    setPasswordInput('MOhager191995');
-                    setAuthError('✓ تم استعادة كلمة المرور الافتراضية بنجاح: MOhager191995');
-                  }}
-                  className="text-[11px] text-pink-700 hover:text-pink-900 font-bold hover:underline cursor-pointer"
-                >
-                  استعادة كلمة المرور الافتراضية 🔑
-                </button>
+              <div className="pt-2 flex items-center justify-end text-xs">
                 <button
                   type="button"
                   onClick={onClose}
@@ -837,8 +844,20 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     : 'text-stone-700 hover:bg-stone-200'
                 }`}
               >
-                <Package className="w-4 h-4" />
-                <span>الطلبات ({orders.length})</span>
+                <Truck className="w-4 h-4 text-pink-300" />
+                <span>الشحنات والطلبات ({orders.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('reviews')}
+                className={`py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                  activeTab === 'reviews'
+                    ? 'bg-amber-600 text-white shadow-xs font-extrabold'
+                    : 'text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200'
+                }`}
+              >
+                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                <span>التقييمات والآراء ({allCustomerReviews.length})</span>
               </button>
 
               <button
@@ -1003,16 +1022,50 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               </div>
             )}
 
-            {/* TAB 2: ORDERS MANAGEMENT */}
+            {/* TAB 2: ORDERS & SHIPMENT LIVE TRACKING */}
             {activeTab === 'orders' && (
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                {/* Shipments Status Counter Header for Manager */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                  <div className="p-3 bg-stone-900 text-white rounded-2xl border border-stone-800 text-right">
+                    <span className="text-[11px] text-stone-400 block font-medium">إجمالي الشحنات</span>
+                    <span className="text-xl font-black text-white">{totalShipments}</span>
+                  </div>
+
+                  <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-right">
+                    <span className="text-[11px] text-amber-800 block font-medium">طلبات جديدة ⏳</span>
+                    <span className="text-xl font-black text-amber-900">{newShipmentsCount}</span>
+                  </div>
+
+                  <div className="p-3 bg-blue-50 rounded-2xl border border-blue-200 text-right">
+                    <span className="text-[11px] text-blue-800 block font-medium">قيد التجهيز 📦</span>
+                    <span className="text-xl font-black text-blue-900">{preparingShipmentsCount}</span>
+                  </div>
+
+                  <div className="p-3 bg-teal-50 rounded-2xl border border-teal-200 text-right">
+                    <span className="text-[11px] text-teal-800 block font-medium">مع المندوب 🛵</span>
+                    <span className="text-xl font-black text-teal-900">{withCourierShipmentsCount}</span>
+                  </div>
+
+                  <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-right">
+                    <span className="text-[11px] text-emerald-800 block font-medium">تم التسليم ✓</span>
+                    <span className="text-xl font-black text-emerald-900">{deliveredShipmentsCount}</span>
+                  </div>
+
+                  <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200 text-right">
+                    <span className="text-[11px] text-rose-800 block font-medium">ملغاة ✕</span>
+                    <span className="text-xl font-black text-rose-900">{cancelledShipmentsCount}</span>
+                  </div>
+                </div>
+
+                {/* Filters & Search */}
                 <div className="flex flex-wrap gap-2 items-center justify-between bg-stone-50 p-3 rounded-2xl border border-stone-200 text-xs">
                   <div className="flex-1 min-w-[200px] relative">
                     <input
                       type="text"
                       value={orderSearchQuery}
                       onChange={(e) => setOrderSearchQuery(e.target.value)}
-                      placeholder="بحث برقم الطلب، اسم العميل، الهاتف، أو المنطقة..."
+                      placeholder="بحث برقم الشحنة، اسم العميل، الهاتف، أو المنطقة..."
                       className="w-full pl-3 pr-8 py-2 rounded-xl bg-white border border-stone-300 text-xs focus:ring-2 focus:ring-pink-600 focus:outline-none"
                     />
                     <Search className="w-4 h-4 text-stone-400 absolute right-2.5 top-2.5" />
@@ -1024,7 +1077,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       onChange={(e) => setCityFilter(e.target.value as any)}
                       className="px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-bold"
                     >
-                      <option value="all">كل المدن</option>
+                      <option value="all">كل المدن والمناطق</option>
                       <option value="zayed">الشيخ زايد</option>
                       <option value="october">٦ أكتوبر</option>
                     </select>
@@ -1034,117 +1087,447 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       onChange={(e) => setStatusFilter(e.target.value as any)}
                       className="px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-bold"
                     >
-                      <option value="all">كل الحالات</option>
-                      <option value="new">جديد ⏳</option>
-                      <option value="preparing">قيد التجهيز 📦</option>
-                      <option value="with_courier">مع المندوب 🛵</option>
-                      <option value="delivered">تم التسليم ✓</option>
-                      <option value="cancelled">ملغي ✕</option>
+                      <option value="all">كل حالات الشحنات</option>
+                      <option value="new">طلبات جديدة ⏳ ({newShipmentsCount})</option>
+                      <option value="preparing">قيد التجهيز 📦 ({preparingShipmentsCount})</option>
+                      <option value="with_courier">مع المندوب 🛵 ({withCourierShipmentsCount})</option>
+                      <option value="delivered">تم التسليم ✓ ({deliveredShipmentsCount})</option>
+                      <option value="cancelled">ملغي ✕ ({cancelledShipmentsCount})</option>
                     </select>
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                {/* Orders List */}
+                <div className="space-y-4">
                   {filteredOrders.length === 0 ? (
                     <div className="text-center py-12 bg-stone-50 rounded-2xl border border-stone-200">
-                      <p className="text-xs text-stone-500">لا توجد طلبات مطابقة للمعايير المحددة.</p>
+                      <Truck className="w-8 h-8 text-stone-400 mx-auto mb-2 opacity-50" />
+                      <p className="text-xs text-stone-500 font-bold">لا توجد شحنات مطابقة للمعايير المحددة.</p>
                     </div>
                   ) : (
-                    filteredOrders.map((ord) => (
+                    filteredOrders.map((ord) => {
+                      const stages = [
+                        { key: 'new', label: '١. تأكيد الطلب', desc: 'تم استلام وتأكيد الطلب' },
+                        { key: 'preparing', label: '٢. تجهيز وتغليف المنتج', desc: 'الصيدلي يجهز المنتجات' },
+                        { key: 'with_courier', label: '٣. خروج مع المندوب', desc: 'في الطريق للعميل' },
+                        { key: 'delivered', label: '٤. تم التسليم', desc: 'تم التسليم بنجاح' },
+                      ];
+
+                      const currentStageIndex =
+                        ord.status === 'new'
+                          ? 0
+                          : ord.status === 'preparing'
+                          ? 1
+                          : ord.status === 'with_courier'
+                          ? 2
+                          : ord.status === 'delivered'
+                          ? 3
+                          : -1;
+
+                      return (
+                        <div
+                          key={ord.id}
+                          className="p-4 sm:p-5 rounded-2xl border border-stone-200 bg-white shadow-2xs space-y-4 text-right"
+                        >
+                          {/* Order Header */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-3">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono font-black text-sm text-stone-900 bg-stone-100 px-2.5 py-1 rounded-lg">
+                                #{ord.id}
+                              </span>
+                              <span
+                                className={`text-xs font-bold px-3 py-1 rounded-full ${
+                                  ord.status === 'new'
+                                    ? 'bg-amber-100 text-amber-900'
+                                    : ord.status === 'preparing'
+                                    ? 'bg-blue-100 text-blue-900'
+                                    : ord.status === 'with_courier'
+                                    ? 'bg-teal-100 text-teal-900'
+                                    : ord.status === 'delivered'
+                                    ? 'bg-emerald-100 text-emerald-900'
+                                    : 'bg-rose-100 text-rose-900'
+                                }`}
+                              >
+                                {ord.status === 'new'
+                                  ? 'طلب جديد ⏳'
+                                  : ord.status === 'preparing'
+                                  ? 'قيد تجهيز وتغليف المنتجات 📦'
+                                  : ord.status === 'with_courier'
+                                  ? 'خرجت مع المندوب وفي الطريق 🛵'
+                                  : ord.status === 'delivered'
+                                  ? 'تم التسليم بنجاح ✓'
+                                  : 'شحنة ملغاة ✕'}
+                              </span>
+
+                              <span className="text-[11px] text-stone-500 font-mono">
+                                {new Date(ord.createdAt).toLocaleDateString('ar-EG', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
+
+                            {/* Manager 1-Click Fast Actions */}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => onUpdateOrderStatus(ord.id, 'preparing')}
+                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                  ord.status === 'preparing'
+                                    ? 'bg-blue-600 text-white shadow-xs'
+                                    : 'bg-blue-50 text-blue-800 hover:bg-blue-100'
+                                }`}
+                                title="تحويل حالة الطلب إلى قيد التجهيز والتغليف"
+                              >
+                                📦 بدء التجهيز
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onUpdateOrderStatus(ord.id, 'with_courier');
+                                  if (!ord.courierName) {
+                                    handleOpenCourierEdit(ord);
+                                  }
+                                }}
+                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                  ord.status === 'with_courier'
+                                    ? 'bg-teal-600 text-white shadow-xs'
+                                    : 'bg-teal-50 text-teal-800 hover:bg-teal-100'
+                                }`}
+                                title="تحويل حالة الطلب إلى خروج مع المندوب"
+                              >
+                                🛵 خروج مع المندوب
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => onUpdateOrderStatus(ord.id, 'delivered')}
+                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                  ord.status === 'delivered'
+                                    ? 'bg-emerald-600 text-white shadow-xs'
+                                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                                }`}
+                                title="تأكيد تسليم الشحنة للعميل"
+                              >
+                                ✓ تم التسليم
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleOpenCourierEdit(ord)}
+                                className="px-2.5 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
+                              >
+                                <Truck className="w-3.5 h-3.5" />
+                                <span>{ord.courierName ? 'بيانات المندوب' : 'إسناد مندوب'}</span>
+                              </button>
+
+                              {onDeleteOrder && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm(`هل أنت متأكد من حذف الشحنة #${ord.id}؟`)) {
+                                      onDeleteOrder(ord.id);
+                                    }
+                                  }}
+                                  className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                  title="حذف الشحنة"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 4-Stage Visual Real-time Progress Stepper for Manager */}
+                          {ord.status !== 'cancelled' ? (
+                            <div className="bg-stone-50 p-3 rounded-xl border border-stone-200/80">
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {stages.map((stg, idx) => {
+                                  const isDone = currentStageIndex >= idx;
+                                  const isCurrent = currentStageIndex === idx;
+
+                                  return (
+                                    <div
+                                      key={stg.key}
+                                      onClick={() => onUpdateOrderStatus(ord.id, stg.key as Order['status'])}
+                                      className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                                        isCurrent
+                                          ? 'bg-pink-50 border-pink-500 text-pink-900 shadow-2xs font-black'
+                                          : isDone
+                                          ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold'
+                                          : 'bg-white border-stone-200 text-stone-400'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-center gap-1 mb-1">
+                                        <div
+                                          className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                                            isDone ? 'bg-emerald-600 text-white' : 'bg-stone-200 text-stone-600'
+                                          }`}
+                                        >
+                                          {isDone ? '✓' : idx + 1}
+                                        </div>
+                                        <span className="text-xs">{stg.label}</span>
+                                      </div>
+                                      <span className="text-[10px] block opacity-80">{stg.desc}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-3 bg-rose-50 text-rose-800 rounded-xl text-xs font-bold border border-rose-200">
+                              تم إلغاء هذه الشحنة
+                            </div>
+                          )}
+
+                          {/* Courier Information Banner */}
+                          {ord.courierName && (
+                            <div className="p-3 rounded-xl bg-teal-50/80 border border-teal-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center">
+                                  <Truck className="w-4 h-4" />
+                                </div>
+                                <div>
+                                  <div className="font-extrabold text-teal-950 flex items-center gap-1.5">
+                                    <span>المندوب المكلف: {ord.courierName}</span>
+                                    {ord.estimatedDelivery && (
+                                      <span className="bg-teal-200/80 text-teal-900 px-2 py-0.5 rounded text-[10px] font-bold">
+                                        ⏱ موعد الوصول: {ord.estimatedDelivery}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {ord.courierPhone && (
+                                    <div className="text-[11px] text-teal-800 font-mono">
+                                      هاتف المندوب: {ord.courierPhone}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {ord.courierPhone && (
+                                <div className="flex items-center gap-1.5">
+                                  <a
+                                    href={`https://wa.me/2${ord.courierPhone.replace(/^0+/, '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-1"
+                                  >
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                    <span>واتساب المندوب</span>
+                                  </a>
+                                  <a
+                                    href={`tel:${ord.courierPhone}`}
+                                    className="px-2.5 py-1 bg-stone-700 text-white rounded-lg text-xs font-bold flex items-center gap-1"
+                                  >
+                                    <Phone className="w-3.5 h-3.5" />
+                                    <span>اتصال</span>
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Customer & Items Summary */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-stone-700 pt-1">
+                            <div className="space-y-1.5 bg-stone-50 p-3 rounded-xl border border-stone-100">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-stone-900">العميل: {ord.customerName}</span>
+                                <a
+                                  href={`https://wa.me/2${ord.phone.replace(/^0+/, '')}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-emerald-700 hover:text-emerald-800 font-mono font-bold flex items-center gap-1 bg-emerald-100/60 px-2 py-0.5 rounded"
+                                >
+                                  <Phone className="w-3 h-3" />
+                                  <span>{ord.phone}</span>
+                                </a>
+                              </div>
+                              <div>
+                                <span className="font-bold text-stone-900">العنوان: </span>
+                                <span>{ord.zoneName} - {ord.detailedAddress}</span>
+                              </div>
+                              {ord.notes && (
+                                <div className="text-amber-800 bg-amber-50 p-1.5 rounded border border-amber-200">
+                                  <strong>ملاحظات العميل:</strong> {ord.notes}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="space-y-1.5 bg-stone-50 p-3 rounded-xl border border-stone-100">
+                              <div className="flex items-center justify-between border-b border-stone-200 pb-1">
+                                <span className="font-bold text-stone-900">المنتجات ({ord.items.reduce((s, i) => s + i.quantity, 0)} قطعة)</span>
+                                <span className="font-mono font-black text-sm text-pink-700">{ord.total} ج.م</span>
+                              </div>
+                              <div className="max-h-24 overflow-y-auto space-y-1 pr-1">
+                                {ord.items.map((item, idx) => (
+                                  <div key={idx} className="flex items-center justify-between text-[11px] text-stone-600">
+                                    <span className="truncate max-w-[200px]">
+                                      {item.quantity}x {item.product.nameAr}
+                                    </span>
+                                    <span className="font-mono">{item.product.price * item.quantity} ج.م</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: CUSTOMER REVIEWS & COMMENTS (آراء وتقييمات العملاء) */}
+            {activeTab === 'reviews' && (
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 text-right">
+                {/* Header Banner */}
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs">
+                      <Star className="w-5 h-5 fill-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm sm:text-base text-amber-950">
+                        آراء وتقييمات وتعليقات العملاء ({allCustomerReviews.length})
+                      </h3>
+                      <p className="text-xs text-amber-800">
+                        متابعة تجارب العملاء مع المنتجات، تقييمات الشراء الموثقة، والصور المرفقة
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white px-3 py-1.5 rounded-xl border border-amber-200 text-center">
+                      <span className="text-[10px] text-stone-500 block">متوسط الرضا</span>
+                      <span className="font-black text-amber-700 text-sm">
+                        {allCustomerReviews.length > 0
+                          ? (
+                              allCustomerReviews.reduce((sum, r) => sum + r.rating, 0) /
+                              allCustomerReviews.length
+                            ).toFixed(1)
+                          : '5.0'}{' '}
+                        ★
+                      </span>
+                    </div>
+
+                    <div className="bg-white px-3 py-1.5 rounded-xl border border-amber-200 text-center">
+                      <span className="text-[10px] text-stone-500 block">تقييمات 5 نجوم</span>
+                      <span className="font-black text-emerald-700 text-sm">
+                        {allCustomerReviews.filter((r) => r.rating === 5).length}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reviews List */}
+                <div className="space-y-3">
+                  {allCustomerReviews.length === 0 ? (
+                    <div className="text-center py-14 bg-stone-50 rounded-2xl border border-stone-200">
+                      <Star className="w-10 h-10 text-stone-300 mx-auto mb-2" />
+                      <p className="text-sm font-bold text-stone-700">لا توجد تقييمات مسجلة بعد</p>
+                      <p className="text-xs text-stone-400 mt-1">
+                        تظهر التقييمات تلقائياً عند قيام العميل بكتابة رأيه من صفحة تتبع الطلب أو تفاصيل المنتج
+                      </p>
+                    </div>
+                  ) : (
+                    allCustomerReviews.map((rev) => (
                       <div
-                        key={ord.id}
-                        className="p-4 rounded-2xl border border-stone-200 bg-white shadow-2xs space-y-3"
+                        key={rev.id}
+                        className="p-4 rounded-2xl border border-stone-200 bg-white shadow-2xs space-y-3 hover:border-amber-200 transition-all"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-black text-sm text-stone-900">
-                              #{ord.id}
-                            </span>
-                            <span
-                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                                ord.status === 'new'
-                                  ? 'bg-amber-100 text-amber-900'
-                                  : ord.status === 'preparing'
-                                  ? 'bg-blue-100 text-blue-900'
-                                  : ord.status === 'with_courier'
-                                  ? 'bg-teal-100 text-teal-900'
-                                  : ord.status === 'delivered'
-                                  ? 'bg-emerald-100 text-emerald-900'
-                                  : 'bg-rose-100 text-rose-900'
-                              }`}
-                            >
-                              {ord.status === 'new'
-                                ? 'طلب جديد ⏳'
-                                : ord.status === 'preparing'
-                                ? 'جاري التجهيز 📦'
-                                : ord.status === 'with_courier'
-                                ? 'مع المندوب 🛵'
-                                : ord.status === 'delivered'
-                                ? 'تم التسليم ✓'
-                                : 'ملغي ✕'}
-                            </span>
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-pink-100 text-pink-700 flex items-center justify-center font-bold text-xs">
+                              {rev.userName.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-bold text-stone-900 text-xs flex items-center gap-1.5">
+                                <span>{rev.userName}</span>
+                                {rev.verifiedPurchase && (
+                                  <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.2 rounded-full font-bold">
+                                    ✓ مشتري موثق
+                                  </span>
+                                )}
+                                <span className="text-[11px] text-stone-400">({rev.userArea})</span>
+                              </div>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-3.5 h-3.5 ${
+                                      i < rev.rating
+                                        ? 'text-amber-400 fill-amber-400'
+                                        : 'text-stone-200'
+                                    }`}
+                                  />
+                                ))}
+                                <span className="text-[11px] font-bold text-stone-600 mr-1">
+                                  {rev.rating}/5
+                                </span>
+                              </div>
+                            </div>
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <select
-                              value={ord.status}
-                              onChange={(e) =>
-                                onUpdateOrderStatus(ord.id, e.target.value as Order['status'])
-                              }
-                              className="text-xs px-2.5 py-1 rounded-lg border border-stone-300 bg-stone-50 font-bold"
-                            >
-                              <option value="new">طلب جديد</option>
-                              <option value="preparing">قيد التجهيز</option>
-                              <option value="with_courier">مع المندوب</option>
-                              <option value="delivered">تم التسليم</option>
-                              <option value="cancelled">إلغاء الطلب</option>
-                            </select>
-
-                            <button
-                              type="button"
-                              onClick={() => handleOpenCourierEdit(ord)}
-                              className="px-2.5 py-1 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
-                            >
-                              <Truck className="w-3.5 h-3.5" />
-                              <span>إسناد مندوب</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-stone-700">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-stone-900">العميل:</span>
-                            <span>{ord.customerName}</span>
-                            <a
-                              href={`https://wa.me/2${ord.phone.replace(/^0+/, '')}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-emerald-700 hover:text-emerald-800 font-mono font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded"
-                            >
-                              <Phone className="w-3 h-3" />
-                              <span>{ord.phone}</span>
-                            </a>
-                          </div>
-                          <div>
-                            <span className="font-bold text-stone-900">العنوان: </span>
-                            <span>{ord.zoneName} - {ord.detailedAddress}</span>
-                          </div>
-                        </div>
-
-                        {/* Delivery Timing Badge */}
-                        <div className="mt-1 flex items-center gap-2 text-xs">
-                          {ord.deliveryTimingType === 'scheduled' ? (
-                            <span className="bg-pink-50 text-pink-900 border border-pink-200 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5">
-                              <span>📅 موعد توصيل مجدول:</span>
-                              <span className="text-pink-700 underline font-mono">{ord.scheduledDate}</span>
-                              <span className="text-stone-500">({ord.scheduledTimeSlot})</span>
+                            <span className="text-[11px] text-stone-400">
+                              {rev.date || 'اليوم'}
                             </span>
-                          ) : (
-                            <span className="bg-stone-100 text-stone-700 border border-stone-200 px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1">
-                              <span>🚚 توصيل خلال ٢٤ ساعة (الافتراضي)</span>
-                            </span>
-                          )}
+                            {onDeleteReview && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`هل تريد حذف تقييم ${rev.userName} للمنتج "${rev.productNameAr}"؟`)) {
+                                    onDeleteReview(rev.productId, rev.id);
+                                  }
+                                }}
+                                className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                title="حذف التقييم"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Product Attached */}
+                        <div className="flex items-center gap-2.5 bg-stone-50 p-2 rounded-xl border border-stone-100">
+                          <img
+                            src={rev.productImage}
+                            alt={rev.productNameAr}
+                            className="w-10 h-10 rounded-lg object-cover border border-stone-200 shrink-0"
+                          />
+                          <div className="text-xs">
+                            <span className="text-[10px] text-stone-400 font-bold block">{rev.productBrand}</span>
+                            <span className="font-bold text-stone-900">{rev.productNameAr}</span>
+                          </div>
+                        </div>
+
+                        {/* Comment Text */}
+                        <p className="text-xs text-stone-700 leading-relaxed font-medium bg-white p-2 rounded-lg">
+                          "{rev.comment}"
+                        </p>
+
+                        {/* Attached Photos */}
+                        {((rev.images && rev.images.length > 0) || rev.image) && (
+                          <div className="flex items-center gap-2 pt-1">
+                            <span className="text-[11px] font-bold text-stone-500">الصور المرفقة:</span>
+                            <div className="flex gap-2 overflow-x-auto">
+                              {(rev.images || [rev.image!]).map((imgUrl, imgIdx) => (
+                                <img
+                                  key={imgIdx}
+                                  src={imgUrl}
+                                  alt="صورة التقييم"
+                                  className="w-12 h-12 rounded-lg object-cover border border-stone-200 cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => window.open(imgUrl, '_blank')}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))
                   )}

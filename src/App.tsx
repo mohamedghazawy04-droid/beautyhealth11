@@ -1000,8 +1000,11 @@ export default function App() {
   ) => {
     const newRev: ProductReview = {
       ...newRevData,
-      id: 'rev_' + Date.now(),
+      id: 'rev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       createdAt: new Date().toISOString(),
+      date: (newRevData as any).date || 'اليوم',
+      verifiedPurchase: true,
+      orderId: reviewModalOrderId,
     };
 
     let updatedProd: Product | null = null;
@@ -1009,14 +1012,14 @@ export default function App() {
     setProducts((prev) =>
       prev.map((p) => {
         if (p.id === productId) {
-          const currentReviews = p.reviewsList || [];
+          const currentReviews = p.reviews || (p as any).reviewsList || [];
           const updatedReviews = [newRev, ...currentReviews];
           const newTotalRatings = updatedReviews.reduce((sum, r) => sum + r.rating, 0);
           const newAvgRating = Number((newTotalRatings / updatedReviews.length).toFixed(1));
 
-          const up = {
+          const up: Product = {
             ...p,
-            reviewsList: updatedReviews,
+            reviews: updatedReviews,
             reviewsCount: updatedReviews.length,
             rating: newAvgRating,
           };
@@ -1039,7 +1042,49 @@ export default function App() {
       }
     }
 
-    showToast(`⭐ شكراً لك! تم نشر تقييمك (${newRevData.rating} نجوم) مع الصور بنجاح`);
+    showToast(`⭐ شكراً لك! تم نشر تقييمك ورأيك (${newRevData.rating} نجوم) بنجاح`);
+  };
+
+  const handleDeleteProductReview = async (productId: string, reviewId: string) => {
+    let updatedProd: Product | null = null;
+
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id === productId) {
+          const currentReviews = p.reviews || (p as any).reviewsList || [];
+          const updatedReviews = currentReviews.filter((r: ProductReview) => r.id !== reviewId);
+          const newTotalRatings = updatedReviews.reduce((sum: number, r: ProductReview) => sum + r.rating, 0);
+          const newAvgRating =
+            updatedReviews.length > 0
+              ? Number((newTotalRatings / updatedReviews.length).toFixed(1))
+              : 5.0;
+
+          const up: Product = {
+            ...p,
+            reviews: updatedReviews,
+            reviewsCount: updatedReviews.length,
+            rating: newAvgRating,
+          };
+          updatedProd = up;
+          return up;
+        }
+        return p;
+      })
+    );
+
+    if (detailProduct && detailProduct.id === productId && updatedProd) {
+      setDetailProduct(updatedProd);
+    }
+
+    if (updatedProd) {
+      try {
+        await setDoc(doc(db, 'products', productId), updatedProd);
+      } catch (e) {
+        console.error('Failed to delete review in Firestore:', e);
+      }
+    }
+
+    showToast('✓ تم حذف التقييم وتحديث تقييم الصنف');
   };
 
   // Brands list for filter
@@ -1738,6 +1783,7 @@ export default function App() {
         onAdminReplySupport={handleAdminReplySupport}
         onUpdateTicketStatus={handleUpdateTicketStatus}
         onDeleteTicket={handleDeleteTicket}
+        onDeleteReview={handleDeleteProductReview}
       />
 
       {/* Google Drive Cloud Backup & File Manager Modal */}

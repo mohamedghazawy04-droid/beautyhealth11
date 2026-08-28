@@ -521,8 +521,8 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                               </button>
                             )}
 
-                            {/* Product review button if delivered */}
-                            {isDelivered && onOpenReviewModal && (
+                            {/* Product review button */}
+                            {onOpenReviewModal && (
                               <button
                                 onClick={() =>
                                   onOpenReviewModal(
@@ -532,10 +532,11 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                                     order.zoneName
                                   )
                                 }
-                                className="px-3 py-1.5 rounded-lg bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                                className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-extrabold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                                title="تقديم رأيك وتقييم المنتج وكتابة تعليق"
                               >
                                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
-                                <span>تقييم هذا المنتج</span>
+                                <span>تقييم وكتابة رأيك</span>
                               </button>
                             )}
                           </div>

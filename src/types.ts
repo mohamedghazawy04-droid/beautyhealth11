@@ -30,6 +30,8 @@ export interface ProductReview {
   images?: string[];
   image?: string;
   createdAt?: string;
+  orderId?: string;
+  verifiedPurchase?: boolean;
 }
 
 export interface Product {

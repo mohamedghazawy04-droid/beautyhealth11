@@ -1,4 +1,4 @@
-import { Order, StoreSettings } from '../types';
+import { Order, StoreSettings, PrescriptionRequest } from '../types';
 import { playOrderAlarmSound, sendBrowserNotification } from './notificationSound';
 
 export interface DispatchResults {
