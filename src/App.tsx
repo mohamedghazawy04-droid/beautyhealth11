@@ -60,7 +60,7 @@ import { NotificationsModal } from './components/NotificationsModal';
 import { GoogleDriveModal } from './components/GoogleDriveModal';
 import { CustomerSupportModal } from './components/CustomerSupportModal';
 import { playNotificationSound, playOrderAlarmSound, sendBrowserNotification } from './utils/notificationSound';
-import { dispatchAutomatedOrder } from './utils/orderNotifier';
+import { dispatchAutomatedOrder, dispatchAutomatedPrescription } from './utils/orderNotifier';
 import { db } from './firebase';
 import {
   collection,
@@ -359,6 +359,66 @@ export default function App() {
   const [reviewModalUserArea, setReviewModalUserArea] = useState<string | undefined>(undefined);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Secret Footer Multi-Click Tracker
+  const footerClickCountRef = React.useRef(0);
+  const lastFooterClickTimeRef = React.useRef(0);
+
+  const handleFooterSecretClick = () => {
+    const now = Date.now();
+    if (now - lastFooterClickTimeRef.current > 2200) {
+      footerClickCountRef.current = 1;
+    } else {
+      footerClickCountRef.current += 1;
+    }
+    lastFooterClickTimeRef.current = now;
+
+    if (footerClickCountRef.current >= 3) {
+      footerClickCountRef.current = 0;
+      setIsAdminOpen(true);
+      showToast('🔐 تم تفعيل الدخول السري للوحة الإدارة');
+    }
+  };
+
+  // Secret Admin Portal Shortcuts & URL Hash / Query Listeners
+  useEffect(() => {
+    // 1. URL Hash / Query Parameter Check (e.g., website.com/#admin or ?admin=true)
+    const checkAdminTriggerInUrl = () => {
+      const hash = window.location.hash.toLowerCase();
+      const params = new URLSearchParams(window.location.search);
+      if (
+        hash === '#admin' ||
+        hash === '#manager' ||
+        hash === '#control' ||
+        params.get('admin') === 'true' ||
+        params.get('admin') === '1' ||
+        params.get('mode') === 'admin'
+      ) {
+        setIsAdminOpen(true);
+      }
+    };
+
+    checkAdminTriggerInUrl();
+    window.addEventListener('hashchange', checkAdminTriggerInUrl);
+
+    // 2. Secret Keyboard shortcut: Ctrl+Shift+A or Cmd+Shift+A or Alt+M
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Ctrl+Shift+A or Cmd+Shift+A (or Arabic keyboard equivalent)
+      if (
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a' || e.key === 'ش')) ||
+        (e.altKey && (e.key === 'M' || e.key === 'm' || e.key === 'ة'))
+      ) {
+        e.preventDefault();
+        setIsAdminOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('hashchange', checkAdminTriggerInUrl);
+    };
+  }, []);
 
   // Track initial product loading to only trigger alerts on actual NEW additions
   const initialProductsLoadedRef = React.useRef(false);
@@ -889,9 +949,20 @@ export default function App() {
   };
 
   // Prescription Operations
-  const handleAddNewPrescription = (req: PrescriptionRequest) => {
+  const handleAddNewPrescription = async (req: PrescriptionRequest) => {
     setPrescriptions((prev) => [req, ...prev]);
-    showToast('✓ تم استلام الروشتة وإرسالها للصيدلي بنجاح');
+    try {
+      await setDoc(doc(db, 'prescriptions', req.id), req);
+    } catch (e) {
+      console.error('Failed to save prescription to Firestore:', e);
+    }
+
+    // Trigger automated prescription dispatch to Telegram bot
+    dispatchAutomatedPrescription(req, storeSettings).catch((err) => {
+      console.error('Automated prescription dispatch error:', err);
+    });
+
+    showToast('✓ تم استلام الروشتة وإرسالها لإدارة الصيدلية بنجاح');
   };
 
   const handleUpdatePrescriptionStatus = (
@@ -1458,13 +1529,19 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-12 bg-stone-900 text-stone-300 text-xs py-8 border-t border-stone-800">
+      <footer className="mt-12 bg-stone-900 text-stone-300 text-xs py-8 border-t border-stone-800 select-none">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-['Playfair_Display',Georgia,serif] text-lg font-black text-pink-500">
+          <div
+            onClick={handleFooterSecretClick}
+            className="flex items-center gap-2 cursor-pointer group"
+            title="متجر m&l"
+          >
+            <span className="font-['Playfair_Display',Georgia,serif] text-lg font-black text-pink-500 group-hover:scale-105 transition-transform">
               m<span className="text-white">&</span>l
             </span>
-            <span>• متجر العناية ومستلزمات الطفل - إشراف صيدلي معتمد 🥼</span>
+            <span className="text-stone-400 group-hover:text-stone-200 transition-colors">
+              • متجر العناية ومستلزمات الطفل - إشراف صيدلي معتمد 🥼
+            </span>
           </div>
 
           <div className="flex items-center gap-4 text-[11px] font-bold flex-wrap justify-center">
@@ -1494,12 +1571,6 @@ export default function App() {
               className="hover:text-pink-400 transition-colors cursor-pointer"
             >
               المناطق
-            </button>
-            <button
-              onClick={() => setIsAdminOpen(true)}
-              className="hover:text-pink-400 transition-colors cursor-pointer"
-            >
-              المدير 🔒
             </button>
           </div>
         </div>
@@ -1735,11 +1806,12 @@ export default function App() {
         products={products}
       />
 
-      {/* Prescription / Medical Accessory Modal with Direct WhatsApp */}
+      {/* Prescription / Medical Accessory Modal with Telegram Integration */}
       <PrescriptionModal
         isOpen={isPrescriptionModalOpen}
         onClose={() => setIsPrescriptionModalOpen(false)}
         onSubmitPrescription={handleAddNewPrescription}
+        storeSettings={storeSettings}
       />
 
       {/* Progressive Web App Install Modal */}

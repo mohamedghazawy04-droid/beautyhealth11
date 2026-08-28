@@ -272,6 +272,22 @@ ${order.notes ? `📝 <b>ملاحظات العميل:</b> ${order.notes}\n` : ''
 `.trim();
 }
 
+// Helper: Format Prescription Request for Telegram
+function formatTelegramPrescriptionHTML(rx: any): string {
+  const cityArabic = rx.city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر';
+  return `
+🩺 <b>طلب روشتة / استشارة صيدلية جديدة! #${rx.id}</b>
+━━━━━━━━━━━━━━━━━
+👤 <b>العميل:</b> ${rx.patientName || 'غير محدد'}
+📱 <b>الهاتف:</b> <a href="tel:${rx.phone}">${rx.phone}</a>
+📍 <b>المنطقة:</b> ${cityArabic} - ${rx.areaName || 'أكتوبر وزايد'}
+🖼️ <b>صورة الروشتة/المستحضر:</b> ${rx.image ? '✅ مرفقة مع الطلب' : '❌ لم يتم إرفاق صورة'}
+${rx.notes ? `📝 <b>استفسار وملاحظات العميل:</b> ${rx.notes}\n` : ''}━━━━━━━━━━━━━━━━━
+✨ <i>تنبيه: تم إرسال رسالة تأكيد للعميل بأن الصيدلي المناوب سيقوم بمتابعة استفساره فوراً.</i>
+⏰ <i>${new Date().toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' })}</i>
+`.trim();
+}
+
 // Automated Multi-Channel Order Notification Dispatch Endpoint
 app.post('/api/notify/order', async (req: Request, res: Response) => {
   try {
@@ -356,6 +372,70 @@ app.post('/api/notify/order', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Order notification controller error:', error);
     return res.status(500).json({ error: 'Failed to process notifications', details: error?.message });
+  }
+});
+
+// Automated Prescription & Medical Inquiry Telegram Notification Endpoint
+app.post('/api/notify/prescription', async (req: Request, res: Response) => {
+  try {
+    const { prescription, storeSettings } = req.body;
+    if (!prescription) {
+      return res.status(400).json({ error: 'Prescription data is required' });
+    }
+
+    const results: { telegram?: { success: boolean; message?: string } } = {};
+
+    const telegramToken = storeSettings?.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
+    const telegramChatId = storeSettings?.telegramChatId || process.env.TELEGRAM_CHAT_ID;
+    const isTelegramEnabled = storeSettings?.telegramEnabled !== false && telegramToken && telegramChatId;
+
+    if (isTelegramEnabled) {
+      try {
+        const messageHtml = formatTelegramPrescriptionHTML(prescription);
+        const cleanPhone = (prescription.phone || '').replace(/\D/g, '');
+        const internationalPhone = cleanPhone.startsWith('0') ? `2${cleanPhone}` : cleanPhone;
+
+        const inlineKeyboard = {
+          inline_keyboard: [
+            [
+              { text: '📞 اتصال بالعميل', url: `tel:${prescription.phone}` },
+              { text: '💬 فتح واتساب العميل', url: `https://wa.me/${internationalPhone}` }
+            ]
+          ]
+        };
+
+        const tgRes = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: telegramChatId,
+            text: messageHtml,
+            parse_mode: 'HTML',
+            reply_markup: inlineKeyboard,
+            disable_web_page_preview: true
+          }),
+        });
+
+        const tgData = (await tgRes.json()) as { ok: boolean; description?: string };
+        if (tgData.ok) {
+          results.telegram = { success: true, message: 'Prescription telegram alert sent successfully' };
+        } else {
+          results.telegram = { success: false, message: tgData.description || 'Telegram API error' };
+        }
+      } catch (err: any) {
+        console.error('Prescription Telegram error:', err);
+        results.telegram = { success: false, message: err?.message || 'Network error' };
+      }
+    }
+
+    return res.json({
+      success: true,
+      notifiedChannels: results,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error('Prescription notification error:', error);
+    return res.status(500).json({ error: 'Failed to process prescription notification' });
   }
 });
 

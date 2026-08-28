@@ -7,28 +7,28 @@ import {
   Phone,
   User,
   MapPin,
-  MessageCircle,
   Stethoscope,
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
   Clock,
   Send,
-  HelpCircle
+  SendHorizontal
 } from 'lucide-react';
-import { PrescriptionRequest } from '../types';
+import { PrescriptionRequest, StoreSettings } from '../types';
 
 interface PrescriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmitPrescription: (prescription: PrescriptionRequest) => void;
+  storeSettings?: StoreSettings;
 }
 
 export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
   isOpen,
   onClose,
   onSubmitPrescription,
+  storeSettings,
 }) => {
   const [patientName, setPatientName] = useState('');
   const [phone, setPhone] = useState('');
@@ -38,8 +38,22 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
   const [prescriptionImage, setPrescriptionImage] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [createdReqId, setCreatedReqId] = useState('');
 
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    // Reset modal state when closing
+    setIsSubmitted(false);
+    setErrorMsg('');
+    setPatientName('');
+    setPhone('');
+    setAreaName('');
+    setNotes('');
+    setPrescriptionImage(null);
+    setCreatedReqId('');
+    onClose();
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -108,40 +122,25 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
       createdAt: new Date().toISOString(),
     };
 
+    setCreatedReqId(newRequest.id);
     onSubmitPrescription(newRequest);
     setIsSubmitted(true);
-
-    // Prepare WhatsApp Message
-    const whatsappPhone = '201093629587';
-    const cityArabic = city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر';
-    const hasImageText = prescriptionImage
-      ? '📸 تم إرفاق صورة الروشتة/المستحضر'
-      : '📝 تم كتابة الأصناف المطلوبة في الملاحظات';
-
-    const msg = encodeURIComponent(
-      `🩺 *طلب روشتة / استشارة صيدلانية جديدة - متجر m&l*\n` +
-      `━━━━━━━━━━━━━━━━━━━\n` +
-      `👤 *اسم العميل:* ${patientName}\n` +
-      `📱 *رقم الهاتف:* ${phone}\n` +
-      `📍 *المنطقة:* ${cityArabic} - ${areaName || 'العنوان المسجل'}\n` +
-      `📋 *كود الطلب:* ${newRequest.id}\n` +
-      `🖼️ *حالة المرفق:* ${hasImageText}\n` +
-      (notes ? `💬 *ملاحظات واستفسار الطبيب:* ${notes}\n` : '') +
-      `━━━━━━━━━━━━━━━━━━━\n` +
-      `✨ برجاء مراجعة الروشتة وتأكيد التوافر والتوصيل السريع لأكتوبر وزايد.`
-    );
-
-    // Direct redirection to WhatsApp
-    setTimeout(() => {
-      window.open(`https://wa.me/${whatsappPhone}?text=${msg}`, '_blank');
-    }, 400);
   };
 
+  // Get Telegram direct link (custom username or fallback to direct bot)
+  const telegramUsername = (storeSettings?.telegramUsername || 'ml_care_bot').replace('@', '');
+  const telegramDirectUrl = `https://t.me/${telegramUsername}`;
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 text-right">
-      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-stone-200 animate-in fade-in zoom-in-95 duration-200">
-        {/* Header with Pharmacist Trust */}
-        <div className="bg-gradient-to-r from-emerald-800 via-teal-900 to-emerald-950 text-white p-4 sm:p-5 flex items-center justify-between">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 text-right"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+    >
+      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-stone-200 animate-in fade-in zoom-in-95 duration-200 relative">
+        {/* Header with Pharmacist Trust & Clear Close Button */}
+        <div className="bg-gradient-to-r from-emerald-800 via-teal-900 to-emerald-950 text-white p-4 sm:p-5 flex items-center justify-between relative">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-emerald-300 shadow-inner">
               <Stethoscope className="w-6 h-6" />
@@ -161,20 +160,26 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
             </div>
           </div>
 
+          {/* Prominent High-Contrast Close Button (X) */}
           <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+            type="button"
+            onClick={handleClose}
+            aria-label="إغلاق"
+            className="w-9 h-9 rounded-2xl bg-white/20 hover:bg-rose-600 active:scale-90 flex items-center justify-center text-white transition-all cursor-pointer border border-white/20 shadow-xs"
+            title="إغلاق النافذة"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5 stroke-[2.5]" />
           </button>
         </div>
 
         {/* Pharmacist Guarantee Banner */}
-        <div className="bg-emerald-50 px-4 py-2.5 border-b border-emerald-200/80 flex items-center gap-2 text-xs text-emerald-900">
-          <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-          <span className="font-semibold leading-tight">
-            نحن نتعامل مباشرة من خلال <strong>صيادلة متخصصين ومصرحين</strong> لفحص الروشتة وتحديد البدائل والجرعات بدقة وأمان تام.
-          </span>
+        <div className="bg-emerald-50 px-4 py-2.5 border-b border-emerald-200/80 flex items-center justify-between gap-2 text-xs text-emerald-900">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span className="font-semibold leading-tight">
+              يتم فحص الروشتة مباشرة بواسطة <strong>صيادلة متخصصين</strong> وتأكيد الأصناف والجرعات بأمان تام.
+            </span>
+          </div>
         </div>
 
         {isSubmitted ? (
@@ -183,31 +188,43 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
               <CheckCircle2 className="w-9 h-9" />
             </div>
             <h3 className="text-lg font-black text-stone-900">
-              تم استلام طلب الروشتة بنجاح! 🎉
+              تم إرسال طلب الروشتة بنجاح! 🎉
             </h3>
-            <p className="text-xs text-stone-600 leading-relaxed max-w-sm mx-auto">
-              تم تجهيز الطلب وفتح تطبيق الواتساب للتواصل المباشر مع الصيدلي المناوب على الرقم <strong>01093629587</strong> لتأكيد الأصناف وموعد التوصيل.
-            </p>
 
-            <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-700 space-y-1 text-right">
-              <div><strong>اسم العميل:</strong> {patientName}</div>
-              <div><strong>رقم الهاتف:</strong> {phone}</div>
-              <div><strong>المنطقة:</strong> {city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر'}</div>
+            {/* Reassurance Message Box */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-300 text-emerald-950 text-right space-y-2">
+              <div className="flex items-center gap-2 font-black text-xs sm:text-sm text-emerald-900">
+                <Stethoscope className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span>سيتابع معك صيادلة متخصصون لمتابعة استفسارك فوراً</span>
+              </div>
+              <p className="text-xs text-emerald-800 leading-relaxed">
+                تم تحويل الروشتة وبياناتك تلقائياً وبشكل مباشر إلى <strong>تيليجرام إدارة الصيدلية والمتجر</strong>. يقوم الصيدلي المناوب حالياً بمراجعة الأصناف والجرعات وسيتواصل معك فوراً لتأكيد الطلب والتوصيل السريع لأكتوبر وزايد.
+              </p>
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-700 space-y-1 text-right">
+              <div><strong>كود الطلب:</strong> <span className="font-mono font-bold text-emerald-700">{createdReqId}</span></div>
+              <div><strong>اسم العميل:</strong> {patientName}</div>
+              <div><strong>رقم الهاتف:</strong> {phone}</div>
+              <div><strong>المنطقة:</strong> {city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر'} ({areaName || 'العنوان المسجل'})</div>
+              {prescriptionImage && <div className="text-emerald-700 font-bold">✓ تم إرفاق صورة الروشتة وإرسالها للصيدلي بنجاح</div>}
+            </div>
+
+            {/* Telegram Direct Action Button & Close Button */}
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
               <a
-                href="https://wa.me/201093629587"
+                href={telegramDirectUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
+                className="flex-1 py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
               >
-                <MessageCircle className="w-4 h-4" />
-                <span>متابعة على واتساب (01093629587)</span>
+                <SendHorizontal className="w-4 h-4 text-sky-200" />
+                <span>فتح محادثة تيليجرام الصيدلية 💬</span>
               </a>
               <button
-                onClick={onClose}
-                className="px-4 py-3 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs cursor-pointer"
+                type="button"
+                onClick={handleClose}
+                className="px-5 py-3 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs cursor-pointer transition-colors"
               >
                 إغلاق
               </button>
@@ -288,7 +305,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
 
               <div>
                 <label className="text-xs font-bold text-stone-700 block mb-1">
-                  رقم الموبايل / واتساب <span className="text-rose-500">*</span>
+                  رقم الموبايل للتواصل <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -358,14 +375,21 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* Submit & Cancel Buttons */}
             <div className="pt-2 flex items-center gap-2">
               <button
                 type="submit"
-                className="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                className="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-700 to-emerald-800 hover:from-emerald-700 hover:to-teal-900 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
               >
-                <Send className="w-4 h-4" />
-                <span>إرسال الروشتة ومتابعة مع الصيدلي عبر واتساب 🩺</span>
+                <Send className="w-4 h-4 text-emerald-200" />
+                <span>إرسال الروشتة للصيدلي عبر تيليجرام 🩺</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="py-3.5 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer border border-stone-300/80"
+              >
+                إلغاء
               </button>
             </div>
           </form>

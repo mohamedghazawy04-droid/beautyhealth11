@@ -155,6 +155,55 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
+  // Secret Logo Multi-Click Tracker
+  const logoClickCountRef = useRef(0);
+  const lastLogoClickTimeRef = useRef(0);
+
+  const handleLogoSecretClick = () => {
+    const now = Date.now();
+    if (now - lastLogoClickTimeRef.current > 2200) {
+      logoClickCountRef.current = 1;
+    } else {
+      logoClickCountRef.current += 1;
+    }
+    lastLogoClickTimeRef.current = now;
+
+    if (logoClickCountRef.current >= 3) {
+      logoClickCountRef.current = 0;
+      if (onOpenAdmin) {
+        onOpenAdmin();
+      }
+    }
+  };
+
+  // Secret Keyword Check for Search Bar
+  const handleSearchInputChange = (val: string) => {
+    const normalized = val.trim().toLowerCase();
+    const secretKeywords = [
+      'admin',
+      'مدير',
+      'ادمن',
+      'm&l-admin',
+      'control',
+      'لوحة التحكم',
+      'لوحة المدير',
+      'mohager191995',
+      'mladmin',
+    ];
+
+    if (secretKeywords.includes(normalized)) {
+      onSearchChange('');
+      setIsDesktopFocused(false);
+      setIsMobileFocused(false);
+      setShowMobileSearch(false);
+      if (onOpenAdmin) {
+        onOpenAdmin();
+      }
+      return;
+    }
+    onSearchChange(val);
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-pink-100 shadow-xs text-right transition-all">
       {/* Top Banner */}
@@ -172,7 +221,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </div>
 
-          {/* Quick Links & Admin */}
+          {/* Quick Links */}
           <div className="flex items-center gap-2 shrink-0">
             {onOpenPrescription && (
               <button
@@ -226,27 +275,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <MessageCircle className="w-3 h-3" />
               <span>واتساب الصيدلي</span>
             </a>
-
-            {onOpenGoogleDrive && (
-              <button
-                type="button"
-                onClick={onOpenGoogleDrive}
-                className="hidden md:flex px-2 py-0.5 rounded-md bg-amber-900/60 hover:bg-amber-800 text-amber-200 hover:text-white text-[10px] sm:text-[11px] font-bold cursor-pointer items-center gap-1 border border-amber-600/50 transition-colors"
-                title="النسخ الاحتياطي السحابي عبر Google Drive"
-              >
-                <HardDrive className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300" />
-                <span>Drive السحابي</span>
-              </button>
-            )}
-
-            <button
-              onClick={onOpenAdmin}
-              className="px-2 py-0.5 rounded-md bg-rose-900/80 hover:bg-rose-800 text-pink-200 hover:text-white text-[10px] sm:text-[11px] font-black cursor-pointer flex items-center gap-1 border border-pink-700/60"
-              title="لوحة تحكم المدير"
-            >
-              <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-pink-300" />
-              <span>المدير</span>
-            </button>
           </div>
         </div>
       </div>
@@ -254,9 +282,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Main Navbar Row */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-2.5">
         <div className="flex items-center justify-between gap-2 sm:gap-4">
-          {/* Brand Logo & Name */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="relative group cursor-pointer">
+          {/* Brand Logo & Name (With Secret 3-Click Admin Trigger) */}
+          <div
+            onClick={handleLogoSecretClick}
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer select-none"
+            title="متجر m&l للعناية والجمال"
+          >
+            <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-500 to-rose-400 rounded-2xl blur-xs opacity-75 group-hover:opacity-100 transition duration-300"></div>
               <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-pink-500 via-rose-500 to-pink-600 flex items-center justify-center text-white shadow-md font-black text-sm sm:text-base tracking-tight border border-pink-200/50">
                 <span className="font-['Playfair_Display',Georgia,serif] lowercase font-black tracking-tighter drop-shadow-xs">
@@ -279,14 +311,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Search Input on Desktop with Live Autocomplete Suggestions */}
+          {/* Search Input on Desktop with Live Autocomplete Suggestions & Secret Trigger */}
           <div ref={desktopSearchRef} className="hidden md:flex flex-1 max-w-md relative mx-2">
             <div className="w-full relative">
               <input
                 type="text"
                 value={searchQuery}
                 onFocus={() => setIsDesktopFocused(true)}
-                onChange={(e) => onSearchChange(e.target.value)}
+                onChange={(e) => handleSearchInputChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearchInputChange(searchQuery);
+                  }
+                }}
                 placeholder="ابحثي عن منتج، ماركة، أو علاج للبشرة والشعر..."
                 className="w-full pl-8 pr-9 py-2 rounded-2xl bg-pink-50/60 border border-pink-200 text-xs focus:outline-none focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all text-stone-800 placeholder:text-stone-400 shadow-2xs"
               />
@@ -503,7 +540,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Mobile Search Bar (Expandable) */}
+        {/* Mobile Search Bar (Expandable with Secret Trigger) */}
         {showMobileSearch && (
           <div ref={mobileSearchRef} className="md:hidden mt-2 relative pt-1">
             <div className="relative">
@@ -512,7 +549,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                 autoFocus
                 value={searchQuery}
                 onFocus={() => setIsMobileFocused(true)}
-                onChange={(e) => onSearchChange(e.target.value)}
+                onChange={(e) => handleSearchInputChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearchInputChange(searchQuery);
+                  }
+                }}
                 placeholder="ابحثي عن منتج، ماركة، أو علاج للبشرة والشعر..."
                 className="w-full pl-8 pr-9 py-2 rounded-2xl bg-pink-50/70 border border-pink-300 text-xs focus:outline-none focus:ring-2 focus:ring-pink-500 focus:bg-white text-stone-800 placeholder:text-stone-400"
               />

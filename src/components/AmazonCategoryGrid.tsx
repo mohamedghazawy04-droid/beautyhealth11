@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Baby,
   Scissors,
@@ -7,9 +7,13 @@ import {
   Flame,
   ShieldCheck,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   Sparkles,
   ArrowLeft,
-  Stethoscope
+  Stethoscope,
+  Grid,
+  Layers
 } from 'lucide-react';
 import { MainCategory, SubCategory, Product, CategoryConfig } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/categories';
@@ -19,6 +23,7 @@ interface AmazonCategoryGridProps {
   categoriesList?: CategoryConfig[];
   onSelectCategory: (category: MainCategory, subCategory?: SubCategory) => void;
   onOpenCategoriesModal: () => void;
+  defaultExpanded?: boolean;
 }
 
 export const AmazonCategoryGrid: React.FC<AmazonCategoryGridProps> = ({
@@ -26,7 +31,11 @@ export const AmazonCategoryGrid: React.FC<AmazonCategoryGridProps> = ({
   categoriesList = DEFAULT_CATEGORIES,
   onSelectCategory,
   onOpenCategoriesModal,
+  defaultExpanded = false,
 }) => {
+  // Collapsed by default so products are immediately visible without taking excessive vertical space
+  const [isExpanded, setIsExpanded] = useState<boolean>(defaultExpanded);
+
   // Static fallback image mapper for well-known subcategories
   const getSubcategoryImage = (catId: string, subId: string): string => {
     // Check if there is an actual product with this subcategory
@@ -71,107 +80,148 @@ export const AmazonCategoryGrid: React.FC<AmazonCategoryGridProps> = ({
   };
 
   return (
-    <section className="mx-3 sm:mx-6 lg:mx-8 mb-8 text-right">
-      {/* Amazon-Style Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-2 border-b-2 border-stone-200">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-7 rounded-full bg-gradient-to-b from-pink-600 to-rose-600 inline-block shadow-sm" />
-            <h2 className="text-base sm:text-lg md:text-xl font-black text-slate-900">
-              تسوقي حسب الأقسام (Shop by Department)
-            </h2>
-            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-300 px-2.5 py-0.5 rounded-full shadow-2xs">
-              <Stethoscope className="w-3.5 h-3.5 text-emerald-700" />
-              إشراف صيدلي معتمد
-            </span>
+    <section className="mx-3 sm:mx-6 lg:mx-8 mb-4 sm:mb-6 text-right">
+      {/* Compact Collapsible Bar */}
+      <div className="bg-white rounded-2xl border border-stone-200 shadow-2xs p-3 sm:p-3.5 transition-all">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-6 rounded-full bg-gradient-to-b from-pink-600 to-rose-600 inline-block shadow-xs shrink-0" />
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xs sm:text-sm md:text-base font-black text-slate-900">
+                  تصفح حسب الأقسام (Shop by Department)
+                </h2>
+                <span className="text-[10px] bg-pink-100 text-pink-800 font-bold px-2 py-0.5 rounded-full border border-pink-200">
+                  {categoriesList.length} أقسام
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                تصفحي مباشرة أو افتحي بطاقات الأقسام المصورة
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-slate-600 font-semibold mt-1">
-            تصنيفات منظمة على طريقة أمازون لتسهيل تصفح منتجاتكِ المفضلة
-          </p>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+            {/* Quick Department Chips */}
+            <div className="hidden md:flex items-center gap-1.5 pl-2 border-l border-stone-200">
+              {categoriesList.map((dept) => (
+                <button
+                  key={dept.id}
+                  type="button"
+                  onClick={() => handleDepartmentClick(dept.id as MainCategory, 'all')}
+                  className="px-2.5 py-1 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-900 text-[11px] font-bold border border-pink-200/80 transition-colors cursor-pointer"
+                >
+                  {dept.title}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="px-3 py-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-900 text-xs font-black border border-pink-200 flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+            >
+              {isExpanded ? (
+                <>
+                  <span>إغلاق بطاقات الأقسام</span>
+                  <ChevronUp className="w-3.5 h-3.5 text-pink-600" />
+                </>
+              ) : (
+                <>
+                  <span>عرض بطاقات الأقسام</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-pink-600" />
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={onOpenCategoriesModal}
+              className="px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+            >
+              <Grid className="w-3.5 h-3.5 text-pink-400" />
+              <span className="hidden sm:inline">القائمة الشاملة</span>
+            </button>
+          </div>
         </div>
 
-        <button
-          onClick={onOpenCategoriesModal}
-          className="text-xs sm:text-sm font-black text-pink-700 hover:text-pink-900 flex items-center gap-1 hover:underline cursor-pointer self-start sm:self-auto bg-pink-50 hover:bg-pink-100 px-3 py-1.5 rounded-xl border border-pink-200 transition-colors"
-        >
-          <span>تصفح كافة الأقسام والتصنيفات</span>
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-      </div>
+        {/* Amazon 4-Card Department Grid (Only shown when expanded by user) */}
+        {isExpanded && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-4 mt-3 border-t border-stone-100 animate-in fade-in slide-in-from-top-2 duration-200">
+            {categoriesList.map((dept) => {
+              const displaySubs = dept.subcategories.filter((s) => s.id !== 'all').slice(0, 4);
 
-      {/* Amazon 4-Card Department Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {categoriesList.map((dept) => {
-          // Take top 4 subcategories (excluding 'all')
-          const displaySubs = dept.subcategories.filter((s) => s.id !== 'all').slice(0, 4);
-
-          return (
-            <div
-              key={dept.id}
-              className="bg-white rounded-2xl border-2 border-stone-200/90 hover:border-pink-300 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden p-4 group"
-            >
-              <div>
-                {/* Card Title & Badge */}
-                <div className="flex items-start justify-between gap-2 mb-3 pb-2 border-b border-stone-100">
+              return (
+                <div
+                  key={dept.id}
+                  className="bg-stone-50/70 rounded-2xl border border-stone-200 hover:border-pink-300 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden p-3 group"
+                >
                   <div>
-                    <h3 className="font-black text-slate-900 text-sm sm:text-base group-hover:text-pink-700 transition-colors">
-                      {dept.title}
-                    </h3>
-                    {dept.englishTitle && (
-                      <span className="text-[10px] text-slate-500 font-mono font-bold">
-                        {dept.englishTitle}
-                      </span>
-                    )}
-                  </div>
-                  {dept.badge && (
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-pink-100 text-pink-900 border border-pink-300 shrink-0">
-                      {dept.badge}
-                    </span>
-                  )}
-                </div>
-
-                {/* 2x2 Mini Product Grid (Amazon Signature Quad Card) */}
-                <div className="grid grid-cols-2 gap-2.5 mb-4">
-                  {displaySubs.map((sub, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() =>
-                        handleDepartmentClick(
-                          dept.id as MainCategory,
-                          sub.id as SubCategory
-                        )
-                      }
-                      className="text-right group/item cursor-pointer flex flex-col p-1.5 rounded-xl hover:bg-pink-50/50 transition-colors"
-                    >
-                      <div className="w-full aspect-square rounded-xl bg-stone-100 overflow-hidden mb-1.5 border border-stone-200 relative shadow-2xs">
-                        <img
-                          src={getSubcategoryImage(dept.id, sub.id)}
-                          alt={sub.label}
-                          className="w-full h-full object-cover group-hover/item:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
+                    {/* Card Title & Badge */}
+                    <div className="flex items-start justify-between gap-2 mb-2.5 pb-2 border-b border-stone-200">
+                      <div>
+                        <h3 className="font-black text-slate-900 text-xs sm:text-sm group-hover:text-pink-700 transition-colors">
+                          {dept.title}
+                        </h3>
+                        {dept.englishTitle && (
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {dept.englishTitle}
+                          </span>
+                        )}
                       </div>
-                      <span className="text-[11px] font-extrabold text-slate-800 group-hover/item:text-pink-700 line-clamp-2 leading-tight">
-                        {sub.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+                      {dept.badge && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-pink-100 text-pink-900 border border-pink-200 shrink-0">
+                          {dept.badge}
+                        </span>
+                      )}
+                    </div>
 
-              {/* Bottom Link (See more) */}
-              <button
-                type="button"
-                onClick={() => handleDepartmentClick(dept.id as MainCategory, 'all')}
-                className="text-xs font-black text-pink-700 hover:text-pink-900 hover:underline flex items-center justify-between pt-2.5 border-t border-stone-100 cursor-pointer"
-              >
-                <span>تصفح كل {dept.title}</span>
-                <ArrowLeft className="w-4 h-4 text-pink-600" />
-              </button>
-            </div>
-          );
-        })}
+                    {/* 2x2 Mini Product Grid */}
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      {displaySubs.map((sub, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() =>
+                            handleDepartmentClick(
+                              dept.id as MainCategory,
+                              sub.id as SubCategory
+                            )
+                          }
+                          className="text-right group/item cursor-pointer flex flex-col p-1 rounded-xl hover:bg-pink-50 transition-colors bg-white border border-stone-100"
+                        >
+                          <div className="w-full aspect-square rounded-lg bg-stone-100 overflow-hidden mb-1 border border-stone-200/80 relative">
+                            <img
+                              src={getSubcategoryImage(dept.id, sub.id)}
+                              alt={sub.label}
+                              className="w-full h-full object-cover group-hover/item:scale-105 transition-transform duration-250"
+                              loading="lazy"
+                            />
+                          </div>
+                          <span className="text-[10px] font-bold text-stone-800 group-hover/item:text-pink-700 leading-tight truncate">
+                            {sub.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* See more Link */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleDepartmentClick(dept.id as MainCategory, 'all')
+                    }
+                    className="text-xs font-black text-pink-700 hover:text-pink-900 flex items-center justify-between pt-2 border-t border-stone-200/60 cursor-pointer group-hover:underline"
+                  >
+                    <span>عرض كافة منتجات {dept.title}</span>
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

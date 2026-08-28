@@ -179,6 +179,125 @@ export async function dispatchAutomatedOrder(
 }
 
 /**
+ * Formats a Prescription request into clean Telegram HTML
+ */
+export function formatPrescriptionTelegramHTML(rx: PrescriptionRequest): string {
+  const cityArabic = rx.city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر';
+  return `
+🩺 <b>طلب روشتة / استشارة صيدلية جديدة! #${rx.id}</b>
+━━━━━━━━━━━━━━━━━
+👤 <b>العميل:</b> ${rx.patientName || 'غير محدد'}
+📱 <b>الهاتف:</b> <a href="tel:${rx.phone}">${rx.phone}</a>
+📍 <b>المنطقة:</b> ${cityArabic} - ${rx.areaName || 'أكتوبر وزايد'}
+🖼️ <b>صورة الروشتة/المستحضر:</b> ${rx.image ? '✅ مرفقة مع الطلب' : '❌ لم يتم إرفاق صورة'}
+${rx.notes ? `📝 <b>استفسار وملاحظات العميل:</b> ${rx.notes}\n` : ''}━━━━━━━━━━━━━━━━━
+✨ <i>تنبيه: تم إرسال رسالة تأكيد للعميل بأن الصيدلي المناوب سيقوم بمتابعة استفساره فوراً.</i>
+⏰ <i>${new Date().toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' })}</i>
+`.trim();
+}
+
+/**
+ * Sends a prescription request directly to Telegram Bot
+ */
+export async function sendPrescriptionToTelegram(
+  rx: PrescriptionRequest,
+  botToken: string,
+  chatId: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const text = formatPrescriptionTelegramHTML(rx);
+    const cleanPhone = (rx.phone || '').replace(/\D/g, '');
+    const internationalPhone = cleanPhone.startsWith('0') ? `2${cleanPhone}` : cleanPhone;
+
+    const inlineKeyboard = {
+      inline_keyboard: [
+        [
+          { text: '📞 اتصال بالعميل', url: `tel:${rx.phone}` },
+          { text: '💬 فتح واتساب العميل', url: `https://wa.me/${internationalPhone}` },
+        ],
+      ],
+    };
+
+    const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text,
+        parse_mode: 'HTML',
+        reply_markup: inlineKeyboard,
+        disable_web_page_preview: true,
+      }),
+    });
+
+    const tgData = (await tgRes.json()) as { ok: boolean; description?: string };
+    if (tgData.ok) {
+      return { success: true, message: 'تم إرسال إشعار الروشتة إلى تيليجرام بنجاح' };
+    } else {
+      return { success: false, message: tgData.description || 'Telegram API returned an error' };
+    }
+  } catch (err: any) {
+    console.error('Direct Telegram prescription send error:', err);
+    return { success: false, message: err?.message || 'Network error while calling Telegram API' };
+  }
+}
+
+/**
+ * Dispatches automated notifications for prescription requests
+ */
+export async function dispatchAutomatedPrescription(
+  rx: PrescriptionRequest,
+  settings?: StoreSettings
+): Promise<DispatchResults> {
+  const results: DispatchResults = {};
+
+  try {
+    playOrderAlarmSound();
+    results.soundPlayed = true;
+
+    sendBrowserNotification(`🩺 طلب روشتة جديد #${rx.id} من ${rx.patientName}`, {
+      body: `المنطقة: ${rx.areaName || ''} • الهاتف: ${rx.phone}`,
+      tag: `rx-${rx.id}`,
+    });
+  } catch (e) {
+    console.error('Prescription local notification failed:', e);
+  }
+
+  // Server dispatch
+  try {
+    const res = await fetch('/api/notify/prescription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prescription: rx,
+        storeSettings: settings,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.notifiedChannels?.telegram) {
+        results.telegram = data.notifiedChannels.telegram;
+      }
+    }
+  } catch (err) {
+    console.warn('Server prescription notify error:', err);
+  }
+
+  // Direct Telegram Fallback
+  if (!results.telegram?.success && settings?.telegramBotToken && settings?.telegramChatId) {
+    const directRes = await sendPrescriptionToTelegram(
+      rx,
+      settings.telegramBotToken,
+      settings.telegramChatId
+    );
+    results.telegram = directRes;
+  }
+
+  return results;
+}
+
+/**
  * Test Telegram Connection
  */
 export async function sendTestTelegramMessage(
