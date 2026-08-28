@@ -590,10 +590,84 @@ export default function App() {
       }
     );
 
+    // Sync Prescriptions live across all devices
+    const unsubPrescriptions = onSnapshot(
+      collection(db, 'prescriptions'),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const rxList: PrescriptionRequest[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as PrescriptionRequest;
+            rxList.push({
+              ...data,
+              id: docSnap.id,
+            });
+          });
+          rxList.sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          setPrescriptions(rxList);
+          localStorage.setItem('carehub_prescriptions', JSON.stringify(rxList));
+        }
+      },
+      (error) => {
+        console.error('Firestore prescriptions listener error:', error);
+      }
+    );
+
+    // Sync Categories & Subcategories live across all devices
+    const unsubCategories = onSnapshot(
+      collection(db, 'categories'),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const catList: CategoryConfig[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as CategoryConfig;
+            catList.push(data);
+          });
+          if (catList.length > 0) {
+            setCategoriesList(catList);
+            localStorage.setItem('carehub_categories', JSON.stringify(catList));
+          }
+        }
+      },
+      (error) => {
+        console.error('Firestore categories listener error:', error);
+      }
+    );
+
+    // Sync Support Tickets live across all devices
+    const unsubSupport = onSnapshot(
+      collection(db, 'supportTickets'),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const ticketsList: SupportTicket[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as SupportTicket;
+            ticketsList.push({
+              ...data,
+              id: docSnap.id,
+            });
+          });
+          ticketsList.sort(
+            (a, b) => new Date(b.lastUpdatedAt).getTime() - new Date(a.lastUpdatedAt).getTime()
+          );
+          setSupportTickets(ticketsList);
+          localStorage.setItem('carehub_support_tickets', JSON.stringify(ticketsList));
+        }
+      },
+      (error) => {
+        console.error('Firestore support listener error:', error);
+      }
+    );
+
     return () => {
       unsubProducts();
       unsubOrders();
       unsubSettings();
+      unsubPrescriptions();
+      unsubCategories();
+      unsubSupport();
     };
   }, []);
 
@@ -942,9 +1016,18 @@ export default function App() {
   };
 
   // Categories Operations
-  const handleUpdateCategoriesList = (newCategories: CategoryConfig[]) => {
+  const handleUpdateCategoriesList = async (newCategories: CategoryConfig[]) => {
     setCategoriesList(newCategories);
     localStorage.setItem('carehub_categories', JSON.stringify(newCategories));
+    try {
+      const batch = writeBatch(db);
+      newCategories.forEach((cat) => {
+        batch.set(doc(db, 'categories', cat.id), cat);
+      });
+      await batch.commit();
+    } catch (e) {
+      console.error('Failed to sync categories to Firestore:', e);
+    }
     showToast('✓ تم تحديث الأقسام والتصنيفات بنجاح');
   };
 
@@ -965,18 +1048,38 @@ export default function App() {
     showToast('✓ تم استلام الروشتة وإرسالها لإدارة الصيدلية بنجاح');
   };
 
-  const handleUpdatePrescriptionStatus = (
+  const handleUpdatePrescriptionStatus = async (
     id: string,
     status: PrescriptionRequest['status']
   ) => {
+    let updatedRx: PrescriptionRequest | undefined;
     setPrescriptions((prev) =>
-      prev.map((rx) => (rx.id === id ? { ...rx, status } : rx))
+      prev.map((rx) => {
+        if (rx.id === id) {
+          const updated = { ...rx, status };
+          updatedRx = updated;
+          return updated;
+        }
+        return rx;
+      })
     );
+    if (updatedRx) {
+      try {
+        await setDoc(doc(db, 'prescriptions', id), updatedRx);
+      } catch (e) {
+        console.error('Failed to update prescription in Firestore:', e);
+      }
+    }
     showToast('✓ تم تحديث حالة الروشتة بنجاح');
   };
 
-  const handleDeletePrescription = (id: string) => {
+  const handleDeletePrescription = async (id: string) => {
     setPrescriptions((prev) => prev.filter((rx) => rx.id !== id));
+    try {
+      await deleteDoc(doc(db, 'prescriptions', id));
+    } catch (e) {
+      console.error('Failed to delete prescription from Firestore:', e);
+    }
     showToast('✓ تم حذف الطلب');
   };
 
@@ -1137,7 +1240,7 @@ export default function App() {
   }, [products, activeCategory, activeSubCategory, selectedBrand, searchQuery, sortBy]);
 
   // Support Handlers
-  const handleCreateSupportTicket = (
+  const handleCreateSupportTicket = async (
     topic: SupportTicket['topic'],
     messageText: string,
     customerName: string,
@@ -1169,6 +1272,12 @@ export default function App() {
 
     setSupportTickets((prev) => [newTicket, ...prev]);
 
+    try {
+      await setDoc(doc(db, 'supportTickets', newTicket.id), newTicket);
+    } catch (e) {
+      console.error('Failed to sync ticket to Firestore:', e);
+    }
+
     // Push in-app notification for user
     const newNotif: AppNotification = {
       id: 'notif-' + Date.now(),
@@ -1182,7 +1291,7 @@ export default function App() {
     showToast('💬 تم إرسال استفسارك إلى إدارة المتجر بنجاح');
   };
 
-  const handleSendSupportMessage = (ticketId: string, text: string) => {
+  const handleSendSupportMessage = async (ticketId: string, text: string) => {
     const newMsg: SupportMessage = {
       id: 'msg_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
       sender: 'customer',
@@ -1191,10 +1300,12 @@ export default function App() {
       read: false,
     };
 
+    let updatedTicket: SupportTicket | undefined;
+
     setSupportTickets((prev) =>
       prev.map((t) => {
         if (t.id === ticketId) {
-          return {
+          const updated: SupportTicket = {
             ...t,
             messages: [...t.messages, newMsg],
             status: 'open',
@@ -1202,13 +1313,23 @@ export default function App() {
             unreadByAdmin: true,
             unreadByCustomer: false,
           };
+          updatedTicket = updated;
+          return updated;
         }
         return t;
       })
     );
+
+    if (updatedTicket) {
+      try {
+        await setDoc(doc(db, 'supportTickets', ticketId), updatedTicket);
+      } catch (e) {
+        console.error('Failed to update ticket message in Firestore:', e);
+      }
+    }
   };
 
-  const handleAdminReplySupport = (ticketId: string, replyText: string) => {
+  const handleAdminReplySupport = async (ticketId: string, replyText: string) => {
     const newMsg: SupportMessage = {
       id: 'msg_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
       sender: 'admin',
@@ -1217,10 +1338,12 @@ export default function App() {
       read: false,
     };
 
+    let updatedTicket: SupportTicket | undefined;
+
     setSupportTickets((prev) =>
       prev.map((t) => {
         if (t.id === ticketId) {
-          return {
+          const updated: SupportTicket = {
             ...t,
             messages: [...t.messages, newMsg],
             status: 'answered' as const,
@@ -1228,10 +1351,20 @@ export default function App() {
             unreadByCustomer: true,
             unreadByAdmin: false,
           };
+          updatedTicket = updated;
+          return updated;
         }
         return t;
       })
     );
+
+    if (updatedTicket) {
+      try {
+        await setDoc(doc(db, 'supportTickets', ticketId), updatedTicket);
+      } catch (e) {
+        console.error('Failed to update admin reply in Firestore:', e);
+      }
+    }
 
     // If browser notifications enabled, notify customer
     playNotificationSound();
@@ -1251,22 +1384,57 @@ export default function App() {
     showToast('✅ تم إرسال رد الإدارة للعميل بنجاح');
   };
 
-  const handleMarkSupportTicketReadByCustomer = (ticketId: string) => {
+  const handleMarkSupportTicketReadByCustomer = async (ticketId: string) => {
+    let updatedTicket: SupportTicket | undefined;
     setSupportTickets((prev) =>
-      prev.map((t) => (t.id === ticketId ? { ...t, unreadByCustomer: false } : t))
+      prev.map((t) => {
+        if (t.id === ticketId) {
+          const updated = { ...t, unreadByCustomer: false };
+          updatedTicket = updated;
+          return updated;
+        }
+        return t;
+      })
     );
+    if (updatedTicket) {
+      try {
+        await setDoc(doc(db, 'supportTickets', ticketId), updatedTicket);
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
-  const handleUpdateTicketStatus = (ticketId: string, status: SupportTicket['status']) => {
+  const handleUpdateTicketStatus = async (ticketId: string, status: SupportTicket['status']) => {
+    let updatedTicket: SupportTicket | undefined;
     setSupportTickets((prev) =>
-      prev.map((t) => (t.id === ticketId ? { ...t, status } : t))
+      prev.map((t) => {
+        if (t.id === ticketId) {
+          const updated = { ...t, status };
+          updatedTicket = updated;
+          return updated;
+        }
+        return t;
+      })
     );
+    if (updatedTicket) {
+      try {
+        await setDoc(doc(db, 'supportTickets', ticketId), updatedTicket);
+      } catch (e) {
+        console.error(e);
+      }
+    }
     showToast(`تم تحديث حالة المحادثة`);
   };
 
-  const handleDeleteTicket = (ticketId: string) => {
+  const handleDeleteTicket = async (ticketId: string) => {
     setSupportTickets((prev) => prev.filter((t) => t.id !== ticketId));
-    showToast('تم حذف المحادثة');
+    try {
+      await deleteDoc(doc(db, 'supportTickets', ticketId));
+    } catch (e) {
+      console.error(e);
+    }
+    showToast('✓ تم حذف المحادثة');
   };
 
   // Calculate unread count for current customer
