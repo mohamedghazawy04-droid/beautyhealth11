@@ -39,7 +39,7 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   onCustomerLogin,
   onCustomerLogout,
   showToast,
-  initialMode = 'register',
+  initialMode = 'login',
 }) => {
   const [activeTab, setActiveTab] = useState<'register' | 'login'>(initialMode);
 
@@ -259,19 +259,108 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
 
         {/* Artistic Scene Side: Mother & Child under Tree & French Street Lamp */}
         <div className="relative w-full md:w-5/12 bg-gradient-to-b from-stone-950 via-stone-900 to-amber-950/40 p-6 md:p-8 flex flex-col justify-between overflow-hidden border-b md:border-b-0 md:border-l border-amber-500/20">
+          <style>{`
+            @keyframes motherChildLivingBreath {
+              0%, 100% {
+                transform: scale(1.02) translateY(0px) rotate(0deg);
+                filter: brightness(1.01) contrast(1.02);
+              }
+              32% {
+                transform: scale(1.045) translateY(-3.5px) rotate(0.4deg);
+                filter: brightness(1.06) contrast(1.04);
+              }
+              58% {
+                transform: scale(1.038) translateY(-2px) rotate(0.2deg);
+                filter: brightness(1.04) contrast(1.03);
+              }
+              82% {
+                transform: scale(1.015) translateY(1.5px) rotate(-0.3deg);
+                filter: brightness(0.99) contrast(1.01);
+              }
+            }
+
+            @keyframes lampGlowFlicker {
+              0%, 100% {
+                opacity: 0.5;
+                transform: scale(1);
+              }
+              25% {
+                opacity: 0.75;
+                transform: scale(1.15) rotate(1deg);
+              }
+              50% {
+                opacity: 0.45;
+                transform: scale(0.96) rotate(-1deg);
+              }
+              72% {
+                opacity: 0.85;
+                transform: scale(1.2) rotate(0.5deg);
+              }
+            }
+
+            @keyframes softBreezeWave {
+              0% {
+                transform: translateX(-100%) skewX(-15deg);
+                opacity: 0;
+              }
+              40% {
+                opacity: 0.35;
+              }
+              70% {
+                opacity: 0.2;
+              }
+              100% {
+                transform: translateX(200%) skewX(-15deg);
+                opacity: 0;
+              }
+            }
+
+            @keyframes fireflyFloat1 {
+              0%, 100% { transform: translate(0, 0) scale(0.8); opacity: 0.3; }
+              50% { transform: translate(15px, -20px) scale(1.2); opacity: 0.9; }
+            }
+
+            @keyframes fireflyFloat2 {
+              0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+              50% { transform: translate(-18px, -15px) scale(0.6); opacity: 0.2; }
+            }
+
+            .living-mother-child {
+              animation: motherChildLivingBreath 6s ease-in-out infinite;
+              transform-origin: 50% 85%;
+              will-change: transform, filter;
+            }
+
+            .living-lamp-glow {
+              animation: lampGlowFlicker 4.5s ease-in-out infinite;
+              will-change: transform, opacity;
+            }
+
+            .breeze-sheen {
+              animation: softBreezeWave 8s ease-in-out infinite;
+            }
+
+            .firefly-1 { animation: fireflyFloat1 5s ease-in-out infinite; }
+            .firefly-2 { animation: fireflyFloat2 6.5s ease-in-out infinite 1.5s; }
+          `}</style>
+
           {/* Subtle French Street Lamp Glow Overlay */}
           <div
-            className="absolute top-6 right-6 w-32 h-32 bg-amber-400/20 rounded-full blur-3xl pointer-events-none"
-            style={{ animation: 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}
+            className="absolute top-6 right-6 w-36 h-36 bg-amber-400/25 rounded-full blur-3xl pointer-events-none living-lamp-glow"
+          />
+
+          {/* Warm Lamp Beam Casting Over Scene */}
+          <div
+            className="absolute top-0 right-10 w-48 h-64 bg-gradient-to-b from-amber-300/15 via-amber-400/5 to-transparent blur-2xl pointer-events-none rotate-12 living-lamp-glow"
           />
 
           {/* Falling Leaves directly over the illustration */}
-          <FallingLeaves count={12} containerClassName="opacity-80" />
+          <FallingLeaves count={14} containerClassName="opacity-80" />
 
           {/* Top Title & Poetry */}
           <div className="relative z-10">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-medium mb-3">
-              <Sparkles size={14} className="text-amber-400" />
+              <Sparkles size={14} className="text-amber-400 animate-spin" style={{ animationDuration: '8s' }} />
               <span>رعاية حنونة تليق بجمالكِ وطفلكِ</span>
             </div>
             <h2 className="text-2xl font-bold text-stone-100 tracking-tight leading-snug">
@@ -282,25 +371,34 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
             </p>
           </div>
 
-          {/* Centered Artwork Image Container */}
+          {/* Centered Artwork Image Container with Living Motion */}
           <div className="relative z-10 my-4 flex flex-col items-center">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-amber-400/30 w-full max-w-[280px] md:max-w-full aspect-[4/3] group">
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-amber-400/40 w-full max-w-[290px] md:max-w-full aspect-[4/3] group bg-stone-950">
+              {/* Mother and Child Image with Breathing & Swaying Subtle Living Movement */}
               <img
                 src="/mother-child-lamp.jpg"
                 alt="سيدة وطفل يجلسان تحت الشجرة بجوار عمود إنارة فرنسي جميل"
-                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+                className="w-full h-full object-cover object-center living-mother-child"
                 referrerPolicy="no-referrer"
               />
+
+              {/* Soft breeze sheen passing through the tree canopy */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/15 to-transparent pointer-events-none breeze-sheen" />
+
+              {/* Fireflies / warm ambient motes near mother and lamp */}
+              <div className="absolute top-1/4 right-1/4 w-1.5 h-1.5 rounded-full bg-amber-300 blur-[0.5px] firefly-1 pointer-events-none" />
+              <div className="absolute bottom-1/3 left-1/3 w-1.5 h-1.5 rounded-full bg-amber-400 blur-[0.5px] firefly-2 pointer-events-none" />
+
               {/* Artistic Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-950/15 to-transparent pointer-events-none" />
 
               {/* Street lamp glow reflection badge */}
-              <div className="absolute bottom-2.5 right-2.5 left-2.5 bg-stone-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between text-[11px] text-amber-200">
+              <div className="absolute bottom-2.5 right-2.5 left-2.5 bg-stone-900/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between text-[11px] text-amber-200">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping inline-block" />
-                  أمان وعناية راقية
+                  <span>أمان وعناية دافئة ونابضة بالحياة 🌸</span>
                 </span>
-                <span className="text-stone-400 font-serif">M&L Care</span>
+                <span className="text-amber-300 font-serif font-bold text-[10px]">M&L Care</span>
               </div>
             </div>
           </div>
@@ -570,7 +668,7 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-[0.99] transition-all disabled:opacity-60"
+                  className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-[0.99] transition-all disabled:opacity-60 cursor-pointer"
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
@@ -581,6 +679,28 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                     </>
                   )}
                 </button>
+
+                <div className="text-center pt-2 space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('login')}
+                    className="text-xs text-amber-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>لديك حساب مسجل بالفعل؟</span>
+                    <span className="font-bold">تسجيل الدخول هنا</span>
+                  </button>
+
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="text-[11px] text-stone-400 hover:text-stone-200 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>تخطي والدخول للمتجر كزائر الآن</span>
+                      <span>←</span>
+                    </button>
+                  </div>
+                </div>
               </form>
             ) : (
               /* ================== FORM 2: تسجيل عميل مسبق ================== */
@@ -640,7 +760,7 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-[0.99] transition-all disabled:opacity-60"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-[0.99] transition-all disabled:opacity-60 cursor-pointer"
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
@@ -652,15 +772,26 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                   )}
                 </button>
 
-                <div className="text-center pt-2">
+                <div className="text-center pt-2 space-y-1.5">
                   <button
                     type="button"
                     onClick={() => setActiveTab('register')}
-                    className="text-xs text-amber-400 hover:underline inline-flex items-center gap-1"
+                    className="text-xs text-amber-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
                   >
                     <span>ليس لديك حساب بعد؟</span>
                     <span className="font-bold">سجّل كعميل جديد الآن</span>
                   </button>
+
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="text-[11px] text-stone-400 hover:text-stone-200 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>تخطي والدخول للمتجر كزائر الآن</span>
+                      <span>←</span>
+                    </button>
+                  </div>
                 </div>
               </form>
             )}

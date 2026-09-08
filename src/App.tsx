@@ -398,10 +398,14 @@ export default function App() {
     return null;
   });
 
-  const [isCustomerAuthOpen, setIsCustomerAuthOpen] = useState(false);
-  const [customerAuthMode, setCustomerAuthMode] = useState<'login' | 'register'>('register');
+  // Customer Authentication Gate: Opens immediately upon opening the link if not logged in
+  const [isCustomerAuthOpen, setIsCustomerAuthOpen] = useState(() => {
+    const saved = localStorage.getItem('carehub_logged_in_customer');
+    return !saved;
+  });
+  const [customerAuthMode, setCustomerAuthMode] = useState<'login' | 'register'>('login');
 
-  const handleOpenCustomerAuth = (mode: 'login' | 'register' = 'register') => {
+  const handleOpenCustomerAuth = (mode: 'login' | 'register' = 'login') => {
     setCustomerAuthMode(mode);
     setIsCustomerAuthOpen(true);
   };

@@ -52,40 +52,50 @@ export const FallingLeaves: React.FC<FallingLeavesProps> = ({
       className={`absolute inset-0 overflow-hidden pointer-events-none select-none z-10 ${containerClassName}`}
     >
       <style>{`
-        @keyframes fallAndFadeNearGround {
+        @keyframes fallToGroundAndFade {
           0% {
-            transform: translateY(-40px) rotate(0deg) scale(0.85);
+            top: -40px;
             opacity: 0;
+            transform: rotate(0deg) scale(0.85);
           }
-          10% {
-            opacity: 0.9;
-          }
-          65% {
-            opacity: 0.85;
+          6% {
+            opacity: 0.95;
           }
           85% {
-            opacity: 0.35;
+            top: 85%;
+            opacity: 0.95;
+          }
+          94% {
+            top: calc(100% - 18px);
+            opacity: 0.92;
+            transform: rotate(320deg) scale(0.95);
+          }
+          97% {
+            top: calc(100% - 12px);
+            opacity: 0.65;
+            transform: rotate(345deg) scale(0.9);
           }
           100% {
-            transform: translateY(105%) rotate(380deg) scale(0.6);
+            top: calc(100% - 6px);
             opacity: 0;
+            transform: rotate(360deg) scale(0.6);
           }
         }
 
         @keyframes leafSway {
           0%, 100% {
-            margin-left: -18px;
+            transform: translateX(-18px);
           }
           50% {
-            margin-left: 18px;
+            transform: translateX(18px);
           }
         }
 
         .falling-leaf {
           position: absolute;
-          top: -30px;
-          will-change: transform, opacity;
-          animation-name: fallAndFadeNearGround;
+          top: -40px;
+          will-change: top, transform, opacity;
+          animation-name: fallToGroundAndFade;
           animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
           animation-iteration-count: infinite;
         }

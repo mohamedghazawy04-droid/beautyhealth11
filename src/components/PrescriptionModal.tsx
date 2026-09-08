@@ -13,7 +13,8 @@ import {
   AlertCircle,
   Clock,
   Send,
-  SendHorizontal
+  SendHorizontal,
+  MessageCircle,
 } from 'lucide-react';
 import { PrescriptionRequest, StoreSettings } from '../types';
 
@@ -39,6 +40,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [createdReqId, setCreatedReqId] = useState('');
+  const [whatsappDirectUrl, setWhatsappDirectUrl] = useState('');
 
   if (!isOpen) return null;
 
@@ -52,6 +54,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
     setNotes('');
     setPrescriptionImage(null);
     setCreatedReqId('');
+    setWhatsappDirectUrl('');
     onClose();
   };
 
@@ -122,9 +125,34 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
       createdAt: new Date().toISOString(),
     };
 
+    // Format WhatsApp Direct Link for Pharmacist
+    const rawTarget = (storeSettings?.contactWhatsApp || '201093629587').replace(/\D/g, '');
+    const targetWhatsApp = rawTarget.startsWith('0') ? `2${rawTarget}` : rawTarget;
+    const cityArabic = city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر';
+    const area = areaName.trim() || (city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر');
+
+    const waText = `*🩺 طلب روشتة / استشارة صيدلية - متجر M&L*
+━━━━━━━━━━━━━━━━━
+*كود الطلب:* ${newRequest.id}
+*اسم العميل:* ${patientName.trim()}
+*رقم الهاتف:* ${phone.trim()}
+*المنطقة:* ${cityArabic} - ${area}
+${notes.trim() ? `*الاستفسار / الملاحظات:* ${notes.trim()}\n` : ''}
+${prescriptionImage ? `📸 *مرفق صورة روشتة/مستحضر:* تم التقاط الصورة وسأرسلها لكم في هذه المحادثة فوراً.\n` : ''}━━━━━━━━━━━━━━━━━
+أرجو مراجعة الروشتة وتأكيد توفر الأصناف والجرعات والتوصيل السريع لأكتوبر والشيخ زايد.`;
+
+    const waUrl = `https://wa.me/${targetWhatsApp}?text=${encodeURIComponent(waText)}`;
+    setWhatsappDirectUrl(waUrl);
     setCreatedReqId(newRequest.id);
     onSubmitPrescription(newRequest);
     setIsSubmitted(true);
+
+    // Auto-open WhatsApp in a new tab/window
+    try {
+      window.open(waUrl, '_blank');
+    } catch (e) {
+      console.warn('Could not auto-open WhatsApp link:', e);
+    }
   };
 
   // Get Telegram direct link (custom username or fallback to direct bot)
@@ -177,7 +205,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
             <span className="font-semibold leading-tight">
-              يتم فحص الروشتة مباشرة بواسطة <strong>صيادلة متخصصين</strong> وتأكيد الأصناف والجرعات بأمان تام.
+              يتم فحص الروشتة مباشرة بواسطة <strong>صيادلة متخصصين</strong> وتأكيد الأصناف والجرعات بأمان تام عبر الواتساب.
             </span>
           </div>
         </div>
@@ -188,18 +216,23 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
               <CheckCircle2 className="w-9 h-9" />
             </div>
             <h3 className="text-lg font-black text-stone-900">
-              تم إرسال طلب الروشتة بنجاح! 🎉
+              تم إرسال طلب الروشتة وتوجيهه لواتساب الصيدلية بنجاح! 💬
             </h3>
 
             {/* Reassurance Message Box */}
             <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-300 text-emerald-950 text-right space-y-2">
               <div className="flex items-center gap-2 font-black text-xs sm:text-sm text-emerald-900">
-                <Stethoscope className="w-4 h-4 text-emerald-700 shrink-0" />
-                <span>سيتابع معك صيادلة متخصصون لمتابعة استفسارك فوراً</span>
+                <MessageCircle className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span>تم توجيه طلبك مباشرة إلى واتساب الصيدلي المناوب</span>
               </div>
               <p className="text-xs text-emerald-800 leading-relaxed">
-                تم تحويل الروشتة وبياناتك تلقائياً وبشكل مباشر إلى <strong>تيليجرام إدارة الصيدلية والمتجر</strong>. يقوم الصيدلي المناوب حالياً بمراجعة الأصناف والجرعات وسيتواصل معك فوراً لتأكيد الطلب والتوصيل السريع لأكتوبر وزايد.
+                تم تجهيز بيانات الروشتة وتوجيهها مباشرة إلى <strong>رقم واتساب الصيدلية</strong>. يقوم الصيدلي المناوب حالياً بمراجعة الأصناف والتواصل معك لتأكيد التوصيل السريع لأكتوبر وزايد.
               </p>
+              {prescriptionImage && (
+                <p className="text-[11px] text-emerald-900 font-bold bg-emerald-100/90 p-2.5 rounded-xl border border-emerald-300/80">
+                  💡 يمكنك الآن إرسال صورة الروشتة التي قمت برفعها مباشرة داخل محادثة الواتساب للتأكيد الفوري مع الصيدلي.
+                </p>
+              )}
             </div>
 
             <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-700 space-y-1 text-right">
@@ -207,19 +240,19 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
               <div><strong>اسم العميل:</strong> {patientName}</div>
               <div><strong>رقم الهاتف:</strong> {phone}</div>
               <div><strong>المنطقة:</strong> {city === 'zayed' ? 'الشيخ زايد' : '٦ أكتوبر'} ({areaName || 'العنوان المسجل'})</div>
-              {prescriptionImage && <div className="text-emerald-700 font-bold">✓ تم إرفاق صورة الروشتة وإرسالها للصيدلي بنجاح</div>}
+              {prescriptionImage && <div className="text-emerald-700 font-bold">✓ تم إرفاق صورة الروشتة وتجهيزها للإرسال</div>}
             </div>
 
-            {/* Telegram Direct Action Button & Close Button */}
+            {/* WhatsApp Direct Action Button & Close Button */}
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
               <a
-                href={telegramDirectUrl}
+                href={whatsappDirectUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                className="flex-1 py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
               >
-                <SendHorizontal className="w-4 h-4 text-sky-200" />
-                <span>فتح محادثة تيليجرام الصيدلية 💬</span>
+                <MessageCircle className="w-4 h-4 text-white" />
+                <span>فتح محادثة واتساب الصيدلية الآن 💬</span>
               </a>
               <button
                 type="button"
@@ -381,8 +414,8 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
                 type="submit"
                 className="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-700 to-emerald-800 hover:from-emerald-700 hover:to-teal-900 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
               >
-                <Send className="w-4 h-4 text-emerald-200" />
-                <span>إرسال الروشتة للصيدلي عبر تيليجرام 🩺</span>
+                <MessageCircle className="w-4 h-4 text-emerald-200" />
+                <span>إرسال الروشتة عبر واتساب الصيدلية 💬</span>
               </button>
               <button
                 type="button"
