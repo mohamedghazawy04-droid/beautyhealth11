@@ -59,7 +59,7 @@ import { AmazonCategoryGrid } from './components/AmazonCategoryGrid';
 import { NotificationsModal } from './components/NotificationsModal';
 import { GoogleDriveModal } from './components/GoogleDriveModal';
 import { CustomerSupportModal } from './components/CustomerSupportModal';
-import { playNotificationSound, playOrderAlarmSound, sendBrowserNotification } from './utils/notificationSound';
+import { playNotificationSound, playOrderAlarmSound, sendBrowserNotification, updateAppBadge, clearAppBadge } from './utils/notificationSound';
 import { dispatchAutomatedOrder, dispatchAutomatedPrescription } from './utils/orderNotifier';
 import { db } from './firebase';
 import {
@@ -72,15 +72,38 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 
+// Helper to identify mock products that were not added by the user
+const isMockProductId = (id?: string) => {
+  if (!id) return false;
+  return (
+    id.startsWith('prod-sudocrem') ||
+    id.startsWith('prod-mustela') ||
+    id.startsWith('prod-cerave') ||
+    id.startsWith('prod-bioderma') ||
+    id.startsWith('prod-laroche') ||
+    id.startsWith('prod-sanosan') ||
+    id.startsWith('prod-pampers') ||
+    id.startsWith('prod-the-ordinary') ||
+    id.startsWith('prod-vichy') ||
+    id.startsWith('prod-loreal') ||
+    id.startsWith('prod-avent') ||
+    id.startsWith('prod-chi')
+  );
+};
+
 export default function App() {
   // 1. Core State with Local Storage + Cloud Firestore Persistence
+  // Strictly display ONLY user-uploaded products (no mock or unadded items)
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('carehub_products');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+        if (Array.isArray(parsed)) {
+          const userOnly = parsed.filter((p) => p && p.id && !isMockProductId(p.id));
+          if (userOnly.length > 0) {
+            return userOnly;
+          }
         }
       } catch (e) {
         console.error(e);
@@ -439,10 +462,13 @@ export default function App() {
           snapshot.forEach((docSnap) => {
             const data = docSnap.data() as Product;
             const docId = docSnap.id;
-            prodsList.push({
+            const p: Product = {
               ...data,
               id: docId,
-            });
+            };
+            if (!isMockProductId(p.id)) {
+              prodsList.push(p);
+            }
           });
 
           // Check for newly added products if this is not the initial bootstrap load
@@ -461,6 +487,9 @@ export default function App() {
                   body: `ماركة ${newProd.brand} بسعر ${newProd.price} ج • متوفر الآن للتوصيل الفوري`,
                   icon: newProd.image,
                 });
+
+                // Update App Badge on mobile icon
+                updateAppBadge(newProducts.length);
 
                 // 3. Add to In-App Notification Center
                 const newNotif: AppNotification = {
@@ -498,27 +527,49 @@ export default function App() {
           if (localSaved) {
             try {
               const localProds = JSON.parse(localSaved);
-              if (Array.isArray(localProds) && localProds.length > 0) {
-                setProducts(localProds);
-                const batch = writeBatch(db);
-                localProds.forEach((prod) => {
-                  if (prod && prod.id) {
-                    batch.set(doc(db, 'products', prod.id), prod);
-                  }
-                });
-                batch.commit().catch((err) => console.error('Auto sync local products error:', err));
-                initialProductsLoadedRef.current = true;
-                return;
+              if (Array.isArray(localProds)) {
+                const userProds = localProds.filter((p) => p && p.id && !isMockProductId(p.id));
+                if (userProds.length > 0) {
+                  setProducts(userProds);
+                  localStorage.setItem('carehub_products', JSON.stringify(userProds));
+                  const batch = writeBatch(db);
+                  userProds.forEach((prod) => {
+                    if (prod && prod.id) {
+                      batch.set(doc(db, 'products', prod.id), prod);
+                    }
+                  });
+                  batch.commit().catch((err) => console.error('Auto sync local products error:', err));
+                  initialProductsLoadedRef.current = true;
+                  return;
+                }
               }
             } catch (e) {
               console.error(e);
             }
           }
+          // Strictly display ONLY user uploaded products (no mock or unadded items)
+          setProducts([]);
+          localStorage.setItem('carehub_products', JSON.stringify([]));
           initialProductsLoadedRef.current = true;
         }
       },
       (error) => {
         console.error('Firestore products listener error:', error);
+        // Only load user-uploaded products from local storage, never mock products
+        const localSaved = localStorage.getItem('carehub_products');
+        if (localSaved) {
+          try {
+            const parsed = JSON.parse(localSaved);
+            if (Array.isArray(parsed)) {
+              const userOnly = parsed.filter((p) => p && p.id && !isMockProductId(p.id));
+              setProducts(userOnly);
+              initialProductsLoadedRef.current = true;
+              return;
+            }
+          } catch (e) {}
+        }
+        setProducts([]);
+        initialProductsLoadedRef.current = true;
       }
     );
 
@@ -581,6 +632,54 @@ export default function App() {
           if (settingsDoc) {
             const settingsData = settingsDoc.data() as StoreSettings;
             setStoreSettings(settingsData);
+
+            // Version and timestamp verification logic requested by user
+            const localVersion = localStorage.getItem('carehub_store_version');
+            const remoteVersion = (settingsData.version || settingsData.lastUpdated)?.toString();
+
+            if (remoteVersion) {
+              if (localVersion && localVersion !== remoteVersion) {
+                console.log(`[StoreSync] Version changed from ${localVersion} to ${remoteVersion}. Forcing full catalog refetch.`);
+                localStorage.setItem('carehub_store_version', remoteVersion);
+
+                // Force a full re-fetch of products from Firestore
+                getDocs(collection(db, 'products'))
+                  .then((prodSnap) => {
+                    if (!prodSnap.empty) {
+                      const freshProds: Product[] = [];
+                      prodSnap.forEach((d) => {
+                        const p: Product = { ...(d.data() as Product), id: d.id };
+                        if (!isMockProductId(p.id)) {
+                          freshProds.push(p);
+                        }
+                      });
+                      setProducts(freshProds);
+                      localStorage.setItem('carehub_products', JSON.stringify(freshProds));
+                      updateAppBadge(freshProds.length);
+                    }
+                  })
+                  .catch((err) => {
+                    console.error('[StoreSync] Failed to force re-fetch products:', err);
+                  });
+
+                // Force re-fetch of categories as well
+                getDocs(collection(db, 'categories'))
+                  .then((catSnap) => {
+                    if (!catSnap.empty) {
+                      const freshCats: CategoryConfig[] = [];
+                      catSnap.forEach((d) => {
+                        freshCats.push({ ...(d.data() as CategoryConfig), id: d.id });
+                      });
+                      setCategoriesList(freshCats);
+                      localStorage.setItem('carehub_categories', JSON.stringify(freshCats));
+                    }
+                  })
+                  .catch((err) => console.error('[StoreSync] Failed to re-fetch categories:', err));
+              } else if (!localVersion) {
+                localStorage.setItem('carehub_store_version', remoteVersion);
+              }
+            }
+
             localStorage.setItem('carehub_store_settings', JSON.stringify(settingsData));
           }
         }
@@ -900,9 +999,24 @@ export default function App() {
 
   // Product Admin Operations
   const handleAddNewProduct = async (newProduct: Product) => {
-    setProducts((prev) => [newProduct, ...prev]);
+    const updatedProds = [newProduct, ...products.filter((p) => p.id !== newProduct.id)];
+    setProducts(updatedProds);
+    localStorage.setItem('carehub_products', JSON.stringify(updatedProds));
+
+    // Bump version and timestamp in storeSettings in Firestore
+    const newTimestamp = Date.now();
+    const updatedSettings: StoreSettings = {
+      ...storeSettings,
+      version: (storeSettings.version || 0) + 1,
+      lastUpdated: newTimestamp,
+    };
+    setStoreSettings(updatedSettings);
+    localStorage.setItem('carehub_store_settings', JSON.stringify(updatedSettings));
+    localStorage.setItem('carehub_store_version', String(newTimestamp));
+
     try {
       await setDoc(doc(db, 'products', newProduct.id), newProduct);
+      await setDoc(doc(db, 'storeSettings', 'main'), updatedSettings, { merge: true });
     } catch (e) {
       console.error('Failed to add product to Firestore:', e);
     }
@@ -913,6 +1027,9 @@ export default function App() {
       body: `ماركة ${newProduct.brand} بسعر ${newProduct.price} ج • متوفر الآن للتوصيل الفوري`,
       icon: newProduct.image,
     });
+
+    // Update App Badge on device icon
+    updateAppBadge(updatedProds.length);
 
     const newNotif: AppNotification = {
       id: 'notif-prod-' + newProduct.id + '-' + Date.now(),
@@ -937,22 +1054,37 @@ export default function App() {
 
   const handleUpdateProduct = async (productId: string, updates: Partial<Product>) => {
     let updatedFullProd: Product | undefined;
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id === productId) {
-          const updated = { ...p, ...updates };
-          updatedFullProd = updated;
-          return updated;
-        }
-        return p;
-      })
-    );
+    const newProds = products.map((p) => {
+      if (p.id === productId) {
+        const updated = { ...p, ...updates };
+        updatedFullProd = updated;
+        return updated;
+      }
+      return p;
+    });
+
+    setProducts(newProds);
+    localStorage.setItem('carehub_products', JSON.stringify(newProds));
+
     if (detailProduct && detailProduct.id === productId) {
       setDetailProduct((prev) => (prev ? { ...prev, ...updates } : null));
     }
+
+    // Bump version
+    const newTimestamp = Date.now();
+    const updatedSettings: StoreSettings = {
+      ...storeSettings,
+      version: (storeSettings.version || 0) + 1,
+      lastUpdated: newTimestamp,
+    };
+    setStoreSettings(updatedSettings);
+    localStorage.setItem('carehub_store_settings', JSON.stringify(updatedSettings));
+    localStorage.setItem('carehub_store_version', String(newTimestamp));
+
     if (updatedFullProd) {
       try {
         await setDoc(doc(db, 'products', productId), updatedFullProd);
+        await setDoc(doc(db, 'storeSettings', 'main'), updatedSettings, { merge: true });
       } catch (e) {
         console.error('Failed to update product in Firestore:', e);
       }
@@ -961,12 +1093,28 @@ export default function App() {
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== productId));
+    const newProds = products.filter((p) => p.id !== productId);
+    setProducts(newProds);
+    localStorage.setItem('carehub_products', JSON.stringify(newProds));
+
     if (detailProduct && detailProduct.id === productId) {
       setDetailProduct(null);
     }
+
+    // Bump version
+    const newTimestamp = Date.now();
+    const updatedSettings: StoreSettings = {
+      ...storeSettings,
+      version: (storeSettings.version || 0) + 1,
+      lastUpdated: newTimestamp,
+    };
+    setStoreSettings(updatedSettings);
+    localStorage.setItem('carehub_store_settings', JSON.stringify(updatedSettings));
+    localStorage.setItem('carehub_store_version', String(newTimestamp));
+
     try {
       await deleteDoc(doc(db, 'products', productId));
+      await setDoc(doc(db, 'storeSettings', 'main'), updatedSettings, { merge: true });
     } catch (e) {
       console.error('Failed to delete product from Firestore:', e);
     }
@@ -1692,7 +1840,33 @@ export default function App() {
           </div>
 
           {/* Product Cards Grid */}
-          {filteredProducts.length === 0 ? (
+          {products.length === 0 ? (
+            <div className="text-center py-16 px-4 bg-white rounded-3xl border border-stone-200 shadow-xs space-y-4 max-w-lg mx-auto">
+              <div className="w-16 h-16 rounded-2xl bg-stone-100 text-stone-600 flex items-center justify-center mx-auto">
+                <Layers className="w-8 h-8" />
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-stone-900">
+                لا توجد منتجات مضافة حالياً
+              </h3>
+              <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
+                المتجر جاهز بالكامل لعرض منتجاتك المضافة فقط. بمجرد قيامك بإضافة منتجات من لوحة تحكم الإدارة ستظهر هنا فوراً لجميع العملاء.
+              </p>
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  onClick={() => setIsAdminOpen(true)}
+                  className="px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-xs sm:text-sm rounded-xl shadow-xs transition-colors cursor-pointer"
+                >
+                  ⚙️ لوحة الإدارة (إضافة منتجات)
+                </button>
+                <button
+                  onClick={() => setIsPrescriptionModalOpen(true)}
+                  className="px-4 py-2.5 bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold text-xs sm:text-sm rounded-xl cursor-pointer"
+                >
+                  طلب خاص أو روشتة 📄
+                </button>
+              </div>
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-16 px-4 bg-white rounded-3xl border border-pink-100 space-y-3">
               <div className="w-16 h-16 rounded-2xl bg-pink-50 text-pink-600 flex items-center justify-center mx-auto">
                 <Layers className="w-8 h-8" />
@@ -1711,13 +1885,13 @@ export default function App() {
                     setSelectedBrand('all');
                     setSearchQuery('');
                   }}
-                  className="px-4 py-2 bg-pink-600 text-white font-bold text-xs rounded-xl shadow-xs"
+                  className="px-4 py-2 bg-pink-600 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer"
                 >
-                  عرض جميع المنتجات
+                  عرض جميع المنتجات ({products.length})
                 </button>
                 <button
                   onClick={() => setIsPrescriptionModalOpen(true)}
-                  className="px-4 py-2 bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold text-xs rounded-xl"
+                  className="px-4 py-2 bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold text-xs rounded-xl cursor-pointer"
                 >
                   طلب خاص أو روشتة 📄
                 </button>

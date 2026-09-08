@@ -9,6 +9,9 @@ import {
   Zap,
   Bell,
   WifiOff,
+  Sparkles,
+  ArrowDown,
+  Info,
 } from 'lucide-react';
 
 interface InstallAppModalProps {
@@ -20,6 +23,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({ isOpen, onClos
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [showManualGuide, setShowManualGuide] = useState(false);
 
   useEffect(() => {
     // Detect iOS
@@ -45,16 +49,22 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({ isOpen, onClos
     };
   }, []);
 
-  const handleInstallClick = async () => {
+  const handleInstantShortcutInstall = async () => {
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setIsInstalled(true);
-        setDeferredPrompt(null);
+      try {
+        await deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setIsInstalled(true);
+          setDeferredPrompt(null);
+        }
+      } catch (err) {
+        console.error('PWA prompt error:', err);
+        setShowManualGuide(true);
       }
     } else {
-      alert('لتثبيت التطبيق: افتحي قائمة خيارات المتصفح (⋮) ثم اضغطي على "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية".');
+      // If browser doesn't expose deferred prompt immediately, show clear step-by-step
+      setShowManualGuide(true);
     }
   };
 
@@ -62,7 +72,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({ isOpen, onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs text-right">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-pink-100 overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-pink-100 overflow-hidden relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -78,97 +88,109 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({ isOpen, onClos
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h3 className="text-lg font-black text-stone-900">تطبيق m&l للهواتف</h3>
-              <span className="bg-pink-100 text-pink-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
-                تطبيق فوري
+              <h3 className="text-lg font-black text-stone-900">تطبيق m&l الأصلي</h3>
+              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Zap className="w-3 h-3 text-emerald-600" />
+                تثبيت فوري
               </span>
             </div>
             <p className="text-xs text-stone-500 font-medium">
-              عناية بالمرأة والجمال والطفل (أكتوبر والشيخ زايد)
+              عناية بالمرأة والجمال والطفل • توصيل فوري بأكتوبر وزايد
             </p>
           </div>
         </div>
 
-        {/* Features list */}
-        <div className="space-y-2.5 bg-pink-50/50 p-3.5 rounded-2xl border border-pink-100 mb-5 text-xs text-pink-950">
-          <div className="flex items-center gap-2 font-bold">
-            <Zap className="w-4 h-4 text-pink-600 shrink-0" />
-            <span>تصفح وطلب فوري فائق السرعة وبدون الحاجة لمتجر التطبيقات.</span>
+        {/* Quick Highlights */}
+        <div className="grid grid-cols-3 gap-2 mb-5 text-center">
+          <div className="bg-pink-50/80 p-2.5 rounded-2xl border border-pink-100">
+            <Zap className="w-5 h-5 text-pink-600 mx-auto mb-1" />
+            <div className="font-extrabold text-[11px] text-pink-950">بدون تحميل</div>
+            <div className="text-[10px] text-stone-500">لا يستهلك مساحة</div>
           </div>
-          <div className="flex items-center gap-2 font-bold">
-            <Bell className="w-4 h-4 text-pink-600 shrink-0" />
-            <span>إشعارات حية وتتبع فوري للشحنة في ٦ أكتوبر والشيخ زايد.</span>
+          <div className="bg-rose-50/80 p-2.5 rounded-2xl border border-rose-100">
+            <Bell className="w-5 h-5 text-rose-600 mx-auto mb-1" />
+            <div className="font-extrabold text-[11px] text-rose-950">إشعارات سريعة</div>
+            <div className="text-[10px] text-stone-500">تنبيه بالمنتجات</div>
           </div>
-          <div className="flex items-center gap-2 font-bold">
-            <WifiOff className="w-4 h-4 text-pink-600 shrink-0" />
-            <span>يعمل بسلاسة حتى مع انقطاع أو ضعف شبكة الإنترنت.</span>
+          <div className="bg-amber-50/80 p-2.5 rounded-2xl border border-amber-100">
+            <WifiOff className="w-5 h-5 text-amber-600 mx-auto mb-1" />
+            <div className="font-extrabold text-[11px] text-amber-950">يعمل بدون نت</div>
+            <div className="text-[10px] text-stone-500">فتح فوري وسلس</div>
           </div>
         </div>
 
-        {/* Download Options */}
-        <div className="space-y-3 mb-5">
-          {/* Option 1: Direct APK Download Link */}
-          <a
-            href="https://www.mediafire.com/file/96n9dd1yvi1upyg/app-release.apk/file"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-pink-600 via-rose-600 to-pink-700 hover:from-pink-700 hover:to-rose-800 active:scale-[0.99] text-white font-black text-sm shadow-lg shadow-pink-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer border border-pink-400/40"
-          >
-            <Download className="w-5 h-5 animate-bounce" />
-            <span>تحميل ملف التطبيق المباشر (Android APK) 📲</span>
-          </a>
-          <p className="text-[11px] text-center text-stone-500 font-medium">
-            ملف APK أصلي مجاني جاهز للتثبيت على جميع هواتف أندرويد (سامسونج، شاومي، أوبو، وغيرها).
-          </p>
-        </div>
-
-        {/* Installation Instructions */}
+        {/* Primary Action: Instant Shortcut 1-Click Install */}
         {isInstalled ? (
-          <div className="p-4 rounded-2xl bg-pink-100 text-pink-900 text-center space-y-2 mb-4">
-            <CheckCircle2 className="w-8 h-8 mx-auto text-pink-600" />
-            <div className="font-extrabold text-sm">التطبيق مثبت بالفعل على جهازك!</div>
-            <p className="text-xs">يمكنك فتحه مباشرة من الشاشة الرئيسية لهاتفك.</p>
-          </div>
-        ) : isIOS ? (
-          /* iOS Safari Guide */
-          <div className="space-y-3 mb-5 p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-800">
-            <div className="font-black text-stone-900 flex items-center gap-1.5">
-              <Smartphone className="w-4 h-4 text-pink-600" />
-              <span>طريقة التثبيت على أجهزة iPhone و iPad:</span>
-            </div>
-            <ol className="space-y-2 pr-4 list-decimal text-[11px] leading-relaxed text-stone-700 font-medium">
-              <li className="flex items-center gap-1.5">
-                اضغطي على زر <strong>المشاركة (Share)</strong>
-                <Share2 className="w-3.5 h-3.5 text-blue-600 inline" /> في أسفل متصفح Safari.
-              </li>
-              <li className="flex items-center gap-1.5">
-                مرري لأسفل واختاري <strong>«إضافة إلى الشاشة الرئيسية» (Add to Home Screen)</strong>
-                <PlusSquare className="w-3.5 h-3.5 text-stone-800 inline" />.
-              </li>
-              <li>
-                اضغطي على <strong>«إضافة» (Add)</strong> في أعلى الزاوية.
-              </li>
-            </ol>
+          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-center space-y-2 mb-4">
+            <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-600" />
+            <div className="font-black text-sm">التطبيق مثبت بالفعل على شاشتك الرئيسية!</div>
+            <p className="text-xs text-emerald-700">يمكنك فتحه مباشرة من الشاشة الرئيسية لهاتفك في أي وقت وتصلك التحديثات تلقائياً.</p>
           </div>
         ) : (
-          /* Android / Chrome One-Click Web PWA Install */
-          <div className="space-y-2.5 mb-5 p-3.5 bg-pink-50/70 rounded-2xl border border-pink-100">
+          <div className="space-y-3 mb-5">
             <button
-              onClick={handleInstallClick}
-              className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-pink-100 text-pink-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-pink-200 shadow-2xs"
+              onClick={handleInstantShortcutInstall}
+              className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-pink-600 via-rose-600 to-pink-700 hover:from-pink-700 hover:to-rose-800 active:scale-[0.99] text-white font-black text-base shadow-xl shadow-pink-600/30 flex items-center justify-center gap-2.5 transition-all cursor-pointer border border-pink-400/40 relative overflow-hidden group"
             >
-              <Smartphone className="w-4 h-4 text-pink-600" />
-              <span>أو تثبيت كـ تطبيق ويب فوري (PWA Web)</span>
+              <Zap className="w-5 h-5 text-amber-300 animate-pulse" />
+              <span>تثبيت التطبيق كاختصار فوري على الشاشة</span>
+              <Sparkles className="w-4 h-4 text-pink-200" />
             </button>
-            <p className="text-[10px] text-center text-stone-500">
-              يضيف أيقونة مباشرة على الشاشة الرئيسية بدون تحميل ملفات.
+            <p className="text-[11px] text-center text-stone-500 font-medium">
+              💡 نقرة واحدة وسيتم تثبيت أيقونة التطبيق مباشرة على شاشة هاتفك الرئيسية بدون أي انتظار.
             </p>
           </div>
         )}
 
+        {/* If iOS Safari or Guide is triggered */}
+        {(isIOS || showManualGuide) && !isInstalled && (
+          <div className="space-y-3 mb-5 p-4 rounded-2xl bg-pink-50/60 border border-pink-200 text-xs text-stone-800 animate-in fade-in duration-200">
+            <div className="font-black text-pink-900 flex items-center gap-2 text-sm">
+              <Info className="w-4 h-4 text-pink-600" />
+              <span>{isIOS ? 'طريقة التثبيت السريعة على أجهزة iPhone و iPad:' : 'خطوات إضافة الاختصار فوراً على هاتفك:'}</span>
+            </div>
+
+            {isIOS ? (
+              <ol className="space-y-2 pr-4 list-decimal text-xs leading-relaxed text-stone-700 font-medium">
+                <li className="flex items-center gap-2">
+                  <span>اضغط على زر المشاركة أسفل Safari</span>
+                  <Share2 className="w-4 h-4 text-blue-600 inline bg-blue-50 p-0.5 rounded" />
+                </li>
+                <li className="flex items-center gap-2">
+                  <span>مرر القائمة لأسفل واضغط على <strong>«إضافة إلى الشاشة الرئيسية»</strong></span>
+                  <PlusSquare className="w-4 h-4 text-stone-800 inline bg-stone-100 p-0.5 rounded" />
+                </li>
+                <li>
+                  اضغط على كلمة <strong>«إضافة» (Add)</strong> أعلى الزاوية.
+                </li>
+              </ol>
+            ) : (
+              <ol className="space-y-2 pr-4 list-decimal text-xs leading-relaxed text-stone-700 font-medium">
+                <li>اضغط على زر القائمة (الثلاث نقاط <strong>⋮</strong>) في أعلى يمين أو يسار المتصفح.</li>
+                <li>اختر <strong>«تثبيت التطبيق» (Install app)</strong> أو <strong>«إضافة إلى الشاشة الرئيسية»</strong>.</li>
+                <li>اضغط على <strong>تثبيت</strong>، وسيظهر اختصار التطبيق فوراً على شاشة هاتفك.</li>
+              </ol>
+            )}
+          </div>
+        )}
+
+        {/* Secondary Choice: Direct APK Download Link */}
+        <div className="pt-3 border-t border-stone-100">
+          <a
+            href="https://www.mediafire.com/file/96n9dd1yvi1upyg/app-release.apk/file"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-2.5 px-3 rounded-xl bg-stone-50 hover:bg-stone-100 active:scale-[0.99] text-stone-600 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer border border-stone-200"
+          >
+            <Download className="w-4 h-4 text-stone-500" />
+            <span>تحميل كملف أندرويد خارجي اختياري (APK)</span>
+          </a>
+        </div>
+
+        {/* Dismiss Button */}
         <button
           onClick={onClose}
-          className="w-full py-2.5 text-xs text-stone-500 hover:text-stone-800 font-bold transition-colors cursor-pointer"
+          className="w-full mt-3 py-2 text-xs text-stone-500 hover:text-stone-800 font-bold transition-colors cursor-pointer text-center"
         >
           إغلاق والمتابعة في المتصفح
         </button>

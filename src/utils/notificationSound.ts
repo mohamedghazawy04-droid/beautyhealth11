@@ -123,4 +123,27 @@ export async function sendBrowserNotification(title: string, options?: Notificat
   }
 }
 
+// Set or clear app badge icon on mobile home screen (Web Badging API)
+export async function updateAppBadge(count?: number) {
+  try {
+    if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
+      if (typeof count === 'number' && count > 0) {
+        await (navigator as any).setAppBadge(count);
+      } else {
+        await (navigator as any).setAppBadge();
+      }
+    }
+  } catch (e) {
+    // Badging API not supported or blocked
+  }
+}
+
+export async function clearAppBadge() {
+  try {
+    if (typeof navigator !== 'undefined' && 'clearAppBadge' in navigator) {
+      await (navigator as any).clearAppBadge();
+    }
+  } catch (e) {}
+}
+
 

@@ -145,6 +145,8 @@ export interface StoreSettings {
   fastDeliveryEnabled: boolean;
   storeName: string;
   contactWhatsApp: string;
+  version?: number;
+  lastUpdated?: number;
   // Automated Order Notification & Dispatch Settings
   autoDispatchEnabled?: boolean;
   telegramEnabled?: boolean;
