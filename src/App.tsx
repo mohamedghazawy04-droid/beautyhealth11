@@ -35,6 +35,7 @@ import {
   AppNotification,
   SupportTicket,
   SupportMessage,
+  CustomerAccount,
 } from './types';
 import { PRODUCTS_DATA } from './data/products';
 import { OCTOBER_ZAYED_ZONES } from './data/zones';
@@ -46,6 +47,7 @@ import { ProductDetailModal } from './components/ProductDetailModal';
 import { ZoneSelectorModal } from './components/ZoneSelectorModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
+import { CustomerAuthModal } from './components/CustomerAuthModal';
 import { OrderTrackingModal } from './components/OrderTrackingModal';
 import { WishlistModal } from './components/WishlistModal';
 import { AdminPortalModal } from './components/AdminPortalModal';
@@ -382,6 +384,46 @@ export default function App() {
   const [reviewModalUserArea, setReviewModalUserArea] = useState<string | undefined>(undefined);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Customer Account & Authentication State (Firestore + LocalStorage)
+  const [loggedInCustomer, setLoggedInCustomer] = useState<CustomerAccount | null>(() => {
+    const saved = localStorage.getItem('carehub_logged_in_customer');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return null;
+  });
+
+  const [isCustomerAuthOpen, setIsCustomerAuthOpen] = useState(false);
+  const [customerAuthMode, setCustomerAuthMode] = useState<'login' | 'register'>('register');
+
+  const handleOpenCustomerAuth = (mode: 'login' | 'register' = 'register') => {
+    setCustomerAuthMode(mode);
+    setIsCustomerAuthOpen(true);
+  };
+
+  const handleCustomerLogin = (customer: CustomerAccount) => {
+    setLoggedInCustomer(customer);
+    localStorage.setItem('carehub_logged_in_customer', JSON.stringify(customer));
+    localStorage.setItem('carehub_customer_phone', customer.phone);
+    localStorage.setItem('carehub_customer_display_name', customer.name);
+    if (customer.zoneId) {
+      const matchedZone = OCTOBER_ZAYED_ZONES.find((z) => z.id === customer.zoneId);
+      if (matchedZone) {
+        setSelectedZone(matchedZone);
+      }
+    }
+  };
+
+  const handleCustomerLogout = () => {
+    setLoggedInCustomer(null);
+    localStorage.removeItem('carehub_logged_in_customer');
+    showToast('👋 تم تسجيل الخروج بنجاح');
+  };
 
   // Secret Footer Multi-Click Tracker
   const footerClickCountRef = React.useRef(0);
@@ -1676,6 +1718,8 @@ export default function App() {
         ordersCount={orders.length}
         onOpenCustomerSupport={() => setIsSupportModalOpen(true)}
         unreadCustomerSupportCount={unreadCustomerMessagesCount}
+        loggedInCustomer={loggedInCustomer}
+        onOpenCustomerAuth={handleOpenCustomerAuth}
       />
 
       {/* Main Content Area */}
@@ -2035,6 +2079,7 @@ export default function App() {
         onOrderCompleted={handleOrderCompleted}
         onClearCart={handleClearCart}
         storeSettings={storeSettings}
+        loggedInCustomer={loggedInCustomer}
         onOpenOrderTracking={(orderId) => {
           setIsCheckoutOpen(false);
           setIsOrderTrackingOpen(true);
@@ -2043,6 +2088,17 @@ export default function App() {
           setSupportInitialOrderId(orderId);
           setIsSupportModalOpen(true);
         }}
+      />
+
+      {/* Customer Registration and Authentication Modal */}
+      <CustomerAuthModal
+        isOpen={isCustomerAuthOpen}
+        onClose={() => setIsCustomerAuthOpen(false)}
+        loggedInCustomer={loggedInCustomer}
+        onCustomerLogin={handleCustomerLogin}
+        onCustomerLogout={handleCustomerLogout}
+        showToast={showToast}
+        initialMode={customerAuthMode}
       />
 
       <OrderTrackingModal
@@ -2178,6 +2234,8 @@ export default function App() {
         wishlistCount={wishlist.length}
         onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
         onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        loggedInCustomer={loggedInCustomer}
+        onOpenCustomerAuth={handleOpenCustomerAuth}
       />
 
       {/* All Categories Interactive Drawer / Modal */}

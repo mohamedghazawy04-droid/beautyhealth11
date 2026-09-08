@@ -18,7 +18,7 @@ import {
   ArrowRight,
   Headphones
 } from 'lucide-react';
-import { CartItem, Order, PaymentMethod, StoreSettings, DeliveryZone } from '../types';
+import { CartItem, Order, PaymentMethod, StoreSettings, DeliveryZone, CustomerAccount } from '../types';
 import { OCTOBER_ZAYED_ZONES } from '../data/zones';
 import { dispatchAutomatedOrder } from '../utils/orderNotifier';
 
@@ -32,6 +32,7 @@ interface CheckoutModalProps {
   onClearCart: () => void;
   storeSettings?: StoreSettings;
   selectedZone?: DeliveryZone;
+  loggedInCustomer?: CustomerAccount | null;
   onOpenOrderTracking?: (orderId?: string) => void;
   onOpenCustomerSupport?: (orderId?: string) => void;
 }
@@ -53,6 +54,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onClearCart,
   storeSettings,
   selectedZone: initialZone,
+  loggedInCustomer,
   onOpenOrderTracking,
   onOpenCustomerSupport,
 }) => {
@@ -67,19 +69,32 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     return d.toISOString().split('T')[0];
   })();
 
-  const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [customerName, setCustomerName] = useState(loggedInCustomer?.name || '');
+  const [phone, setPhone] = useState(loggedInCustomer?.phone || '');
   const [alternatePhone, setAlternatePhone] = useState('');
   const [selectedZoneId, setSelectedZoneId] = useState<string>(
-    initialZone?.id || OCTOBER_ZAYED_ZONES[0]?.id || 'oct-1'
+    loggedInCustomer?.zoneId || initialZone?.id || OCTOBER_ZAYED_ZONES[0]?.id || 'oct-1'
   );
-  const [detailedAddress, setDetailedAddress] = useState('');
-  const [buildingNumber, setBuildingNumber] = useState('');
-  const [floorNumber, setFloorNumber] = useState('');
-  const [apartmentNumber, setApartmentNumber] = useState('');
+  const [detailedAddress, setDetailedAddress] = useState(loggedInCustomer?.detailedAddress || '');
+  const [buildingNumber, setBuildingNumber] = useState(loggedInCustomer?.buildingNumber || '');
+  const [floorNumber, setFloorNumber] = useState(loggedInCustomer?.floorNumber || '');
+  const [apartmentNumber, setApartmentNumber] = useState(loggedInCustomer?.apartmentNumber || '');
   const [landmark, setLandmark] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
+
+  // If customer logs in while modal is open, auto-fill
+  React.useEffect(() => {
+    if (loggedInCustomer) {
+      if (loggedInCustomer.name && !customerName) setCustomerName(loggedInCustomer.name);
+      if (loggedInCustomer.phone && !phone) setPhone(loggedInCustomer.phone);
+      if (loggedInCustomer.zoneId) setSelectedZoneId(loggedInCustomer.zoneId);
+      if (loggedInCustomer.detailedAddress && !detailedAddress) setDetailedAddress(loggedInCustomer.detailedAddress);
+      if (loggedInCustomer.buildingNumber && !buildingNumber) setBuildingNumber(loggedInCustomer.buildingNumber);
+      if (loggedInCustomer.floorNumber && !floorNumber) setFloorNumber(loggedInCustomer.floorNumber);
+      if (loggedInCustomer.apartmentNumber && !apartmentNumber) setApartmentNumber(loggedInCustomer.apartmentNumber);
+    }
+  }, [loggedInCustomer]);
 
   // Delivery Timing Scheduling (Minimum 24 hours)
   const [deliveryTimingType, setDeliveryTimingType] = useState<'standard_24h' | 'scheduled'>('standard_24h');
@@ -197,6 +212,57 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       dispatchAutomatedOrder(newOrder, storeSettings).catch((err) => {
         console.error('Checkout automated dispatch error:', err);
       });
+
+      // Direct redirection toward store manager WhatsApp as requested
+      const storeWhatsApp = storeSettings?.contactWhatsApp || '201093629587';
+      const cleanWhatsApp = storeWhatsApp.replace(/\D/g, '');
+      const itemsListFormatted = newOrder.items
+        .map(
+          (it, idx) =>
+            `${idx + 1}. *${it.product.nameAr || it.product.name}*\n   الكمية: ${it.quantity} | السعر: ${it.product.price * it.quantity} ج`
+        )
+        .join('\n');
+
+      const waMsg = encodeURIComponent(
+        `🚨 *طلب شراء جديد من متجر m&l* 📦\n` +
+        `━━━━━━━━━━━━━━━━━\n` +
+        `🔢 *رقم الطلب:* #${newOrder.id}\n` +
+        `👤 *العميل:* ${newOrder.customerName}\n` +
+        `📱 *الهاتف:* ${newOrder.phone}\n` +
+        (newOrder.alternatePhone ? `📱 *هاتف بديل:* ${newOrder.alternatePhone}\n` : '') +
+        `📍 *المنطقة:* ${newOrder.city || ''} - ${newOrder.zoneName || ''}\n` +
+        `🏢 *العنوان بالتفصيل:* ${newOrder.detailedAddress}\n` +
+        (newOrder.buildingNumber || newOrder.floorNumber || newOrder.apartmentNumber
+          ? `🚪 *بيانات المبنى:* عمارة ${newOrder.buildingNumber || '-'} / دور ${newOrder.floorNumber || '-'} / شقة ${newOrder.apartmentNumber || '-'}\n`
+          : '') +
+        (newOrder.landmark ? `🏷️ *علامة مميزة:* ${newOrder.landmark}\n` : '') +
+        `🚚 *موعد التوصيل:* ${newOrder.estimatedDelivery || 'خلال ٢٤ ساعة'}\n` +
+        `💳 *طريقة الدفع:* ${
+          newOrder.paymentMethod === 'cod'
+            ? '💵 كاش عند الاستلام'
+            : newOrder.paymentMethod === 'instapay'
+            ? '📱 إنستاباي InstaPay'
+            : '💳 محفظة إلكترونية'
+        }\n` +
+        `━━━━━━━━━━━━━━━━━\n` +
+        `🛒 *المنتجات المطلوبة:*\n${itemsListFormatted}\n` +
+        `━━━━━━━━━━━━━━━━━\n` +
+        `💵 *المجموع الفرعي:* ${newOrder.subtotal} ج\n` +
+        (newOrder.discount ? `🎟️ *خصم الكوبون:* -${newOrder.discount} ج\n` : '') +
+        `🚚 *الشحن:* ${newOrder.deliveryFee === 0 ? 'مجاني 🎉' : `${newOrder.deliveryFee} ج`}\n` +
+        `💰 *الإجمالي المطلوب:* *${newOrder.total} جنيه*\n` +
+        (newOrder.notes ? `📝 *ملاحظات:* ${newOrder.notes}\n` : '') +
+        `━━━━━━━━━━━━━━━━━\n` +
+        `✅ *تأكيد الطلب وتحديد موعد خروج المندوب*`
+      );
+
+      const targetWaUrl = `https://wa.me/${cleanWhatsApp}?text=${waMsg}`;
+
+      try {
+        window.open(targetWaUrl, '_blank');
+      } catch (e) {
+        console.warn('Auto WhatsApp popup prevented by browser:', e);
+      }
 
       onOrderCompleted(newOrder);
       onClearCart();
@@ -336,35 +402,31 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             </div>
 
-            {/* Automated Dispatch Status Confirmation */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 space-y-2.5">
-              <div className="flex items-start gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
-                  <Sparkles className="w-4 h-4" />
+            {/* Direct WhatsApp Redirection Hero Action */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-600/15 to-emerald-500/10 border-2 border-emerald-500/30 space-y-3 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                  <MessageCircle className="w-5 h-5 animate-bounce" />
                 </div>
                 <div>
-                  <strong className="block font-black text-xs sm:text-sm text-emerald-950">
-                    ⚡ تم إرسال إشعار فوري لمدير المتجر وفريق التجهيز آلياً
+                  <strong className="block font-black text-sm text-emerald-900">
+                    تم توجيه طلبك مباشرة إلى واتساب الإدارة 📱
                   </strong>
-                  <p className="text-[11px] sm:text-xs text-emerald-800 mt-1 leading-relaxed">
-                    تم تحويل تفاصيل طلبك وعنوانك إلى نظام إدارة المتجر بشكل تلقائي ومباشر. ستقوم إدارة المتجر ومندوب التوصيل بالتواصل معك لتأكيد موعد التسليم — <strong>لا يلزمك إرسال أي رسالة يدوية</strong>.
+                  <p className="text-xs text-emerald-700 mt-0.5 leading-relaxed">
+                    تم تجهيز رسالة الفاتورة الكاملة برقم الأوردر وعنوانك لتأكيد الشحن فوراً مع الإدارة
                   </p>
                 </div>
               </div>
 
-              {/* Optional direct contact button if customer wants urgent direct WhatsApp */}
-              <div className="pt-1 border-t border-emerald-200/60 flex items-center justify-between gap-2 flex-wrap">
-                <span className="text-[11px] text-emerald-700 font-medium">هل ترغب بالتحدث الفوري مع الإدارة؟</span>
-                <a
-                  href={managerWhatsAppUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-2xs transition-colors no-underline"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  <span>مراسلة الإدارة واتساب (اختياري)</span>
-                </a>
-              </div>
+              <a
+                href={managerWhatsAppUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 transition-all no-underline"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>فتح الواتساب وتأكيد الطلب الآن مع الإدارة 💬</span>
+              </a>
             </div>
 
             {/* Quick Action Navigation Buttons */}

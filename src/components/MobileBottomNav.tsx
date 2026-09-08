@@ -1,6 +1,6 @@
 import React from 'react';
-import { Home, Grid, Heart, Package, ShoppingBag } from 'lucide-react';
-import { MainCategory } from '../types';
+import { Home, Grid, Heart, Package, ShoppingBag, User } from 'lucide-react';
+import { MainCategory, CustomerAccount } from '../types';
 
 interface MobileBottomNavProps {
   activeCategory: MainCategory;
@@ -12,6 +12,8 @@ interface MobileBottomNavProps {
   wishlistCount: number;
   onOpenOrderTracking: () => void;
   onScrollToTop: () => void;
+  loggedInCustomer?: CustomerAccount | null;
+  onOpenCustomerAuth?: (mode?: 'login' | 'register') => void;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
@@ -24,6 +26,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   wishlistCount,
   onOpenOrderTracking,
   onScrollToTop,
+  loggedInCustomer,
+  onOpenCustomerAuth,
 }) => {
   return (
     <div
@@ -92,6 +96,26 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           <Package className="w-4 h-4" />
           <span className="text-[9px] mt-0.5 font-medium leading-none">طلباتي</span>
         </button>
+
+        {/* Customer Account */}
+        {onOpenCustomerAuth && (
+          <button
+            id="mobile-nav-account"
+            type="button"
+            onClick={() => onOpenCustomerAuth(loggedInCustomer ? 'login' : 'register')}
+            className="flex flex-col items-center justify-center py-0.5 px-2 rounded-lg text-stone-500 hover:text-pink-600 transition-all cursor-pointer relative"
+          >
+            <div className="relative">
+              <User className="w-4 h-4 text-amber-600" />
+              {loggedInCustomer && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />
+              )}
+            </div>
+            <span className="text-[9px] mt-0.5 font-bold leading-none text-stone-700">
+              {loggedInCustomer ? 'حسابي' : 'تسجيل'}
+            </span>
+          </button>
+        )}
 
         {/* Cart Button */}
         <button

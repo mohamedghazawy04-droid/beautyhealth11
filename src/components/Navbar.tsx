@@ -20,9 +20,12 @@ import {
   ShieldCheck,
   Bell,
   Package,
-  HardDrive
+  HardDrive,
+  User,
+  UserPlus,
+  LogIn
 } from 'lucide-react';
-import { StoreSettings, Product, CategoryConfig } from '../types';
+import { StoreSettings, Product, CategoryConfig, CustomerAccount } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/categories';
 
 interface NavbarProps {
@@ -51,6 +54,8 @@ interface NavbarProps {
   onOpenGoogleDrive?: () => void;
   onOpenCustomerSupport?: () => void;
   unreadCustomerSupportCount?: number;
+  loggedInCustomer?: CustomerAccount | null;
+  onOpenCustomerAuth?: (mode?: 'login' | 'register') => void;
 }
 
 const POPULAR_SEARCHES = [
@@ -88,6 +93,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenGoogleDrive,
   onOpenCustomerSupport,
   unreadCustomerSupportCount = 0,
+  loggedInCustomer,
+  onOpenCustomerAuth,
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [isDesktopFocused, setIsDesktopFocused] = useState(false);
@@ -253,6 +260,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Smartphone className="w-3 h-3 text-pink-300" />
                 <span>خيارات التثبيت</span>
+              </button>
+            )}
+
+            {/* Customer Account Trigger */}
+            {onOpenCustomerAuth && (
+              <button
+                type="button"
+                onClick={() => onOpenCustomerAuth(loggedInCustomer ? 'login' : 'register')}
+                className="flex items-center gap-1.5 text-amber-200 hover:text-white font-bold transition-colors cursor-pointer bg-white/10 hover:bg-white/15 px-2.5 py-0.5 rounded-full border border-amber-300/30 text-[11px]"
+                title="تسجيل حساب عميل جديد أو تسجيل الدخول"
+              >
+                <User className="w-3 h-3 text-amber-300" />
+                {loggedInCustomer ? (
+                  <span>أهلاً، {loggedInCustomer.name.split(' ')[0]}</span>
+                ) : (
+                  <span>تسجيل عميل جديد 🌸</span>
+                )}
               </button>
             )}
 
@@ -484,6 +508,31 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {unreadCustomerSupportCount}
                   </span>
                 )}
+              </button>
+            )}
+
+            {/* Customer Account Button */}
+            {onOpenCustomerAuth && (
+              <button
+                type="button"
+                onClick={() => onOpenCustomerAuth(loggedInCustomer ? 'login' : 'register')}
+                className="flex items-center gap-2 py-1.5 px-2.5 sm:px-3 rounded-xl bg-pink-50/80 hover:bg-pink-100 text-stone-900 border border-pink-200/80 transition-all cursor-pointer shadow-2xs group"
+                title={loggedInCustomer ? `حساب العميل: ${loggedInCustomer.name}` : 'تسجيل عميل جديد أو تسجيل دخول'}
+              >
+                <div className="relative">
+                  <User className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-pink-700 group-hover:scale-105 transition-transform" />
+                  {loggedInCustomer && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full ring-2 ring-white" />
+                  )}
+                </div>
+                <div className="text-right hidden sm:block">
+                  <span className="block text-[9px] text-stone-500 font-bold leading-none">
+                    {loggedInCustomer ? 'حسابك' : 'مرحباً بك'}
+                  </span>
+                  <span className="text-xs font-black text-pink-950 leading-tight">
+                    {loggedInCustomer ? loggedInCustomer.name.split(' ')[0] : 'تسجيل / حساب'}
+                  </span>
+                </div>
               </button>
             )}
 

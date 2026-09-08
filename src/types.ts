@@ -232,3 +232,22 @@ export interface SupportTicket {
   unreadByCustomer: boolean;
 }
 
+export interface CustomerAccount {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  password?: string;
+  city?: string;
+  zoneId?: string;
+  zoneName?: string;
+  detailedAddress?: string;
+  buildingNumber?: string;
+  floorNumber?: string;
+  apartmentNumber?: string;
+  createdAt: string;
+  lastLoginAt?: string;
+  ordersCount?: number;
+  totalSpent?: number;
+}
+
